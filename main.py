@@ -5,6 +5,10 @@ from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import os
+import json
+from urllib.request import Request as UrlRequest, urlopen
+from urllib.error import HTTPError, URLError
+from time import time
 from threading import Lock
 from urllib.parse import urljoin
 
@@ -76,8 +80,47 @@ async def news(request: Request, payload: Query):
                                      days=1 if payload.window == "24h" else 7,
                                      incident_only=payload.incident_only)
     if not result["sources_checked"]:
-        raise HTTPException(503, "News providers are unavailable right now. No live results can be verified.")
+        raise HTTPException(503, "News feeds unavailable (" + "; ".join(result["provider_errors"]) + "). Try again later. No results were fabricated.")
     return result
+
+
+_iss_lock = Lock()
+_iss_cache = {'data': None, 'expires': 0, 'error_expires': 0}
+ISS_URL = 'https://api.wheretheiss.at/v1/satellites/25544'
+
+
+def _iss_location() -> dict:
+    """Public third-party positional observations; not a satellite imagery feed."""
+    now = time()
+    with _iss_lock:
+        if _iss_cache['data'] and now < _iss_cache['expires']:
+            return _iss_cache['data']
+        if now < _iss_cache['error_expires']:
+            raise ValueError('Feed temporarily unavailable')
+        try:
+            req = UrlRequest(ISS_URL, headers={'User-Agent':'ClearIntel-PublicResearch/1.1'})
+            with urlopen(req,timeout=6) as response:
+                payload=json.loads(response.read(16_384))
+            lat=float(payload['latitude']); lon=float(payload['longitude'])
+            timestamp=int(payload['timestamp'])
+            if not (-90<=lat<=90 and -180<=lon<=180 and abs(now-timestamp)<600):
+                raise ValueError('Stale or invalid ISS position')
+            data={'latitude':round(lat,4),'longitude':round(lon,4),
+                  'timestamp':timestamp,'object':'ISS (NORAD 25544)',
+                  'source':'Where the ISS at?'}
+            _iss_cache.update(data=data,expires=now+25,error_expires=0)
+            return data
+        except (HTTPError,URLError,TimeoutError,ValueError,KeyError,TypeError,OverflowError):
+            _iss_cache.update(data=None,expires=0,error_expires=now+20)
+            raise ValueError('ISS position provider unavailable')
+
+
+@app.get('/api/iss',include_in_schema=False)
+async def iss_position():
+    try:
+        return await run_in_threadpool(_iss_location)
+    except ValueError:
+        raise HTTPException(503,'ISS position feed is unavailable. Globe animation is illustrative.')
 
 
 @app.get("/robots.txt", include_in_schema=False)

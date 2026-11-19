@@ -13,6 +13,7 @@
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/styles.css">
   <script src="/assets/app.js" defer></script>
+  <script src="/assets/earth.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -36,18 +37,16 @@
         <div class="hero-actions"><a class="button button-primary" href="#research">Explore public news <span aria-hidden="true">↗</span></a><a class="button button-outline" href="#contact">Request a research brief</a></div>
         <div class="hero-meta"><span>PUBLIC DATA ONLY</span><span>REVIEWABLE SOURCES</span><span>EVIDENCE-LED REPORTS</span></div>
       </div>
-      <div class="hero-visual" aria-label="Illustrative ClearIntel research workspace">
-        <div class="visual-head"><div><span class="window-led"></span><span class="window-led"></span><span class="window-led"></span></div><span>INTELLIGENCE WORKSPACE</span><span>CI / OSINT</span></div>
-        <div class="visual-body">
-          <div class="visual-side"><span>01</span><span>02</span><span>03</span><span>04</span></div>
-          <div class="visual-content">
-            <div class="visual-mini-title">RESEARCH OVERVIEW <span>PUBLIC SOURCES</span></div>
-            <div class="visual-search"><span>Recent incident reports</span><b>↗</b></div>
-            <div class="visual-network"><span class="network-line line-1"></span><span class="network-line line-2"></span><span class="network-line line-3"></span><span class="network-line line-4"></span><span class="node node-a"></span><span class="node node-b"></span><span class="node node-c"></span><span class="node node-d"></span><span class="node node-e"></span><span class="network-label label-a">SOURCE</span><span class="network-label label-b">EVENT</span><span class="network-label label-c">REVIEW</span></div>
-            <div class="visual-scores"><div><span>03</span><small>SOURCE TYPES</small></div><div><span>UTC</span><small>TIME FILTER</small></div><div><span>01</span><small>RESEARCH DESK</small></div></div>
-          </div>
+      <div class="hero-visual globe-panel" aria-label="Interactive rotating Earth with optional current ISS position">
+        <div class="visual-head"><div><span class="window-led"></span><span class="window-led"></span><span class="window-led"></span></div><span>ORBITAL OBSERVATION</span><span>CI / GEOINT</span></div>
+        <div class="globe-content">
+          <div class="globe-topline"><span><span class="dot"></span> EARTH OVERVIEW</span><span>ISS / NORAD 25544</span></div>
+          <div class="globe-canvas-wrap"><canvas id="earth-canvas" role="img" aria-label="Rotating illustration of the Earth. Live ISS position is shown only if the tracking feed responds."></canvas><div class="globe-coord-label">INTERACTIVE • DRAG TO ROTATE</div></div>
+          <div class="orbital-status" id="iss-status" aria-live="polite">Checking current ISS coordinates…</div>
+          <div class="orbital-readout"><span>LAT <b id="iss-lat">—</b></span><span>LON <b id="iss-lon">—</b></span><span>UPDATED <b id="iss-time">—</b></span></div>
+          <div class="globe-controls"><button type="button" id="iss-find" class="globe-control" disabled>Locate ISS</button><button type="button" id="earth-motion" class="globe-control" aria-pressed="false">Pause rotation</button></div>
         </div>
-        <div class="visual-foot"><span><span class="pulse"></span> ILLUSTRATIVE INTERFACE</span><span>RESEARCH / ANALYSE / REPORT</span></div>
+        <div class="visual-foot"><span><span class="pulse"></span> LIVE COORDINATES WHEN AVAILABLE</span><span>ANIMATED GLOBE • NOT SATELLITE IMAGERY</span></div>
       </div>
     </section>
     <section class="principle-bar"><div class="container principle-inner"><span>COLLECT</span><i></i><span>CHECK</span><i></i><span>COMPARE</span><i></i><span>REPORT</span><p>ClearIntel follows the evidence, not the headline.</p></div></section>

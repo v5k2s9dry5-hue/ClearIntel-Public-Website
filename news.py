@@ -8,6 +8,10 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 import json
+import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from urllib.error import HTTPError, URLError
+import socket
 import re
 from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
@@ -22,7 +26,7 @@ STOPWORDS = {"today","now","latest","news","breaking","live","reports","report",
 
 def _get(url: str) -> bytes:
     req = Request(url, headers=HEADERS)
-    with urlopen(req, timeout=9) as response:
+    with urlopen(req, timeout=7) as response:
         return response.read(MAX_RESPONSE_BYTES + 1)[:MAX_RESPONSE_BYTES]
 
 
@@ -79,6 +83,36 @@ def fetch_google(query: str, days: int, incident_only: bool = True) -> list[dict
     return records
 
 
+
+def fetch_bing(query: str, days: int, incident_only: bool = True) -> list[dict]:
+    """Search-indexed news RSS, an independent fallback when other providers fail."""
+    terms = _subject(query)
+    topic = ' '.join(terms) or query
+    suffix = ' (bombing OR bombed OR airstrike OR explosion OR missile OR attack)' if incident_only else ''
+    url = 'https://www.bing.com/news/search?' + urlencode({'q': topic + suffix, 'format': 'rss'})
+    root = ET.fromstring(_get(url))
+    records = []
+    for item in root.findall('.//channel/item'):
+        records.append({'title': item.findtext('title',''), 'url': item.findtext('link',''),
+                        'published': item.findtext('pubDate',''),
+                        'source': item.findtext('source','') or 'Publisher via Bing News',
+                        'provider': 'Bing News', 'time_basis': 'Bing News feed date'})
+    return records
+
+
+def _provider_error(error: Exception) -> str:
+    """Safe diagnostic category: never expose full upstream messages or URLs."""
+    if isinstance(error, HTTPError):
+        return 'HTTP ' + str(error.code)
+    if isinstance(error, (TimeoutError, socket.timeout)):
+        return 'timeout'
+    if isinstance(error, URLError):
+        return 'connection or DNS error'
+    if isinstance(error, (ValueError, json.JSONDecodeError, ET.ParseError)):
+        return 'invalid provider response'
+    return type(error).__name__
+
+
 def _subject(query: str) -> list[str]:
     # Limit to user-supplied plain words. Quoted operators/URLs cannot control provider queries.
     words = re.findall(r"[\w'-]+", query.lower(), flags=re.UNICODE)
@@ -102,20 +136,22 @@ def search_news(query: str, days: int = 1, incident_only: bool = True,
     subject = _subject(query)
     if not subject:
         return {"results": [], "sources_checked": [], "provider_errors": [], "notice": "Enter a location or subject, not just 'bombing today'.", "window_start": start.isoformat(), "window_end": now.isoformat()}
-    fetchers = fetchers if fetchers is not None else (fetch_gdelt, fetch_google)
+    fetchers = fetchers if fetchers is not None else (fetch_gdelt, fetch_google, fetch_bing)
     combined, checked, errors = [], [], []
-    for provider in fetchers:
-        label = getattr(provider, '__name__', 'source').replace('fetch_', '')
-        try:
-            found = provider(query, days, incident_only)
-            checked.append(label)
-            combined.extend(found)
-        
-        except Exception as error:
-            print(f"News source {label}: {type(error).__name__}, HTTP {getattr(error, 'code', 'N/A')}", flush=True)
-  
-            # Never show raw external API errors or tracebacks to anonymous clients.
-            errors.append(label + " temporarily unavailable")
+    # Each live source uses a bounded timeout; calls run concurrently to avoid 3x waiting.
+    with ThreadPoolExecutor(max_workers=min(3,len(fetchers))) as pool:
+        pending = {pool.submit(provider, query, days, incident_only):
+                   getattr(provider, '__name__', 'source').replace('fetch_', '') for provider in fetchers}
+        for future in as_completed(pending):
+            label = pending[future]
+            try:
+                found = future.result()
+                checked.append(label)
+                combined.extend(found)
+            except Exception as error:
+                category = _provider_error(error)
+                logging.warning('ClearIntel news provider %s failed: %s',label,category)
+                errors.append(label + ': ' + category)
     ranked = []
     seen = set()
     for article in combined:
