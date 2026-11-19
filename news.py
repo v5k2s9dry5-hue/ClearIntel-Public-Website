@@ -111,7 +111,7 @@ def search_news(query: str, days: int = 1, incident_only: bool = True,
             checked.append(label)
             combined.extend(found)
         
-except Exception as error:
+        except Exception as error:
             print(f"News source {label}: {type(error).__name__}, HTTP {getattr(error, 'code', 'N/A')}", flush=True)
   
             # Never show raw external API errors or tracebacks to anonymous clients.
