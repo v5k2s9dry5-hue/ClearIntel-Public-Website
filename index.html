@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#091216">
+  <meta name="description" content="ClearIntel provides structured open-source research, public-records investigation and source-linked intelligence reporting. Explore recent news coverage or request a research brief.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ClearIntel | Public-source intelligence & research">
+  <meta property="og:description" content="Clear information from public sources. Research, evidence review and client-ready reporting.">
+  <title>ClearIntel | OSINT Research & Public-Source Intelligence</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="container nav-bar">
+      <a class="brand" href="#top" aria-label="ClearIntel homepage">
+        <svg class="brand-mark" viewBox="0 0 44 44" aria-hidden="true"><rect x="1" y="1" width="42" height="42" rx="13" fill="#152b2e" stroke="#345b54"/><path d="M11 26.5v-9h10l3-5 9 4v10l-9 5-3-5H11z" fill="none" stroke="#b0f2cb" stroke-width="2.1" stroke-linejoin="round"/><circle cx="22.5" cy="22" r="3.3" fill="#b0f2cb"/></svg>
+        <span>Clear<span class="brand-secondary">Intel</span><small>PUBLIC-SOURCE RESEARCH</small></span>
+      </a>
+      <nav class="main-nav" aria-label="Primary navigation"><a href="#research">Research desk</a><a href="#services">Services</a><a href="#method">Method</a><a href="#contact" class="nav-contact">Make an enquiry <span aria-hidden="true">↗</span></a></nav>
+      <button id="menu-toggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav">Menu <span aria-hidden="true">☰</span></button>
+    </div>
+    <nav id="mobile-nav" class="mobile-nav" hidden aria-label="Mobile navigation"><a href="#research">Research desk</a><a href="#services">Services</a><a href="#method">Method</a><a href="#contact">Make an enquiry</a></nav>
+  </header>
+  <main id="main">
+    <section id="top" class="hero container">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="dot"></span> Independent OSINT & research service <span class="eyebrow-line"></span> CLEARINTEL / 01</div>
+        <h1>Research the world.<br><span class="soft-green">Understand the evidence.</span></h1>
+        <p class="hero-lede">ClearIntel organises open-source information into clear, traceable findings. Less clutter. More useful context. Every important conclusion should lead back to a source.</p>
+        <div class="hero-actions"><a class="button button-primary" href="#research">Explore public news <span aria-hidden="true">↗</span></a><a class="button button-outline" href="#contact">Request a research brief</a></div>
+        <div class="hero-meta"><span>PUBLIC DATA ONLY</span><span>REVIEWABLE SOURCES</span><span>EVIDENCE-LED REPORTS</span></div>
+      </div>
+      <div class="hero-visual" aria-label="Illustrative ClearIntel research workspace">
+        <div class="visual-head"><div><span class="window-led"></span><span class="window-led"></span><span class="window-led"></span></div><span>INTELLIGENCE WORKSPACE</span><span>CI / OSINT</span></div>
+        <div class="visual-body">
+          <div class="visual-side"><span>01</span><span>02</span><span>03</span><span>04</span></div>
+          <div class="visual-content">
+            <div class="visual-mini-title">RESEARCH OVERVIEW <span>PUBLIC SOURCES</span></div>
+            <div class="visual-search"><span>Recent incident reports</span><b>↗</b></div>
+            <div class="visual-network"><span class="network-line line-1"></span><span class="network-line line-2"></span><span class="network-line line-3"></span><span class="network-line line-4"></span><span class="node node-a"></span><span class="node node-b"></span><span class="node node-c"></span><span class="node node-d"></span><span class="node node-e"></span><span class="network-label label-a">SOURCE</span><span class="network-label label-b">EVENT</span><span class="network-label label-c">REVIEW</span></div>
+            <div class="visual-scores"><div><span>03</span><small>SOURCE TYPES</small></div><div><span>UTC</span><small>TIME FILTER</small></div><div><span>01</span><small>RESEARCH DESK</small></div></div>
+          </div>
+        </div>
+        <div class="visual-foot"><span><span class="pulse"></span> ILLUSTRATIVE INTERFACE</span><span>RESEARCH / ANALYSE / REPORT</span></div>
+      </div>
+    </section>
+    <section class="principle-bar"><div class="container principle-inner"><span>COLLECT</span><i></i><span>CHECK</span><i></i><span>COMPARE</span><i></i><span>REPORT</span><p>ClearIntel follows the evidence, not the headline.</p></div></section>
+    <section id="research" class="section container research-section">
+      <div class="section-heading"><div><span class="section-index">01 / EXPLORE</span><h2>Public news research</h2><p>Review recently indexed reporting and visit the linked sources. Results stay on this page.</p></div><span class="section-pill"><span class="dot"></span> PUBLIC SEARCH BETA</span></div>
+      <div class="research-panel">
+        <form id="news-form" class="news-form">
+          <div class="field-head"><label for="news-query">What are you researching?</label><div class="help-wrapper"><button type="button" class="help-button" aria-label="Help with news searches" aria-expanded="false" data-help="Search for a location or topic, for example ‘Iran bombing today’. ClearIntel shows published headlines within the time window. Headlines are not independently verified incidents.">?</button></div></div>
+          <div class="search-input-row"><div class="search-input"><span class="search-symbol" aria-hidden="true">⌕</span><input id="news-query" type="search" required maxlength="140" minlength="3" placeholder="e.g. Iran bombing today" autocomplete="off"></div><button class="button button-primary search-submit" type="submit" id="news-submit">Search recent reports <span aria-hidden="true">→</span></button></div>
+          <div class="filter-row"><div class="filter-field"><label for="news-window">Feed date window</label><select id="news-window"><option value="24h">Last 24 hours (UTC)</option><option value="7d">Last 7 days (UTC)</option></select></div><label class="checkbox-line"><input id="incident-only" type="checkbox" checked><span>Incident-related headlines only</span></label><div class="help-wrapper"><button type="button" class="help-button" aria-label="Help with incident filtering" aria-expanded="false" data-help="Filters out many opinion, prediction and political-commentary headlines that do not describe a reported attack, strike or explosion. It may also miss valid reports. A match is not proof an incident occurred.">?</button></div></div>
+          <p class="input-note">Publicly available reporting only. Never enter sensitive personal information. Feed dates may reflect publication or first-seen time, not the date an incident happened.</p>
+        </form>
+        <div id="news-results" class="results" aria-live="polite">
+          <div class="empty-state"><div class="empty-mark">⌕</div><strong>Ready to investigate a news topic</strong><p>Enter a location or subject above to search recent coverage. Results will appear here automatically.</p></div>
+        </div>
+      </div>
+      <p class="research-disclaimer"><span aria-hidden="true">ⓘ</span> News coverage is a lead, not a confirmed event log. Open the original articles, assess publication and event dates separately, and corroborate important claims.</p>
+    </section>
+    <section id="services" class="section container services-section">
+      <div class="section-heading"><div><span class="section-index">02 / CAPABILITIES</span><h2>Research services</h2><p>Structured public-source work for businesses, researchers and clients who need traceable findings.</p></div></div>
+      <div class="service-grid">
+        <article class="service-card"><div class="service-code">01 / CORPINT</div><div class="service-icon">⌗</div><h3>Business & company research</h3><p>Public company records, registry links, corporate footprints and documented relationships.</p><button type="button" class="text-link choose-service" data-service="Business and company research">Enquire about this <span aria-hidden="true">↗</span></button></article>
+        <article class="service-card"><div class="service-code">02 / WEBINT</div><div class="service-icon">◎</div><h3>Website & domain checks</h3><p>Open web presence, publicly available technical records and linked domain evidence.</p><button type="button" class="text-link choose-service" data-service="Website and domain checks">Enquire about this <span aria-hidden="true">↗</span></button></article>
+        <article class="service-card"><div class="service-code">03 / NEWSINT</div><div class="service-icon">≋</div><h3>News & event research</h3><p>Time-bounded news collection, conflicting reports and carefully sourced event timelines.</p><button type="button" class="text-link choose-service" data-service="News and event research">Enquire about this <span aria-hidden="true">↗</span></button></article>
+        <article class="service-card"><div class="service-code">04 / SOCMINT</div><div class="service-icon">◇</div><h3>Public profile review</h3><p>Lawful, appropriately scoped checks of public profiles and openly published links.</p><button type="button" class="text-link choose-service" data-service="Public profile review">Enquire about this <span aria-hidden="true">↗</span></button></article>
+        <article class="service-card"><div class="service-code">05 / MEDIAINT</div><div class="service-icon">▣</div><h3>Photo & image research</h3><p>Public image-source tracing, comparison notes and evidence-based visual research.</p><button type="button" class="text-link choose-service" data-service="Photo and image research">Enquire about this <span aria-hidden="true">↗</span></button></article>
+        <article class="service-card"><div class="service-code">06 / REPORTS</div><div class="service-icon">▤</div><h3>Client-ready reports</h3><p>Prioritised findings, evidence grading, source URLs and a concise research narrative.</p><button type="button" class="text-link choose-service" data-service="Client-ready reports">Enquire about this <span aria-hidden="true">↗</span></button></article>
+      </div>
+    </section>
+    <section id="method" class="section method-section"><div class="container method-layout">
+      <div class="method-copy"><span class="section-index">03 / METHODOLOGY</span><h2>A conclusion is only as useful as the evidence behind it.</h2><p>ClearIntel separates strong source matches from leads that still need checking. Ratings apply to individual pieces of evidence, not to someone's identity or to the truth of every claim on a page.</p><p class="method-small">Illustrative grading framework. Actual client findings require source review and an explicitly defined research scope.</p></div>
+      <div class="grading-panel"><div class="grading-top"><span>HOW EVIDENCE IS READ</span><div class="help-wrapper"><button class="help-button" type="button" aria-label="Help with evidence grades" aria-expanded="false" data-help="These are evidence-strength categories. They are not statistical probabilities or an automated verdict about a person. An analyst must check context and explain the limitations.">?</button></div></div>
+        <div class="grade-options" role="group" aria-label="Select an example evidence grade"><button type="button" class="grade active" data-grade="3" aria-pressed="true">03 <small>Strong</small></button><button type="button" class="grade" data-grade="2" aria-pressed="false">02 <small>Linked</small></button><button type="button" class="grade" data-grade="1" aria-pressed="false">01 <small>Lead</small></button></div>
+        <div class="grade-detail" id="grade-detail"><span class="grade-label">GRADE 03 / STRONG MATCH</span><h3>Exact identifier or identical file</h3><p>A public register number exactly matches the identifier searched, or two files have the same cryptographic hash. The specific match is strong, but context still matters.</p><div class="grade-footer">EXAMPLE ONLY <span>•</span> ANALYST REVIEW REQUIRED</div></div>
+      </div>
+    </div></section>
+    <section id="contact" class="section container contact-section"><div class="contact-layout"><div><span class="section-index">04 / START A PROJECT</span><h2>Need a proper investigation?</h2><p>Describe the public-source question, the type of subject and what a useful report would look like. ClearIntel can review the scope before accepting work.</p><div class="contact-caption">For lawful, proportionate research into public information. Requests for private residential addresses, covert access or unauthorised personal data are not accepted.</div></div>
+      <form id="enquiry-form" class="enquiry-panel"><label for="enquiry-service">Research area</label><select id="enquiry-service"><option>Business and company research</option><option>Website and domain checks</option><option>News and event research</option><option>Public profile review</option><option>Photo and image research</option><option>Client-ready reports</option><option>Other public-source research</option></select><label for="enquiry-brief">What do you need to find out?</label><textarea id="enquiry-brief" rows="4" maxlength="1000" placeholder="A brief description of your project and intended use"></textarea><button type="submit" class="button button-primary">Open email enquiry <span aria-hidden="true">↗</span></button><p class="input-note">This opens your email application. Nothing is submitted automatically through this website.</p></form>
+    </div></section>
+  </main>
+  <footer class="footer"><div class="container footer-top"><a class="brand" href="#top" aria-label="ClearIntel home"><svg class="brand-mark" viewBox="0 0 44 44" aria-hidden="true"><rect x="1" y="1" width="42" height="42" rx="13" fill="#152b2e" stroke="#345b54"/><path d="M11 26.5v-9h10l3-5 9 4v10l-9 5-3-5H11z" fill="none" stroke="#b0f2cb" stroke-width="2.1" stroke-linejoin="round"/><circle cx="22.5" cy="22" r="3.3" fill="#b0f2cb"/></svg><span>Clear<span class="brand-secondary">Intel</span><small>PUBLIC-SOURCE RESEARCH</small></span></a><p>Public information. Documented sources. Clearer decisions.</p><a href="mailto:contactclearintel@protonmail.me">contactclearintel@protonmail.me <span aria-hidden="true">↗</span></a></div><div class="container footer-bottom"><span>© <span id="year">2026</span> ClearIntel. Independent public-source research.</span><span>News search is informational, not a real-time incident verification service.</span></div></footer>
+</body></html>
