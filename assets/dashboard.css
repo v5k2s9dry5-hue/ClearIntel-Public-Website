@@ -184,3 +184,23 @@
   .dashboard[data-mobile-view="feed"] .dashboard-map { display: none; }
   .dashboard-show-map:not([hidden]) { display: inline-block; margin-top: 7px; }
 }
+
+/* UTC timeline: a compact, accessible histogram that filters map and feed together. */
+.report-timeline { margin: 13px 0; padding: 12px; border: 1px solid var(--dashboard-border); border-radius: 9px; background: #0b1728; }
+.timeline-heading { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.timeline-heading strong { font-size: 13px; color: var(--ink); }
+.dashboard .timeline-clear { min-height: 28px; padding: 3px 9px; font-size: 12px; }
+.timeline-description, .timeline-summary { margin: 7px 0; color: #a9bdd2; font-size: 11px; }
+.timeline-bars { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; min-height: 76px; align-items: end; overflow-x: auto; }
+.timeline-column { min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; padding: 4px 1px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: #bad0e4; cursor: pointer; }
+.timeline-column:hover:not(:disabled), .timeline-column.is-selected { background: #183650; border-color: #65d9ef; }
+.timeline-column:disabled { cursor: default; opacity: .45; }
+.timeline-count { font-size: 10px; font-variant-numeric: tabular-nums; }
+.timeline-bar { width: min(100%, 17px); border-radius: 3px 3px 1px 1px; background: #65d9ef; }
+.dashboard[data-layer="wildfires"] .timeline-bar { background: #ffae68; }
+.timeline-tick { font-size: 9px; white-space: nowrap; color: #a9bdd2; }
+@media (max-width: 520px) {
+  .timeline-bars { gap: 0; }
+  .timeline-tick { font-size: 8px; }
+  .report-timeline { padding: 9px 6px; }
+}

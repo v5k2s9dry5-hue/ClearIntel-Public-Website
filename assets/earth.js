@@ -58,6 +58,7 @@
   let points = [], currentISS = null, lastDraw = 0, lastTick = 0;
   let reportsPaused = false;
   let visibleReports = [], pins = [], selectedReport = null, clusterIds = null;
+  let timelineStart = null;
   let dragDistance = 0, issLoading = false;
   const clamp = (v,min,max)=>Math.min(max,Math.max(min,v));
   const project = (lon,lat,cx,cy,r) => {
@@ -387,7 +388,21 @@
     const focused=document.activeElement?.dataset.reportId;
     const now=Date.now();
     const cutoff=now-Number(reportWindow.value)*86400000;
-    visibleReports=(active.feed?.events||[]).filter(event=>event[active.timeField]>=cutoff);
+    const allReports=(active.feed?.events||[]).filter(event=>Number.isFinite(event[active.timeField]) && event[active.timeField]>=cutoff && event[active.timeField]<=now);
+    const step=Number(reportWindow.value)===1?7200000:86400000;
+    const key=timestamp=>Math.floor(timestamp/step)*step;
+    if(timelineStart!==null && (!allReports.some(event=>key(event[active.timeField])===timelineStart) || timelineStart>now))timelineStart=null;
+    visibleReports=timelineStart===null?allReports:allReports.filter(event=>key(event[active.timeField])===timelineStart);
+    window.ClearIntelTimeline?.render({
+      events:allReports, timeField:active.timeField, windowDays:reportWindow.value,
+      selectedStart:timelineStart, label:active.name, ready:Boolean(active.feed),
+      onSelect:start=>{
+        timelineStart=start;
+        clusterIds=null;
+        selectedReport=null;
+        renderReports();draw();
+      }
+    });
     const cluster=clusterIds?visibleReports.filter(event=>clusterIds.has(event.id)):[];
     if(!cluster.length)clusterIds=null;
     reportGroup.hidden=!clusterIds;
@@ -433,7 +448,7 @@
     const count=visibleReports.length;
     const summary=count?`${count} ${active.name} ${count===1?'report':'reports'}${active.minimum}`:`No ${active.name} reports in this window${active.minimum}`;
     const status=(reportsPaused?'Updates paused · ':'')+(stale?'Showing older data · ':'');
-    reportStatus.textContent=`${status}${summary} · ${active.feedLabel} ${utcTime.format(updated)} UTC`;
+    reportStatus.textContent=`${status}${summary}${timelineStart!==null?' · Timeline filtered':''} · ${active.feedLabel} ${utcTime.format(updated)} UTC`;
     reportStatus.classList.toggle('stale',stale);
   }
 
@@ -461,7 +476,7 @@
   });
   reportWindow.addEventListener('change',()=>{
     reportLayers[layer.value].window=reportWindow.value;
-    clusterIds=null;renderReports();draw();
+    clusterIds=null;timelineStart=null;selectedReport=null;renderReports();draw();
   });
   reportPause.addEventListener('click',()=>{
     reportsPaused=!reportsPaused;
@@ -474,7 +489,7 @@
   function changeLayer(){
     const active=reportLayers[layer.value];
     dashboard.dataset.layer=layer.value;
-    clusterIds=null;selectedReport=null;visibleReports=[];
+    clusterIds=null;selectedReport=null;timelineStart=null;visibleReports=[];
     reportPanel.hidden=!active;issPanel.hidden=Boolean(active);
     if(active){
       reportWindow.value=active.window;

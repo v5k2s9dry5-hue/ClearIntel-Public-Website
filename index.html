@@ -15,7 +15,8 @@
   <link rel="stylesheet" href="/assets/dashboard.css?v=pdf-report">
   <script src="/assets/research-pdf.js" defer></script>
   <script src="/assets/app.js?v=pdf-report" defer></script>
-  <script src="/assets/earth.js?v=world-map" defer></script>
+  <script src="/assets/timeline.js?v=event-timeline" defer></script>
+  <script src="/assets/earth.js?v=event-timeline" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -83,6 +84,7 @@
                 <button type="button" id="quake-pause" class="globe-control" aria-pressed="false">Pause updates</button>
               </div>
               <p id="quake-status" class="orbital-status" role="status">Checking USGS earthquake reports…</p>
+              <div id="report-timeline" class="report-timeline" aria-label="Public report timeline"></div>
               <div id="quake-group" class="quake-group" hidden>
                 <h3 id="quake-group-title" tabindex="-1"></h3>
                 <button type="button" id="quake-show-all" class="globe-control">Show all reports</button>
