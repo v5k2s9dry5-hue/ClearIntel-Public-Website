@@ -11,23 +11,39 @@
   const locate = document.getElementById('iss-find');
   const motion = document.getElementById('earth-motion');
   const layer = document.getElementById('globe-layer');
-  const quakePanel = document.getElementById('earthquake-panel');
+  const reportPanel = document.getElementById('earthquake-panel');
   const issPanel = document.getElementById('iss-panel');
-  const quakeWindow = document.getElementById('quake-window');
-  const quakePause = document.getElementById('quake-pause');
-  const quakeStatus = document.getElementById('quake-status');
-  const quakeList = document.getElementById('quake-list');
-  const quakeDetail = document.getElementById('quake-detail');
-  const quakeGroup = document.getElementById('quake-group');
-  const quakeGroupTitle = document.getElementById('quake-group-title');
-  const quakeShowAll = document.getElementById('quake-show-all');
+  const reportWindow = document.getElementById('quake-window');
+  const reportPause = document.getElementById('quake-pause');
+  const reportStatus = document.getElementById('quake-status');
+  const reportList = document.getElementById('quake-list');
+  const reportDetail = document.getElementById('quake-detail');
+  const reportGroup = document.getElementById('quake-group');
+  const reportGroupTitle = document.getElementById('quake-group-title');
+  const reportShowAll = document.getElementById('quake-show-all');
   const utcTime = new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'});
+  const reportLayers = {
+    earthquakes: {
+      endpoint:'/api/earthquakes', name:'USGS earthquake', minimum:' · M4.5+',
+      timeField:'occurred_at_ms', timeLabel:'Event time', feedTime:'generated_at_ms', feedLabel:'Feed updated',
+      marker:'#5de5f4', selectedMarker:'#cdffff', window:'1',
+      title:event=>`M${event.magnitude.toFixed(1)} · ${event.place}`,
+      source:()=> 'USGS report', status:()=>'',
+    },
+    wildfires: {
+      endpoint:'/api/wildfires', name:'NASA EONET wildfire', minimum:'',
+      timeField:'observed_at_ms', timeLabel:'Observation time', feedTime:'checked_at_ms', feedLabel:'Feed checked',
+      marker:'#ffae68', selectedMarker:'#ffe6c4', window:'7',
+      title:event=>event.title, source:event=>event.source,
+      status:event=>event.closed?'Closed in EONET':'Open in EONET',
+    },
+  };
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const RAD = Math.PI / 180;
   let rot = -18, tilt = 19, playing = !reduced, dragPointer = null, px = 0, py = 0;
   let points = [], currentISS = null, lastDraw = 0, lastTick = 0;
-  let quakeFeed = null, quakeFailed = false, quakePaused = false, quakeLoading = false;
-  let visibleQuakes = [], pins = [], selectedQuake = null, clusterIds = null;
+  let reportsPaused = false;
+  let visibleReports = [], pins = [], selectedReport = null, clusterIds = null;
   let dragDistance = 0, issLoading = false;
   const clamp = (v,min,max)=>Math.min(max,Math.max(min,v));
   const project = (lon,lat,cx,cy,r) => {
@@ -55,9 +71,10 @@
     }
     ctx.stroke();
   }
-  function drawQuakePins(cx,cy,r){
+  function drawReportPins(cx,cy,r){
+    const activeLayer=reportLayers[layer.value];
     const groups=[];
-    for(const event of visibleQuakes){
+    for(const event of visibleReports){
       const point=project(event.longitude,event.latitude,cx,cy,r);
       if(point.front<=.035)continue;
       let closest=null, distance=27;
@@ -77,10 +94,10 @@
     for(let i=groups.length-1;i>=0;i--){
       const group=groups[i];
       const count=group.events.length;
-      const selected=group.events.some(event=>event.id===selectedQuake);
+      const selected=group.events.some(event=>event.id===selectedReport);
       const radius=count>99?15:count>1?12:selected?7:4;
       ctx.beginPath();ctx.arc(group.x,group.y,radius,0,2*Math.PI);
-      ctx.fillStyle=selected?'#cdffff':'#5de5f4';ctx.fill();
+      ctx.fillStyle=selected?activeLayer.selectedMarker:activeLayer.marker;ctx.fill();
       ctx.strokeStyle='#071b24';ctx.lineWidth=1.5;ctx.stroke();
       if(count>1){ctx.fillStyle='#071b24';ctx.fillText(String(count),group.x,group.y);}
       group.hitRadius=Math.max(14,radius+4);
@@ -126,7 +143,7 @@
     ctx.restore();
     ctx.strokeStyle='rgba(151,212,174,.20)';ctx.lineWidth=1;
     ctx.beginPath();ctx.ellipse(cx,cy,r*1.13,r*.30,-.3,0,2*Math.PI);ctx.stroke();
-    pins=layer.value==='earthquakes'?drawQuakePins(cx,cy,r):[];
+    pins=reportLayers[layer.value]?drawReportPins(cx,cy,r):[];
     ctx.fillStyle='#84b99e';ctx.font='9px system-ui';
     ctx.fillText('EARTH / ILLUSTRATIVE',12,18);
   }
@@ -154,7 +171,7 @@
   canvas.addEventListener('pointerup',e=>{
     if(e.pointerId!==dragPointer)return;
     dragPointer=null;
-    if(dragDistance+Math.hypot(e.clientX-px,e.clientY-py)>6||layer.value!=='earthquakes')return;
+    if(dragDistance+Math.hypot(e.clientX-px,e.clientY-py)>6||!reportLayers[layer.value])return;
     const box=canvas.getBoundingClientRect();
     const x=(e.clientX-box.left)*canvas.clientWidth/box.width;
     const y=(e.clientY-box.top)*canvas.clientHeight/box.height;
@@ -166,14 +183,14 @@
     if(!nearest)return;
     if(nearest.events.length>1){
       clusterIds=new Set(nearest.events.map(event=>event.id));
-      selectedQuake=null;
+      selectedReport=null;
       setRotation(false);
-      renderQuakes();
-      quakeGroupTitle.focus();
+      renderReports();
+      reportGroupTitle.focus();
       draw();
     }else{
       clusterIds=null;
-      selectQuake(nearest.events[0]);
+      selectReport(nearest.events[0]);
     }
   });
   function cancelDrag(e){if(e.pointerId===dragPointer)dragPointer=null;}
@@ -208,102 +225,118 @@
     } finally {issLoading=false;}
   }
 
-  function quakeTitle(event){return `M${event.magnitude.toFixed(1)} · ${event.place}`;}
-
-  function selectQuake(event){
-    selectedQuake=event.id;
+  function selectReport(event){
+    selectedReport=event.id;
     rot=event.longitude;tilt=event.latitude;
     setRotation(false);
-    renderQuakes();
+    renderReports();
     draw();
   }
 
-  function renderQuakes(){
-    const focused=document.activeElement?.dataset.quakeId;
+  function renderReports(){
+    const active=reportLayers[layer.value];
+    if(!active)return;
+    const focused=document.activeElement?.dataset.reportId;
     const now=Date.now();
-    const cutoff=now-Number(quakeWindow.value)*86400000;
-    visibleQuakes=(quakeFeed?.events||[]).filter(event=>event.occurred_at_ms>=cutoff);
-    const cluster=clusterIds?visibleQuakes.filter(event=>clusterIds.has(event.id)):[];
+    const cutoff=now-Number(reportWindow.value)*86400000;
+    visibleReports=(active.feed?.events||[]).filter(event=>event[active.timeField]>=cutoff);
+    const cluster=clusterIds?visibleReports.filter(event=>clusterIds.has(event.id)):[];
     if(!cluster.length)clusterIds=null;
-    quakeGroup.hidden=!clusterIds;
-    if(clusterIds)quakeGroupTitle.textContent=`${cluster.length} ${cluster.length===1?'report':'reports'} in this group`;
-    quakeList.replaceChildren();
-    for(const event of clusterIds?cluster:visibleQuakes){
+    reportGroup.hidden=!clusterIds;
+    if(clusterIds)reportGroupTitle.textContent=`${cluster.length} ${cluster.length===1?'report':'reports'} in this group`;
+    reportList.replaceChildren();
+    for(const event of clusterIds?cluster:visibleReports){
       const row=document.createElement('li');
       const button=document.createElement('button');
-      button.type='button';button.dataset.quakeId=event.id;
-      button.textContent=quakeTitle(event);
-      button.setAttribute('aria-pressed',String(event.id===selectedQuake));
-      button.addEventListener('click',()=>selectQuake(event));
-      row.append(button);quakeList.append(row);
+      button.type='button';button.dataset.reportId=event.id;
+      button.textContent=active.title(event);
+      button.setAttribute('aria-pressed',String(event.id===selectedReport));
+      button.addEventListener('click',()=>selectReport(event));
+      row.append(button);reportList.append(row);
       if(focused===event.id)button.focus({preventScroll:true});
     }
-    const selected=visibleQuakes.find(event=>event.id===selectedQuake);
-    quakeDetail.hidden=!selected;
+    const selected=visibleReports.find(event=>event.id===selectedReport);
+    reportDetail.hidden=!selected;
     if(selected){
-      const title=document.createElement('strong');title.textContent=quakeTitle(selected);
-      const date=document.createElement('span');date.textContent=`Event time ${utcTime.format(selected.occurred_at_ms)} UTC`;
+      const title=document.createElement('strong');title.textContent=active.title(selected);
+      const date=document.createElement('span');
+      const status=active.status(selected);
+      date.textContent=`${active.timeLabel} ${utcTime.format(selected[active.timeField])} UTC${status?' · '+status:''}`;
       const link=document.createElement('a');link.href=selected.url;link.target='_blank';
-      link.rel='noopener noreferrer';link.textContent='View USGS report';
-      const existingLink=quakeDetail.querySelector('a');
+      link.rel='noopener noreferrer';link.textContent=`View ${active.source(selected)}`;
+      const existingLink=reportDetail.querySelector('a');
       if(existingLink?.href===link.href){
-        quakeDetail.querySelector('strong').textContent=title.textContent;
-        quakeDetail.querySelector('span').textContent=date.textContent;
-      }else{quakeDetail.replaceChildren(title,date,link);}
+        reportDetail.querySelector('strong').textContent=title.textContent;
+        reportDetail.querySelector('span').textContent=date.textContent;
+      }else{reportDetail.replaceChildren(title,date,link);}
     }
-    if(!quakeFeed){
-      quakeStatus.textContent=quakeFailed?'USGS earthquake feed unavailable.':'Checking USGS earthquake reports…';
+    if(!active.feed){
+      reportStatus.textContent=reportsPaused?'Updates paused':active.failed?`${active.name} feed unavailable.`:`Checking ${active.name} reports…`;
+      reportStatus.classList.toggle('stale',Boolean(active.failed));
       return;
     }
-    const stale=quakeFailed||quakeFeed.stale||now-quakeFeed.generated_at_ms>300000;
-    const count=visibleQuakes.length;
-    const summary=count?`${count} USGS reports · M4.5+`:'No M4.5+ USGS reports in this window';
-    const status=(quakePaused?'Updates paused · ':'')+(stale?'Showing older data · ':'');
-    quakeStatus.textContent=`${status}${summary} · Feed updated ${utcTime.format(quakeFeed.generated_at_ms)} UTC`;
-    quakeStatus.classList.toggle('stale',stale);
+    const updated=active.feed[active.feedTime];
+    const stale=active.failed||active.feed.stale||now-updated>300000;
+    const count=visibleReports.length;
+    const summary=count?`${count} ${active.name} ${count===1?'report':'reports'}${active.minimum}`:`No ${active.name} reports in this window${active.minimum}`;
+    const status=(reportsPaused?'Updates paused · ':'')+(stale?'Showing older data · ':'');
+    reportStatus.textContent=`${status}${summary} · ${active.feedLabel} ${utcTime.format(updated)} UTC`;
+    reportStatus.classList.toggle('stale',stale);
   }
 
-  async function refreshQuakes(){
-    if(quakePaused||quakeLoading||layer.value!=='earthquakes')return;
-    quakeLoading=true;
+  async function refreshReports(){
+    const active=reportLayers[layer.value];
+    if(!active||reportsPaused||active.loading)return;
+    active.loading=true;
     try{
-      const response=await fetch('/api/earthquakes',{cache:'no-store'});
-      if(!response.ok)throw Error('USGS feed unavailable');
+      const response=await fetch(active.endpoint,{cache:'no-store'});
+      if(!response.ok)throw Error('Report feed unavailable');
       const latest=await response.json();
-      if(!Number.isFinite(latest.generated_at_ms)||!Array.isArray(latest.events))throw Error('Invalid earthquake data');
-      if(quakePaused)return;
-      quakeFeed=latest;quakeFailed=false;
-    }catch(_){quakeFailed=true;}
-    finally{quakeLoading=false;renderQuakes();draw();}
+      if(!Number.isFinite(latest[active.feedTime])||!Array.isArray(latest.events))throw Error('Invalid report data');
+      if(!reportsPaused){active.feed=latest;active.failed=false;}
+    }catch(_){if(!reportsPaused)active.failed=true;}
+    finally{
+      active.loading=false;
+      if(reportLayers[layer.value]===active){renderReports();draw();}
+    }
   }
 
-  quakeShowAll.addEventListener('click',()=>{
+  reportShowAll.addEventListener('click',()=>{
     clusterIds=null;
-    renderQuakes();draw();
-    (quakeList.querySelector('button')||quakeWindow).focus({preventScroll:true});
+    renderReports();draw();
+    (reportList.querySelector('button')||reportWindow).focus({preventScroll:true});
   });
-  quakeWindow.addEventListener('change',()=>{clusterIds=null;renderQuakes();draw();});
-  quakePause.addEventListener('click',()=>{
-    quakePaused=!quakePaused;
-    quakePause.textContent=quakePaused?'Resume updates':'Pause updates';
-    quakePause.setAttribute('aria-pressed',String(quakePaused));
-    renderQuakes();
-    if(!quakePaused)refreshQuakes();
+  reportWindow.addEventListener('change',()=>{
+    reportLayers[layer.value].window=reportWindow.value;
+    clusterIds=null;renderReports();draw();
   });
-  layer.addEventListener('change',()=>{
-    const showingQuakes=layer.value==='earthquakes';
-    quakePanel.hidden=!showingQuakes;issPanel.hidden=showingQuakes;
+  reportPause.addEventListener('click',()=>{
+    reportsPaused=!reportsPaused;
+    reportPause.textContent=reportsPaused?'Resume updates':'Pause updates';
+    reportPause.setAttribute('aria-pressed',String(reportsPaused));
+    renderReports();
+    if(!reportsPaused)refreshReports();
+  });
+  function changeLayer(){
+    const active=reportLayers[layer.value];
+    clusterIds=null;selectedReport=null;visibleReports=[];
+    reportPanel.hidden=!active;issPanel.hidden=Boolean(active);
+    if(active){
+      reportWindow.value=active.window;
+      reportList.setAttribute('aria-label',`${active.name} reports`);
+      renderReports();refreshReports();
+    }else{refreshISS();}
     draw();
-    if(showingQuakes)refreshQuakes();else refreshISS();
-  });
+  }
+  layer.addEventListener('change',changeLayer);
   fetch('/assets/earth-land.json').then(r=>{if(!r.ok)throw Error();return r.json();}).then(data=>{if(Array.isArray(data)){points=data;draw();}}).catch(()=>{});
   if('ResizeObserver' in window)new ResizeObserver(()=>{fit();draw();}).observe(canvas);
   else window.addEventListener('resize',()=>{fit();draw();});
   fit();draw();requestAnimationFrame(frame);
-  refreshQuakes();
+  changeLayer();
   setInterval(()=>{if(!document.hidden&&layer.value==='iss')refreshISS();},30000);
   setInterval(()=>{
-    if(document.hidden||layer.value!=='earthquakes')return;
-    if(quakePaused)renderQuakes();else refreshQuakes();
+    if(document.hidden||!reportLayers[layer.value])return;
+    if(reportsPaused)renderReports();else refreshReports();
   },60000);
 })();
