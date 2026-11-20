@@ -41,7 +41,7 @@
         <div class="globe-content">
           <div class="globe-topline"><h2>Live globe</h2><label for="globe-layer">Layer <select id="globe-layer"><option value="earthquakes">Earthquakes</option><option value="wildfires">Wildfires</option><option value="iss">ISS position</option></select></label></div>
           <div class="globe-canvas-wrap"><canvas id="earth-canvas" role="img" aria-label="Earth globe. Choose a report from the list below to centre its location."></canvas><div class="globe-coord-label">Drag to rotate · Select a pin or count</div></div>
-          <div class="globe-controls"><button type="button" id="earth-motion" class="globe-control" aria-pressed="false">Pause rotation</button></div>
+          <div class="globe-controls"><button type="button" id="earth-motion" class="globe-control" aria-pressed="false">Pause rotation</button><button type="button" id="earth-uk-view" class="globe-control" disabled>Zoom to UK</button></div>
           <div id="earthquake-panel">
             <div class="quake-controls"><label for="quake-window">Time window <select id="quake-window"><option value="1">Last 24 hours</option><option value="7">Last 7 days</option></select></label><button type="button" id="quake-pause" class="globe-control" aria-pressed="false">Pause updates</button></div>
             <p id="quake-status" class="orbital-status" role="status">Checking USGS earthquake reports…</p>
@@ -55,7 +55,7 @@
             <button type="button" id="iss-find" class="globe-control" disabled>Locate ISS</button>
           </div>
         </div>
-        <div class="visual-foot"><span><span class="pulse"></span> LIVE COORDINATES WHEN AVAILABLE</span><span>ANIMATED GLOBE • NOT SATELLITE IMAGERY</span></div>
+        <div class="visual-foot"><span><span class="pulse"></span> LIVE COORDINATES WHEN AVAILABLE</span><span>UK COASTLINE: NATURAL EARTH</span></div>
       </div>
     </section>
     <section class="principle-bar"><div class="container principle-inner"><span>COLLECT</span><i></i><span>CHECK</span><i></i><span>COMPARE</span><i></i><span>REPORT</span><p>ClearIntel follows the evidence, not the headline.</p></div></section>
