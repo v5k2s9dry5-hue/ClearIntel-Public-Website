@@ -10,10 +10,21 @@
   const timeText = document.getElementById('iss-time');
   const locate = document.getElementById('iss-find');
   const motion = document.getElementById('earth-motion');
+  const layer = document.getElementById('globe-layer');
+  const quakePanel = document.getElementById('earthquake-panel');
+  const issPanel = document.getElementById('iss-panel');
+  const quakeWindow = document.getElementById('quake-window');
+  const quakePause = document.getElementById('quake-pause');
+  const quakeStatus = document.getElementById('quake-status');
+  const quakeList = document.getElementById('quake-list');
+  const quakeDetail = document.getElementById('quake-detail');
+  const utcTime = new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'});
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const RAD = Math.PI / 180;
   let rot = -18, tilt = 19, playing = !reduced, dragging = false, px = 0, py = 0;
   let points = [], currentISS = null, lastDraw = 0, lastTick = 0;
+  let quakeFeed = null, quakeFailed = false, quakePaused = false, quakeLoading = false;
+  let visibleQuakes = [], pins = [], selectedQuake = null, dragDistance = 0, issLoading = false;
   const clamp = (v,min,max)=>Math.min(max,Math.max(min,v));
   const project = (lon,lat,cx,cy,r) => {
     const a=(lon-rot)*RAD, b=lat*RAD, t=tilt*RAD;
@@ -63,7 +74,19 @@
         ctx.fillRect(p.x-1.1,p.y-1.1,2.2,2.2);
       }
     }
-    if(currentISS){
+    pins=[];
+    if(layer.value==='earthquakes'){
+      for(const event of [...visibleQuakes].reverse()){
+        const pin=project(event.longitude,event.latitude,cx,cy,r);
+        if(pin.front<=.035)continue;
+        const selected=event.id===selectedQuake;
+        ctx.beginPath();ctx.arc(pin.x,pin.y,selected?7:4,0,2*Math.PI);
+        ctx.fillStyle=selected?'#cdffff':'#5de5f4';ctx.fill();
+        ctx.strokeStyle='#071b24';ctx.lineWidth=1.5;ctx.stroke();
+        pins.push({...pin,event});
+      }
+    }
+    if(layer.value==='iss'&&currentISS){
       const p=project(currentISS.longitude,currentISS.latitude,cx,cy,r);
       if(p.front>0){
         ctx.fillStyle='#c5ffda';ctx.strokeStyle='#a8e8c1';ctx.lineWidth=1.1;
@@ -89,19 +112,37 @@
     requestAnimationFrame(frame);
   }
   canvas.addEventListener('pointerdown',e=>{
-    dragging=true;px=e.clientX;py=e.clientY;canvas.setPointerCapture(e.pointerId);
+    dragging=true;dragDistance=0;px=e.clientX;py=e.clientY;canvas.setPointerCapture(e.pointerId);
   });
   canvas.addEventListener('pointermove',e=>{
     if(!dragging)return;
+    dragDistance+=Math.hypot(e.clientX-px,e.clientY-py);
     rot+=(e.clientX-px)*.48;tilt=clamp(tilt+(e.clientY-py)*.25,-65,65);
     px=e.clientX;py=e.clientY;draw();
   });
-  const end=()=>{dragging=false;};
-  canvas.addEventListener('pointerup',end);canvas.addEventListener('pointercancel',end);
-  motion.textContent=playing?'Pause rotation':'Resume rotation';
-  motion.addEventListener('click',()=>{playing=!playing;motion.textContent=playing?'Pause rotation':'Resume rotation';motion.setAttribute('aria-pressed',String(!playing));});
+  canvas.addEventListener('pointerup',e=>{
+    dragging=false;
+    if(dragDistance>6||layer.value!=='earthquakes')return;
+    const box=canvas.getBoundingClientRect();
+    let nearest=null, distance=14;
+    for(const pin of pins){
+      const fromPointer=Math.hypot(pin.x-(e.clientX-box.left),pin.y-(e.clientY-box.top));
+      if(fromPointer<distance){nearest=pin;distance=fromPointer;}
+    }
+    if(nearest)selectQuake(nearest.event);
+  });
+  canvas.addEventListener('pointercancel',()=>{dragging=false;});
+  function setRotation(active){
+    playing=active;
+    motion.textContent=playing?'Pause rotation':'Resume rotation';
+    motion.setAttribute('aria-pressed',String(!playing));
+  }
+  setRotation(playing);
+  motion.addEventListener('click',()=>setRotation(!playing));
   locate.addEventListener('click',()=>{if(currentISS){rot=currentISS.longitude;tilt=clamp(currentISS.latitude*.35,-35,35);draw();}});
   async function refreshISS() {
+    if(issLoading)return;
+    issLoading=true;
     try {
       const response=await fetch('/api/iss',{cache:'no-store'});
       if(!response.ok)throw Error('ISS feed unavailable');
@@ -117,12 +158,96 @@
       currentISS=null;locate.disabled=true;
       issStatus.classList.remove('live');issStatus.textContent='Live ISS tracking unavailable · Earth animation is illustrative.';
       latText.textContent='—';lonText.textContent='—';timeText.textContent='—';
-    }
+    } finally {issLoading=false;}
   }
+
+  function quakeTitle(event){return `M${event.magnitude.toFixed(1)} · ${event.place}`;}
+
+  function selectQuake(event){
+    selectedQuake=event.id;
+    rot=event.longitude;tilt=event.latitude;
+    setRotation(false);
+    renderQuakes();
+    draw();
+  }
+
+  function renderQuakes(){
+    const focused=document.activeElement?.dataset.quakeId;
+    const now=Date.now();
+    const cutoff=now-Number(quakeWindow.value)*86400000;
+    visibleQuakes=(quakeFeed?.events||[]).filter(event=>event.occurred_at_ms>=cutoff);
+    quakeList.replaceChildren();
+    for(const event of visibleQuakes){
+      const row=document.createElement('li');
+      const button=document.createElement('button');
+      button.type='button';button.dataset.quakeId=event.id;
+      button.textContent=quakeTitle(event);
+      button.setAttribute('aria-pressed',String(event.id===selectedQuake));
+      button.addEventListener('click',()=>selectQuake(event));
+      row.append(button);quakeList.append(row);
+      if(focused===event.id)button.focus({preventScroll:true});
+    }
+    const selected=visibleQuakes.find(event=>event.id===selectedQuake);
+    quakeDetail.hidden=!selected;
+    if(selected){
+      const title=document.createElement('strong');title.textContent=quakeTitle(selected);
+      const date=document.createElement('span');date.textContent=`Event time ${utcTime.format(selected.occurred_at_ms)} UTC`;
+      const link=document.createElement('a');link.href=selected.url;link.target='_blank';
+      link.rel='noopener noreferrer';link.textContent='View USGS report';
+      const existingLink=quakeDetail.querySelector('a');
+      if(existingLink?.href===link.href){
+        quakeDetail.querySelector('strong').textContent=title.textContent;
+        quakeDetail.querySelector('span').textContent=date.textContent;
+      }else{quakeDetail.replaceChildren(title,date,link);}
+    }
+    if(!quakeFeed){
+      quakeStatus.textContent=quakeFailed?'USGS earthquake feed unavailable.':'Checking USGS earthquake reports…';
+      return;
+    }
+    const stale=quakeFailed||quakeFeed.stale||now-quakeFeed.generated_at_ms>300000;
+    const count=visibleQuakes.length;
+    const summary=count?`${count} USGS reports · M4.5+`:'No M4.5+ USGS reports in this window';
+    const status=(quakePaused?'Updates paused · ':'')+(stale?'Showing older data · ':'');
+    quakeStatus.textContent=`${status}${summary} · Feed updated ${utcTime.format(quakeFeed.generated_at_ms)} UTC`;
+    quakeStatus.classList.toggle('stale',stale);
+  }
+
+  async function refreshQuakes(){
+    if(quakePaused||quakeLoading||layer.value!=='earthquakes')return;
+    quakeLoading=true;
+    try{
+      const response=await fetch('/api/earthquakes',{cache:'no-store'});
+      if(!response.ok)throw Error('USGS feed unavailable');
+      const latest=await response.json();
+      if(!Number.isFinite(latest.generated_at_ms)||!Array.isArray(latest.events))throw Error('Invalid earthquake data');
+      if(quakePaused)return;
+      quakeFeed=latest;quakeFailed=false;
+    }catch(_){quakeFailed=true;}
+    finally{quakeLoading=false;renderQuakes();draw();}
+  }
+
+  quakeWindow.addEventListener('change',()=>{renderQuakes();draw();});
+  quakePause.addEventListener('click',()=>{
+    quakePaused=!quakePaused;
+    quakePause.textContent=quakePaused?'Resume updates':'Pause updates';
+    quakePause.setAttribute('aria-pressed',String(quakePaused));
+    renderQuakes();
+    if(!quakePaused)refreshQuakes();
+  });
+  layer.addEventListener('change',()=>{
+    const showingQuakes=layer.value==='earthquakes';
+    quakePanel.hidden=!showingQuakes;issPanel.hidden=showingQuakes;
+    draw();
+    if(showingQuakes)refreshQuakes();else refreshISS();
+  });
   fetch('/assets/earth-land.json').then(r=>{if(!r.ok)throw Error();return r.json();}).then(data=>{if(Array.isArray(data)){points=data;draw();}}).catch(()=>{});
   if('ResizeObserver' in window)new ResizeObserver(()=>{fit();draw();}).observe(canvas);
   else window.addEventListener('resize',()=>{fit();draw();});
   fit();draw();requestAnimationFrame(frame);
-  refreshISS();
-  setInterval(()=>{if(!document.hidden)refreshISS();},30000);
+  refreshQuakes();
+  setInterval(()=>{if(!document.hidden&&layer.value==='iss')refreshISS();},30000);
+  setInterval(()=>{
+    if(document.hidden||layer.value!=='earthquakes')return;
+    if(quakePaused)renderQuakes();else refreshQuakes();
+  },60000);
 })();
