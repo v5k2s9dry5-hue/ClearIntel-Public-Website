@@ -37,14 +37,22 @@
         <div class="hero-actions"><a class="button button-primary" href="#research">Explore public news <span aria-hidden="true">↗</span></a><a class="button button-outline" href="#contact">Request a research brief</a></div>
         <div class="hero-meta"><span>PUBLIC DATA ONLY</span><span>REVIEWABLE SOURCES</span><span>EVIDENCE-LED REPORTS</span></div>
       </div>
-      <div class="hero-visual globe-panel" aria-label="Interactive rotating Earth with optional current ISS position">
-        <div class="visual-head"><div><span class="window-led"></span><span class="window-led"></span><span class="window-led"></span></div><span>ORBITAL OBSERVATION</span><span>CI / GEOINT</span></div>
+      <div class="hero-visual globe-panel" aria-label="Interactive globe">
         <div class="globe-content">
-          <div class="globe-topline"><span><span class="dot"></span> EARTH OVERVIEW</span><span>ISS / NORAD 25544</span></div>
-          <div class="globe-canvas-wrap"><canvas id="earth-canvas" role="img" aria-label="Rotating illustration of the Earth. Live ISS position is shown only if the tracking feed responds."></canvas><div class="globe-coord-label">INTERACTIVE • DRAG TO ROTATE</div></div>
-          <div class="orbital-status" id="iss-status" aria-live="polite">Checking current ISS coordinates…</div>
-          <div class="orbital-readout"><span>LAT <b id="iss-lat">—</b></span><span>LON <b id="iss-lon">—</b></span><span>UPDATED <b id="iss-time">—</b></span></div>
-          <div class="globe-controls"><button type="button" id="iss-find" class="globe-control" disabled>Locate ISS</button><button type="button" id="earth-motion" class="globe-control" aria-pressed="false">Pause rotation</button></div>
+          <div class="globe-topline"><h2>Live globe</h2><label for="globe-layer">Layer <select id="globe-layer"><option value="earthquakes">Earthquakes</option><option value="iss">ISS position</option></select></label></div>
+          <div class="globe-canvas-wrap"><canvas id="earth-canvas" role="img" aria-label="Earth globe. Choose an earthquake from the list below to centre its location."></canvas><div class="globe-coord-label">Drag to rotate · Select a pin for details</div></div>
+          <div class="globe-controls"><button type="button" id="earth-motion" class="globe-control" aria-pressed="false">Pause rotation</button></div>
+          <div id="earthquake-panel">
+            <div class="quake-controls"><label for="quake-window">Event window <select id="quake-window"><option value="1">Last 24 hours</option><option value="7">Last 7 days</option></select></label><button type="button" id="quake-pause" class="globe-control" aria-pressed="false">Pause updates</button></div>
+            <p id="quake-status" class="orbital-status" role="status">Checking USGS earthquake reports…</p>
+            <div id="quake-detail" class="quake-detail" hidden></div>
+            <ul id="quake-list" class="quake-list" aria-label="Magnitude 4.5 and higher USGS earthquake reports"></ul>
+          </div>
+          <div id="iss-panel" hidden>
+            <div class="orbital-status" id="iss-status" aria-live="polite">Checking current ISS coordinates…</div>
+            <div class="orbital-readout"><span>LAT <b id="iss-lat">—</b></span><span>LON <b id="iss-lon">—</b></span><span>UPDATED <b id="iss-time">—</b></span></div>
+            <button type="button" id="iss-find" class="globe-control" disabled>Locate ISS</button>
+          </div>
         </div>
         <div class="visual-foot"><span><span class="pulse"></span> LIVE COORDINATES WHEN AVAILABLE</span><span>ANIMATED GLOBE • NOT SATELLITE IMAGERY</span></div>
       </div>
