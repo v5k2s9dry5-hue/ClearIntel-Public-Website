@@ -23,8 +23,8 @@
 .globe-topline,.orbital-readout,.globe-controls {display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .globe-topline {color:#8dbbac;font-size:10px;font-weight:800;letter-spacing:1.1px}
 .globe-topline .dot{margin-right:7px}
-.globe-canvas-wrap{position:relative;aspect-ratio:1.22;max-height:415px;margin:0 auto;touch-action:pan-y;overflow:hidden}
-#earth-canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:pan-y}
+.globe-canvas-wrap{position:relative;aspect-ratio:1.22;max-height:415px;margin:0 auto;overflow:hidden}
+#earth-canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
 #earth-canvas:active{cursor:grabbing}
 .globe-coord-label{pointer-events:none;position:absolute;bottom:4px;left:0;right:0;text-align:center;font-weight:700;font-size:9px;letter-spacing:1.25px;color:#739b8c}
 .orbital-status{min-height:37px;padding:9px 10px;margin-top:6px;border:1px solid #315347;background:#0d211f;color:#bddac9;border-radius:7px;font-size:11px;line-height:1.4}
