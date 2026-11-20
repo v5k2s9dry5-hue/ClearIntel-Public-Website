@@ -1,22 +1,24 @@
 """Public-only ClearIntel site. Does not import or expose the private ClearIntel OSINT backend."""
 from __future__ import annotations
 
-from collections import defaultdict, deque
-from datetime import datetime, timedelta, timezone
+from asyncio import timeout
+from collections import OrderedDict, deque
+from ipaddress import ip_address
 from pathlib import Path
 import os
 import json
 from urllib.request import Request as UrlRequest, urlopen
 from urllib.error import HTTPError, URLError
-from time import time
+from math import ceil
+from time import monotonic, time
 from threading import Lock
-from urllib.parse import urljoin
 
 from fastapi import FastAPI, HTTPException, Request
+from starlette.requests import ClientDisconnect
 from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from news import search_news
 
@@ -24,8 +26,19 @@ ROOT = Path(__file__).resolve().parent
 PUBLIC_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
 app = FastAPI(title="ClearIntel public website", docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/assets", StaticFiles(directory=ROOT / "assets"), name="assets")
+MAX_SEARCH_BODY_BYTES = 2048
+SEARCH_CACHE_SECONDS = 20
+SEARCH_CACHE_ENTRIES = 128
+CLIENT_SEARCHES_PER_MINUTE = 5
+CLIENT_SEARCHES_PER_HOUR = 20
+SITE_SEARCHES_PER_MINUTE = 60
+MAX_ACTIVE_PROVIDER_SEARCHES = 4
 _rate_lock = Lock()
-_rate = defaultdict(deque)
+_rate: dict[str, deque[float]] = {}
+_site_searches: deque[float] = deque()
+_search_cache: OrderedDict[tuple[str, str, bool], tuple[float, dict]] = OrderedDict()
+_active_searches = 0
+_next_rate_cleanup = 0.0
 
 
 class Query(BaseModel):
@@ -38,6 +51,7 @@ class Query(BaseModel):
 async def secure_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
@@ -56,32 +70,108 @@ async def health():
     return {"status": "ok"}
 
 
+async def _search_payload(request: Request) -> Query:
+    if request.headers.get("content-type", "").split(";", 1)[0].strip().lower() != "application/json":
+        raise HTTPException(415, "Send search requests as JSON.")
+    body = bytearray()
+    try:
+        async with timeout(5):
+            async for chunk in request.stream():
+                if len(body) + len(chunk) > MAX_SEARCH_BODY_BYTES:
+                    raise HTTPException(413, "Search request is too large.")
+                body.extend(chunk)
+    except TimeoutError:
+        raise HTTPException(408, "Search request took too long to upload.") from None
+    except ClientDisconnect:
+        raise HTTPException(400, "Search request was interrupted.") from None
+    try:
+        return Query.model_validate_json(body)
+    except ValidationError:
+        raise HTTPException(422, "Enter a valid search query and time window.") from None
+
+
+def _rate_limited(detail: str, delay: float) -> HTTPException:
+    return HTTPException(429, detail, headers={"Retry-After": str(max(1, ceil(delay)))})
+
+
+def _client_key(request: Request) -> str | None:
+    if request.client is None:
+        return None
+    try:
+        address = ip_address(request.client.host)
+    except ValueError:
+        return None
+    # A private proxy address may represent many visitors. Use the site limit in that case.
+    return str(address) if address.is_global else None
+
+
+def _admit_search(peer: str | None, key: tuple[str, str, bool]) -> dict | None:
+    global _active_searches, _next_rate_cleanup
+    with _rate_lock:
+        now = monotonic()
+        if now >= _next_rate_cleanup:
+            for address in list(_rate):
+                if not _rate[address] or _rate[address][-1] <= now - 3600:
+                    del _rate[address]
+            _next_rate_cleanup = now + 60
+        recent = _rate.get(peer, deque()) if peer is not None else deque()
+        while recent and recent[0] <= now - 3600:
+            recent.popleft()
+        if len(recent) >= CLIENT_SEARCHES_PER_HOUR:
+            raise _rate_limited("Hourly search limit reached. Try again later.", recent[0] + 3600 - now)
+        if len(recent) >= CLIENT_SEARCHES_PER_MINUTE and recent[-CLIENT_SEARCHES_PER_MINUTE] > now - 60:
+            raise _rate_limited("Too many searches in a minute. Try again shortly.",
+                                recent[-CLIENT_SEARCHES_PER_MINUTE] + 60 - now)
+
+        while _site_searches and _site_searches[0] <= now - 60:
+            _site_searches.popleft()
+        if len(_site_searches) >= SITE_SEARCHES_PER_MINUTE:
+            raise _rate_limited("News search is busy. Try again shortly.", _site_searches[0] + 60 - now)
+        cached = _search_cache.get(key)
+        if cached is not None and cached[0] <= now:
+            del _search_cache[key]
+            cached = None
+        if cached is None and _active_searches >= MAX_ACTIVE_PROVIDER_SEARCHES:
+            raise _rate_limited("News search is busy. Try again shortly.", 5)
+
+        if peer is not None:
+            recent.append(now)
+            _rate[peer] = recent
+        _site_searches.append(now)
+        if cached is not None:
+            _search_cache.move_to_end(key)
+            return cached[1]
+        _active_searches += 1
+        return None
+
+
 @app.post("/api/news", include_in_schema=False)
-async def news(request: Request, payload: Query):
+async def news(request: Request):
+    global _active_searches
+    payload = await _search_payload(request)
     query = payload.query.strip()
     if len(query) < 3 or any(ord(x) < 32 for x in query):
         raise HTTPException(400, "Enter a valid search with at least three characters.")
-    # Limit anonymous searches. No raw user input is passed to shell commands.
-    # Cloud proxy IP handling should be configured at the deployment boundary.
-    peer = request.client.host if request.client else "unknown"
-    current = datetime.now(timezone.utc)
-    with _rate_lock:
-        q = _rate[peer]
-        while q and q[0] < current - timedelta(hours=1):
-            q.popleft()
-        if len(q) >= 20:
-            raise HTTPException(429, "Search limit reached. Try again later.")
-        q.append(current)
-        if len(_rate) > 5000:
-            for key in list(_rate)[:1000]:
-                if not _rate[key] or _rate[key][-1] < current - timedelta(hours=1):
-                    _rate.pop(key, None)
-    result = await run_in_threadpool(search_news, query,
-                                     days=1 if payload.window == "24h" else 7,
-                                     incident_only=payload.incident_only)
-    if not result["sources_checked"]:
-        raise HTTPException(503, "News feeds unavailable (" + "; ".join(result["provider_errors"]) + "). Try again later. No results were fabricated.")
-    return result
+
+    key = (query, payload.window, payload.incident_only)
+    cached = _admit_search(_client_key(request), key)
+    if cached is not None:
+        return cached
+    try:
+        result = await run_in_threadpool(search_news, query,
+                                         days=1 if payload.window == "24h" else 7,
+                                         incident_only=payload.incident_only)
+        if not result["sources_checked"]:
+            raise HTTPException(503, "News feeds unavailable (" + "; ".join(result["provider_errors"]) + "). Try again later.")
+        with _rate_lock:
+            _search_cache[key] = (monotonic() + SEARCH_CACHE_SECONDS, result)
+            _search_cache.move_to_end(key)
+            if len(_search_cache) > SEARCH_CACHE_ENTRIES:
+                _search_cache.popitem(last=False)
+        return result
+    finally:
+        with _rate_lock:
+            _active_searches -= 1
 
 
 _iss_lock = Lock()
@@ -91,36 +181,40 @@ ISS_URL = 'https://api.wheretheiss.at/v1/satellites/25544'
 
 def _iss_location() -> dict:
     """Public third-party positional observations; not a satellite imagery feed."""
-    now = time()
-    with _iss_lock:
-        if _iss_cache['data'] and now < _iss_cache['expires']:
-            return _iss_cache['data']
-        if now < _iss_cache['error_expires']:
-            raise ValueError('Feed temporarily unavailable')
-        try:
-            req = UrlRequest(ISS_URL, headers={'User-Agent':'ClearIntel-PublicResearch/1.1'})
-            with urlopen(req,timeout=6) as response:
-                payload=json.loads(response.read(16_384))
-            lat=float(payload['latitude']); lon=float(payload['longitude'])
-            timestamp=int(payload['timestamp'])
-            if not (-90<=lat<=90 and -180<=lon<=180 and abs(now-timestamp)<600):
-                raise ValueError('Stale or invalid ISS position')
-            data={'latitude':round(lat,4),'longitude':round(lon,4),
-                  'timestamp':timestamp,'object':'ISS (NORAD 25544)',
-                  'source':'Where the ISS at?'}
-            _iss_cache.update(data=data,expires=now+25,error_expires=0)
-            return data
-        except (HTTPError,URLError,TimeoutError,ValueError,KeyError,TypeError,OverflowError):
-            _iss_cache.update(data=None,expires=0,error_expires=now+20)
-            raise ValueError('ISS position provider unavailable')
+    try:
+        req = UrlRequest(ISS_URL, headers={'User-Agent':'ClearIntel-PublicResearch/1.1'})
+        with urlopen(req,timeout=6) as response:
+            payload=json.loads(response.read(16_384))
+        lat=float(payload['latitude']); lon=float(payload['longitude'])
+        timestamp=int(payload['timestamp'])
+        if not (-90<=lat<=90 and -180<=lon<=180 and abs(time()-timestamp)<600):
+            raise ValueError('Stale or invalid ISS position')
+        return {'latitude':round(lat,4),'longitude':round(lon,4),
+                'timestamp':timestamp,'object':'ISS (NORAD 25544)',
+                'source':'Where the ISS at?'}
+    except (HTTPError,URLError,TimeoutError,ValueError,KeyError,TypeError,OverflowError):
+        raise ValueError('ISS position provider unavailable') from None
 
 
 @app.get('/api/iss',include_in_schema=False)
 async def iss_position():
+    if not _iss_lock.acquire(blocking=False):
+        raise HTTPException(503, 'ISS position is refreshing. Try again shortly.', headers={'Retry-After': '2'})
     try:
-        return await run_in_threadpool(_iss_location)
-    except ValueError:
+        now = monotonic()
+        if now < _iss_cache['expires']:
+            return _iss_cache['data']
+        if now >= _iss_cache['error_expires']:
+            try:
+                data = await run_in_threadpool(_iss_location)
+            except ValueError:
+                _iss_cache.update(data=None, expires=0, error_expires=monotonic() + 20)
+            else:
+                _iss_cache.update(data=data, expires=monotonic() + 25, error_expires=0)
+                return data
         raise HTTPException(503,'ISS position feed is unavailable. Globe animation is illustrative.')
+    finally:
+        _iss_lock.release()
 
 
 @app.get("/robots.txt", include_in_schema=False)
