@@ -26,14 +26,26 @@ class NewsTests(unittest.TestCase):
         r=search_news('Iran bombing today',now=NOW,fetchers=[fake(rows)])
         self.assertEqual(len(r['results']),1)
         self.assertIn('Explosion reported',r['results'][0]['title'])
+        self.assertEqual(r['results'][0]['feed_time_utc'], NOW.isoformat())
+        self.assertIsNone(r['results'][0]['incident_time_utc'])
         self.assertIn('NOT independently confirmed',r['notice'])
 
     def test_no_fake_event_when_only_political_commentary(self):
         rows=[{'title':'Trump threatens possible bombing of Iran','url':'https://example.org/a',
+               'published':NOW.isoformat(),'source':'Publisher','provider':'test'},
+              {'title':'Trump discusses airstrikes on Iran in interview','url':'https://example.org/b',
                'published':NOW.isoformat(),'source':'Publisher','provider':'test'}]
         r=search_news('Iran bombing today',now=NOW,fetchers=[fake(rows)])
         self.assertEqual(r['results'],[])
         self.assertIn('does not prove',r['notice'])
+        r=search_news('Iran bombing today',incident_only=False,now=NOW,fetchers=[fake(rows)])
+        self.assertEqual(len(r['results']), 2)
+
+    def test_commentary_headline_with_reported_incident(self):
+        self.assertGreaterEqual(
+            _relevance('Officials discuss response after explosions reported in Iran', ['iran'], True),
+            0,
+        )
 
     def test_bad_and_insecure_links_rejected(self):
         rows=[{'title':'Iran explosion','url':url,'published':NOW.isoformat()} for url in
