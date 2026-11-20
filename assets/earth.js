@@ -4,6 +4,12 @@
   if (!canvas) return;
   const ctx = canvas.getContext('2d', {alpha:true});
   if (!ctx) return;
+  const dashboard = document.getElementById('top');
+  const viewControls = document.getElementById('dashboard-view-controls');
+  const mapTab = document.getElementById('dashboard-map-tab');
+  const feedTab = document.getElementById('dashboard-feed-tab');
+  const showMap = document.getElementById('dashboard-show-map');
+  const mobileDashboard = window.matchMedia('(max-width: 860px)');
   const issStatus = document.getElementById('iss-status');
   const latText = document.getElementById('iss-lat');
   const lonText = document.getElementById('iss-lon');
@@ -81,7 +87,7 @@
   }
   function drawCoastline(cx,cy,r){
     if(!coastline)return;
-    ctx.fillStyle='#1c514d';ctx.strokeStyle='#91d8b5';ctx.lineWidth=zoomed?1.05:.65;
+    ctx.fillStyle='#224768';ctx.strokeStyle='#9bdbef';ctx.lineWidth=zoomed?1.05:.65;
     for(const {coords,closed} of coastline.tracks)strokeTrack(coords,cx,cy,r,closed);
   }
   function drawReportPins(cx,cy,r){
@@ -124,21 +130,21 @@
     ctx.clearRect(0,0,width,height);
     const cx=width/2, cy=height/2-4, r=Math.min(width*0.39,height*0.45)*(zoomed?UK_ZOOM:1);
     const halo=ctx.createRadialGradient(cx,cy,r*.8,cx,cy,r*1.4);
-    halo.addColorStop(0,'rgba(45,168,124,.22)');halo.addColorStop(1,'rgba(15,65,55,0)');
+    halo.addColorStop(0,'rgba(72,152,246,.23)');halo.addColorStop(1,'rgba(31,72,130,0)');
     ctx.fillStyle=halo;ctx.beginPath();ctx.arc(cx,cy,r*1.4,0,Math.PI*2);ctx.fill();
     const ocean=ctx.createRadialGradient(cx-r*.36,cy-r*.4,r*.04,cx,cy,r*1.15);
-    ocean.addColorStop(0,'#173d44');ocean.addColorStop(.65,'#0c3038');ocean.addColorStop(1,'#06191f');
-    ctx.fillStyle=ocean;ctx.strokeStyle='#456e66';ctx.lineWidth=1.25;
+    ocean.addColorStop(0,'#1a395d');ocean.addColorStop(.65,'#102745');ocean.addColorStop(1,'#081628');
+    ctx.fillStyle=ocean;ctx.strokeStyle='#3d6289';ctx.lineWidth=1.25;
     ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);ctx.fill();ctx.stroke();
     ctx.save();ctx.beginPath();ctx.arc(cx,cy,r-.4,0,Math.PI*2);ctx.clip();
-    ctx.strokeStyle='rgba(120,181,160,.22)';ctx.lineWidth=.65;
+    ctx.strokeStyle='rgba(129,176,223,.23)';ctx.lineWidth=.65;
     for(let lon=-180;lon<=180;lon+=30)strokeTrack(drawGrid(lon),cx,cy,r);
     for(let lat=-75;lat<=75;lat+=15)strokeTrack(Array.from({length:361},(_,i)=>[-180+i,lat]),cx,cy,r);
     for(const [lon,lat] of points){
       if(insideCoastline(lon,lat))continue;
       const p=project(lon,lat,cx,cy,r);
       if(p.front>0.015){
-        ctx.fillStyle=p.front>.35?'rgba(121,227,172,.73)':'rgba(78,158,127,.50)';
+        ctx.fillStyle=p.front>.35?'rgba(124,183,235,.72)':'rgba(85,138,191,.48)';
         ctx.fillRect(p.x-1.1,p.y-1.1,2.2,2.2);
       }
     }
@@ -157,11 +163,11 @@
     ctx.fillStyle=shade;ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);ctx.fill();
     ctx.restore();
     if(!zoomed){
-      ctx.strokeStyle='rgba(151,212,174,.20)';ctx.lineWidth=1;
+      ctx.strokeStyle='rgba(143,184,231,.21)';ctx.lineWidth=1;
       ctx.beginPath();ctx.ellipse(cx,cy,r*1.13,r*.30,-.3,0,2*Math.PI);ctx.stroke();
     }
     pins=reportLayers[layer.value]?drawReportPins(cx,cy,r):[];
-    ctx.fillStyle='#84b99e';ctx.font='9px system-ui';
+    ctx.fillStyle='#9ebbd6';ctx.font='9px system-ui';
     ctx.fillText(zoomed?'REGIONAL VIEW':'EARTH / ILLUSTRATIVE',12,18);
   }
   function frame(now){
@@ -172,6 +178,19 @@
       if(now-lastDraw>35){draw();lastDraw=now;}
     }
     requestAnimationFrame(frame);
+  }
+  function showDashboardView(view){
+    dashboard.dataset.mobileView=view;
+    mapTab.setAttribute('aria-pressed',String(view==='map'));
+    feedTab.setAttribute('aria-pressed',String(view==='feed'));
+    if(view==='map'){fit();draw();}
+  }
+  if(viewControls){
+    mapTab.addEventListener('click',()=>showDashboardView('map'));
+    feedTab.addEventListener('click',()=>showDashboardView('feed'));
+    showMap.addEventListener('click',()=>{showDashboardView('map');mapTab.focus();});
+    viewControls.hidden=false;
+    showDashboardView('map');
   }
   canvas.addEventListener('pointerdown',e=>{
     if(!e.isPrimary||e.button!==0||dragPointer!==null)return;
@@ -201,6 +220,7 @@
       if(fromPointer<=pin.hitRadius&&fromPointer<distance){nearest=pin;distance=fromPointer;}
     }
     if(!nearest)return;
+    if(viewControls&&mobileDashboard.matches)showDashboardView('feed');
     if(nearest.events.length>1){
       clusterIds=new Set(nearest.events.map(event=>event.id));
       selectedReport=null;
@@ -211,6 +231,7 @@
     }else{
       clusterIds=null;
       selectReport(nearest.events[0]);
+      if(viewControls&&mobileDashboard.matches)reportDetail.focus();
     }
   });
   function cancelDrag(e){if(e.pointerId===dragPointer)dragPointer=null;}
@@ -249,7 +270,9 @@
   locate.addEventListener('click',()=>{
     if(!currentISS)return;
     leaveRegionalView();
-    rot=currentISS.longitude;tilt=clamp(currentISS.latitude*.35,-35,35);draw();
+    rot=currentISS.longitude;tilt=clamp(currentISS.latitude*.35,-35,35);
+    if(viewControls&&mobileDashboard.matches){showDashboardView('map');mapTab.focus();}
+    else{draw();}
   });
   async function refreshISS() {
     if(issLoading)return;
@@ -297,7 +320,11 @@
       const row=document.createElement('li');
       const button=document.createElement('button');
       button.type='button';button.dataset.reportId=event.id;
-      button.textContent=active.title(event);
+      const label=document.createElement('span');label.textContent=active.title(event);
+      const time=document.createElement('time');time.className='report-time';
+      time.dateTime=new Date(event[active.timeField]).toISOString();
+      time.textContent=`${utcTime.format(event[active.timeField])} UTC`;
+      button.append(label,time);
       button.setAttribute('aria-pressed',String(event.id===selectedReport));
       button.addEventListener('click',()=>selectReport(event));
       row.append(button);reportList.append(row);
@@ -305,6 +332,7 @@
     }
     const selected=visibleReports.find(event=>event.id===selectedReport);
     reportDetail.hidden=!selected;
+    if(showMap)showMap.hidden=!selected;
     if(selected){
       const title=document.createElement('strong');title.textContent=active.title(selected);
       const date=document.createElement('span');
@@ -368,6 +396,7 @@
   });
   function changeLayer(){
     const active=reportLayers[layer.value];
+    dashboard.dataset.layer=layer.value;
     clusterIds=null;selectedReport=null;visibleReports=[];
     reportPanel.hidden=!active;issPanel.hidden=Boolean(active);
     if(active){
