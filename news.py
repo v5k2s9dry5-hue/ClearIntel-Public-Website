@@ -23,6 +23,12 @@ MAX_RESPONSE_BYTES = 2_000_000
 HEADERS = {"User-Agent": "ClearIntel-PublicResearch/1.0 (+contact: contactclearintel@protonmail.me)"}
 INCIDENT = re.compile(r"\b(?:bomb(?:s|ed|ing)?|explosions?|blast(?:s)?|air[ -]?strikes?|missile(?:s)?|rocket(?:s)?|struck|strike(?:s)?|attacks?|drone strikes?|shelling|raid(?:s)?)\b", re.I)
 SPECULATIVE = re.compile(r"\b(?:threatens?|warns?|vows?|could|might|may|potential|possible|plans? to|considering|weighing|fears?|prepares? to|threat of)\b", re.I)
+COMMENTARY = re.compile(
+    r"\b(?:discuss(?:es|ed|ing)?|debate[sd]?|debating|talks? (?:about|on)|"
+    r"comment(?:s|ed|ing)? on|calls? for|rules? out|interview(?:s|ed)? (?:about|on))\b",
+    re.I,
+)
+AFTERMATH = re.compile(r"\b(?:after|following)\b", re.I)
 STOPWORDS = {"today","now","latest","news","breaking","live","reports","report","reporting","bombing","bombings","bomb","bombed","attack","attacks","attacked","airstrike","airstrikes","strike","strikes","explosion","explosions","missile","missiles","happened","in","on","at","of","the","a","an","and","or","about","any","is","there","were","has","been","did"}
 
 
@@ -102,7 +108,7 @@ def fetch_google(query: str, days: int, incident_only: bool = True) -> list[dict
         records.append({"title": item.findtext("title", ""), "url": item.findtext("link", ""),
                         "published": item.findtext("pubDate", ""),
                         "source": source.text if source is not None and source.text else "Publisher via Google News",
-                        "provider": "Google News", "time_basis": "Google News feed date"})
+                        "provider": "Google News", "time_basis": "Publication time via Google News"})
     return records
 
 
@@ -119,7 +125,7 @@ def fetch_bing(query: str, days: int, incident_only: bool = True) -> list[dict]:
         records.append({'title': item.findtext('title',''), 'url': item.findtext('link',''),
                         'published': item.findtext('pubDate',''),
                         'source': item.findtext('source','') or 'Publisher via Bing News',
-                        'provider': 'Bing News', 'time_basis': 'Bing News feed date'})
+                        'provider': 'Bing News', 'time_basis': 'Publication time via Bing News'})
     return records
 
 
@@ -149,12 +155,20 @@ def _subject(query: str) -> list[str]:
     return [w for w in words if w not in STOPWORDS and len(w) > 1][:5]
 
 
+def _reports_incident(title: str) -> bool:
+    main, *aftermath = AFTERMATH.split(title, maxsplit=1)
+    return any(
+        INCIDENT.search(clause) and not SPECULATIVE.search(clause) and not COMMENTARY.search(clause)
+        for clause in (main, *aftermath)
+    )
+
+
 def _relevance(title: str, subject: list[str], incident_only: bool) -> int:
     lowered = title.casefold()
     if subject and not any(re.search(r"(?<!\w)"+re.escape(t)+r"(?!\w)", lowered) for t in subject):
         return -1
     is_incident = bool(INCIDENT.search(title))
-    if incident_only and (not is_incident or SPECULATIVE.search(title)):
+    if incident_only and not _reports_incident(title):
         return -1
     return (4 if is_incident else 0) + sum(1 for t in subject if t in lowered)
 
@@ -197,7 +211,8 @@ def search_news(query: str, days: int = 1, incident_only: bool = True,
             continue
         seen.add(key)
         ranked.append({"title": title[:320], "url": url, "source": str(article.get("source", "Publisher"))[:90],
-                       "feed_time_utc": pub.isoformat(), "time_basis": str(article.get("time_basis", "Provider timestamp"))[:45], "provider": str(article.get("provider", ""))[:30],
+                       "feed_time_utc": pub.isoformat(), "incident_time_utc": None,
+                       "time_basis": str(article.get("time_basis", "Provider timestamp"))[:45], "provider": str(article.get("provider", ""))[:30],
                        "relevance": score})
     ranked.sort(key=lambda r: (r["relevance"], r["feed_time_utc"]), reverse=True)
     if not ranked:
