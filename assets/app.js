@@ -73,7 +73,7 @@ function fillStatus(title,description,kind='info'){
   const area=$('news-results');area.replaceChildren();
   const state=el('div','state-note '+kind);state.append(el('strong','',title),el('p','',description));area.append(state);
 }
-function renderResults(payload,query){
+function renderResults(payload,incidentOnly){
   const area=$('news-results');area.replaceChildren();
   const header=el('div','results-header');
   const left=el('div','');left.append(el('span','result-kicker','PUBLIC NEWS FEED · UTC'),el('h3','',`${payload.results.length} recent matching headline${payload.results.length===1?'':'s'}`));
@@ -87,7 +87,8 @@ function renderResults(payload,query){
     const card=el('article','result-card');
     const eyebrow=el('div','result-meta',article.source+' · '+(article.time_basis||'Feed time')+' · '+new Date(article.feed_time_utc).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'})+' UTC');
     const link=el('a','result-title',article.title);link.href=article.url;link.target='_blank';link.rel='noopener noreferrer nofollow';
-    card.append(eyebrow,link,el('div','result-provider',article.provider+' · Feed match, not incident verification'));
+    const incidentTime=incidentOnly&&article.incident_time_utc==null?' · Incident time unknown':'';
+    card.append(eyebrow,link,el('div','result-provider',article.provider+incidentTime));
     list.append(card);
   }
   area.append(list);
@@ -97,16 +98,17 @@ function renderResults(payload,query){
 $('news-form').addEventListener('submit',async e=>{
   e.preventDefault();
   const query=$('news-query').value.trim();if(query.length<3)return;
+  const incidentOnly=$('incident-only').checked;
   const submit=$('news-submit');submit.disabled=true;
   fillStatus('Checking recent news feeds…','Looking for published headlines that actually match the time window and subject.');
   $('news-results').scrollIntoView({behavior:'smooth',block:'nearest'});
   let timeout;
   try{
     const controller=new AbortController();timeout=setTimeout(()=>controller.abort(),25000);
-    const response=await fetch('/api/news',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,window:$('news-window').value,incident_only:$('incident-only').checked}),signal:controller.signal});
+    const response=await fetch('/api/news',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,window:$('news-window').value,incident_only:incidentOnly}),signal:controller.signal});
     let payload;try{payload=await response.json();}catch{payload={};}
     if(!response.ok)throw new Error(typeof payload.detail==='string'?payload.detail:'News search could not be completed.');
-    renderResults(payload,query);
+    renderResults(payload,incidentOnly);
   }catch(err){fillStatus('Live search unavailable',err.name==='AbortError'?'The sources did not respond within the time limit. Try again.':err.message,'error');}
   finally{clearTimeout(timeout);submit.disabled=false;}
 });
