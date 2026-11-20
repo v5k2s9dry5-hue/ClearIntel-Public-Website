@@ -10,6 +10,7 @@
   const timeText = document.getElementById('iss-time');
   const locate = document.getElementById('iss-find');
   const motion = document.getElementById('earth-motion');
+  const ukView = document.getElementById('earth-uk-view');
   const layer = document.getElementById('globe-layer');
   const reportPanel = document.getElementById('earthquake-panel');
   const issPanel = document.getElementById('iss-panel');
@@ -40,7 +41,9 @@
   };
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const RAD = Math.PI / 180;
+  const UK_ZOOM = 7;
   let rot = -18, tilt = 19, playing = !reduced, dragPointer = null, px = 0, py = 0;
+  let zoomed = false, previousWorld = null, coastline = null;
   let points = [], currentISS = null, lastDraw = 0, lastTick = 0;
   let reportsPaused = false;
   let visibleReports = [], pins = [], selectedReport = null, clusterIds = null;
@@ -53,23 +56,33 @@
             y:cy-r*(Math.sin(b)*Math.cos(t)-Math.cos(b)*Math.cos(a)*Math.sin(t)), front};
   };
   function fit() {
-    const bounds=canvas.getBoundingClientRect();
     const ratio=Math.min(window.devicePixelRatio||1,2);
-    canvas.width=Math.max(1,Math.floor(bounds.width*ratio));
-    canvas.height=Math.max(1,Math.floor(bounds.height*ratio));
+    canvas.width=Math.max(1,Math.floor(canvas.clientWidth*ratio));
+    canvas.height=Math.max(1,Math.floor(canvas.clientHeight*ratio));
     ctx.setTransform(ratio,0,0,ratio,0,0);
   }
   function drawGrid(lonLine) {
-    return lonLine ? Array.from({length:181},(_,i)=>[lonLine,-90+i]) : [];
+    return Array.from({length:181},(_,i)=>[lonLine,-90+i]);
   }
-  function strokeTrack(coords,cx,cy,r) {
-    ctx.beginPath(); let drawing=false;
+  function strokeTrack(coords,cx,cy,r,fillLand=false) {
+    ctx.beginPath(); let drawing=false, allVisible=true;
     for(const [lon,lat] of coords) {
       const p=project(lon,lat,cx,cy,r);
       if(p.front>0.005) { if(!drawing)ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y); drawing=true; }
-      else drawing=false;
+      else{drawing=false;allVisible=false;}
     }
+    if(fillLand&&allVisible){ctx.closePath();ctx.fill();}
     ctx.stroke();
+  }
+  function insideCoastline(lon,lat){
+    if(!coastline)return false;
+    const [west,south,east,north]=coastline.bounds;
+    return lon>=west&&lon<=east&&lat>=south&&lat<=north;
+  }
+  function drawCoastline(cx,cy,r){
+    if(!coastline)return;
+    ctx.fillStyle='#1c514d';ctx.strokeStyle='#91d8b5';ctx.lineWidth=zoomed?1.05:.65;
+    for(const {coords,closed} of coastline.tracks)strokeTrack(coords,cx,cy,r,closed);
   }
   function drawReportPins(cx,cy,r){
     const activeLayer=reportLayers[layer.value];
@@ -109,7 +122,7 @@
     const width=canvas.clientWidth, height=canvas.clientHeight;
     if(!width||!height)return;
     ctx.clearRect(0,0,width,height);
-    const cx=width/2, cy=height/2-4, r=Math.min(width*0.39,height*0.45);
+    const cx=width/2, cy=height/2-4, r=Math.min(width*0.39,height*0.45)*(zoomed?UK_ZOOM:1);
     const halo=ctx.createRadialGradient(cx,cy,r*.8,cx,cy,r*1.4);
     halo.addColorStop(0,'rgba(45,168,124,.22)');halo.addColorStop(1,'rgba(15,65,55,0)');
     ctx.fillStyle=halo;ctx.beginPath();ctx.arc(cx,cy,r*1.4,0,Math.PI*2);ctx.fill();
@@ -122,12 +135,14 @@
     for(let lon=-180;lon<=180;lon+=30)strokeTrack(drawGrid(lon),cx,cy,r);
     for(let lat=-75;lat<=75;lat+=15)strokeTrack(Array.from({length:361},(_,i)=>[-180+i,lat]),cx,cy,r);
     for(const [lon,lat] of points){
+      if(insideCoastline(lon,lat))continue;
       const p=project(lon,lat,cx,cy,r);
       if(p.front>0.015){
         ctx.fillStyle=p.front>.35?'rgba(121,227,172,.73)':'rgba(78,158,127,.50)';
         ctx.fillRect(p.x-1.1,p.y-1.1,2.2,2.2);
       }
     }
+    drawCoastline(cx,cy,r);
     if(layer.value==='iss'&&currentISS){
       const p=project(currentISS.longitude,currentISS.latitude,cx,cy,r);
       if(p.front>0){
@@ -141,17 +156,21 @@
     shade.addColorStop(0,'rgba(8,14,17,.22)');shade.addColorStop(.45,'rgba(0,0,0,0)');shade.addColorStop(1,'rgba(0,0,0,.37)');
     ctx.fillStyle=shade;ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);ctx.fill();
     ctx.restore();
-    ctx.strokeStyle='rgba(151,212,174,.20)';ctx.lineWidth=1;
-    ctx.beginPath();ctx.ellipse(cx,cy,r*1.13,r*.30,-.3,0,2*Math.PI);ctx.stroke();
+    if(!zoomed){
+      ctx.strokeStyle='rgba(151,212,174,.20)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.ellipse(cx,cy,r*1.13,r*.30,-.3,0,2*Math.PI);ctx.stroke();
+    }
     pins=reportLayers[layer.value]?drawReportPins(cx,cy,r):[];
     ctx.fillStyle='#84b99e';ctx.font='9px system-ui';
-    ctx.fillText('EARTH / ILLUSTRATIVE',12,18);
+    ctx.fillText(zoomed?'REGIONAL VIEW':'EARTH / ILLUSTRATIVE',12,18);
   }
   function frame(now){
     if(!lastTick)lastTick=now;
     const delta=Math.min(now-lastTick,80);lastTick=now;
-    if(playing&&dragPointer===null)rot=(rot+delta*.0033)%360;
-    if(now-lastDraw>35){draw();lastDraw=now;}
+    if(playing&&dragPointer===null){
+      rot=(rot+delta*.0033/(zoomed?UK_ZOOM:1))%360;
+      if(now-lastDraw>35){draw();lastDraw=now;}
+    }
     requestAnimationFrame(frame);
   }
   canvas.addEventListener('pointerdown',e=>{
@@ -164,8 +183,9 @@
     const dx=e.clientX-px, dy=e.clientY-py;
     dragDistance+=Math.hypot(dx,dy);
     // The projection subtracts the view longitude from every point.
-    rot=(rot-dx*.48)%360;
-    tilt=clamp(tilt+dy*.25,-90,90);
+    const scale=zoomed?UK_ZOOM:1;
+    rot=(rot-dx*.48/scale)%360;
+    tilt=clamp(tilt+dy*.25/scale,-90,90);
     px=e.clientX;py=e.clientY;draw();
   });
   canvas.addEventListener('pointerup',e=>{
@@ -203,7 +223,34 @@
   }
   setRotation(playing);
   motion.addEventListener('click',()=>setRotation(!playing));
-  locate.addEventListener('click',()=>{if(currentISS){rot=currentISS.longitude;tilt=clamp(currentISS.latitude*.35,-35,35);draw();}});
+  function setZoomed(active){
+    zoomed=active;
+    ukView.textContent=active?'World view':'Zoom to UK';
+  }
+  ukView.addEventListener('click',()=>{
+    if(zoomed){
+      setZoomed(false);
+      ({rot,tilt}=previousWorld);
+      setRotation(previousWorld.playing);
+      previousWorld=null;
+    }else{
+      previousWorld={rot,tilt,playing};
+      rot=-4.5;tilt=54.7;
+      setZoomed(true);
+      setRotation(false);
+    }
+    draw();
+  });
+  function leaveRegionalView(){
+    if(!zoomed)return;
+    setZoomed(false);
+    previousWorld=null;
+  }
+  locate.addEventListener('click',()=>{
+    if(!currentISS)return;
+    leaveRegionalView();
+    rot=currentISS.longitude;tilt=clamp(currentISS.latitude*.35,-35,35);draw();
+  });
   async function refreshISS() {
     if(issLoading)return;
     issLoading=true;
@@ -227,6 +274,7 @@
 
   function selectReport(event){
     selectedReport=event.id;
+    if(!insideCoastline(event.longitude,event.latitude))leaveRegionalView();
     rot=event.longitude;tilt=event.latitude;
     setRotation(false);
     renderReports();
@@ -315,6 +363,7 @@
     reportPause.textContent=reportsPaused?'Resume updates':'Pause updates';
     reportPause.setAttribute('aria-pressed',String(reportsPaused));
     renderReports();
+    draw();
     if(!reportsPaused)refreshReports();
   });
   function changeLayer(){
@@ -330,6 +379,18 @@
   }
   layer.addEventListener('change',changeLayer);
   fetch('/assets/earth-land.json').then(r=>{if(!r.ok)throw Error();return r.json();}).then(data=>{if(Array.isArray(data)){points=data;draw();}}).catch(()=>{});
+  fetch('/assets/uk-coastline.json').then(response=>{
+    if(!response.ok)throw Error('Coastline unavailable');
+    return response.json();
+  }).then(data=>{
+    if(!Array.isArray(data.bounds)||data.bounds.length!==4||!Array.isArray(data.tracks))return;
+    coastline={bounds:data.bounds,tracks:data.tracks.map(coords=>{
+      const first=coords[0], last=coords.at(-1);
+      return {coords,closed:coords.length>=4&&first[0]===last[0]&&first[1]===last[1]};
+    })};
+    ukView.disabled=false;
+    draw();
+  }).catch(()=>{});
   if('ResizeObserver' in window)new ResizeObserver(()=>{fit();draw();}).observe(canvas);
   else window.addEventListener('resize',()=>{fit();draw();});
   fit();draw();requestAnimationFrame(frame);
@@ -337,6 +398,6 @@
   setInterval(()=>{if(!document.hidden&&layer.value==='iss')refreshISS();},30000);
   setInterval(()=>{
     if(document.hidden||!reportLayers[layer.value])return;
-    if(reportsPaused)renderReports();else refreshReports();
+    if(reportsPaused){renderReports();draw();}else refreshReports();
   },60000);
 })();
