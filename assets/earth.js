@@ -18,13 +18,17 @@
   const quakeStatus = document.getElementById('quake-status');
   const quakeList = document.getElementById('quake-list');
   const quakeDetail = document.getElementById('quake-detail');
+  const quakeGroup = document.getElementById('quake-group');
+  const quakeGroupTitle = document.getElementById('quake-group-title');
+  const quakeShowAll = document.getElementById('quake-show-all');
   const utcTime = new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'});
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const RAD = Math.PI / 180;
   let rot = -18, tilt = 19, playing = !reduced, dragPointer = null, px = 0, py = 0;
   let points = [], currentISS = null, lastDraw = 0, lastTick = 0;
   let quakeFeed = null, quakeFailed = false, quakePaused = false, quakeLoading = false;
-  let visibleQuakes = [], pins = [], selectedQuake = null, dragDistance = 0, issLoading = false;
+  let visibleQuakes = [], pins = [], selectedQuake = null, clusterIds = null;
+  let dragDistance = 0, issLoading = false;
   const clamp = (v,min,max)=>Math.min(max,Math.max(min,v));
   const project = (lon,lat,cx,cy,r) => {
     const a=(lon-rot)*RAD, b=lat*RAD, t=tilt*RAD;
@@ -51,6 +55,39 @@
     }
     ctx.stroke();
   }
+  function drawQuakePins(cx,cy,r){
+    const groups=[];
+    for(const event of visibleQuakes){
+      const point=project(event.longitude,event.latitude,cx,cy,r);
+      if(point.front<=.035)continue;
+      let closest=null, distance=27;
+      for(const group of groups){
+        const gap=Math.hypot(point.x-group.x,point.y-group.y);
+        if(gap<distance){closest=group;distance=gap;}
+      }
+      if(closest){
+        closest.events.push(event);
+        closest.x+=(point.x-closest.x)/closest.events.length;
+        closest.y+=(point.y-closest.y)/closest.events.length;
+      }else{groups.push({x:point.x,y:point.y,events:[event]});}
+    }
+
+    ctx.save();
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='800 10px system-ui';
+    for(let i=groups.length-1;i>=0;i--){
+      const group=groups[i];
+      const count=group.events.length;
+      const selected=group.events.some(event=>event.id===selectedQuake);
+      const radius=count>99?15:count>1?12:selected?7:4;
+      ctx.beginPath();ctx.arc(group.x,group.y,radius,0,2*Math.PI);
+      ctx.fillStyle=selected?'#cdffff':'#5de5f4';ctx.fill();
+      ctx.strokeStyle='#071b24';ctx.lineWidth=1.5;ctx.stroke();
+      if(count>1){ctx.fillStyle='#071b24';ctx.fillText(String(count),group.x,group.y);}
+      group.hitRadius=Math.max(14,radius+4);
+    }
+    ctx.restore();
+    return groups;
+  }
   function draw() {
     const width=canvas.clientWidth, height=canvas.clientHeight;
     if(!width||!height)return;
@@ -74,18 +111,6 @@
         ctx.fillRect(p.x-1.1,p.y-1.1,2.2,2.2);
       }
     }
-    pins=[];
-    if(layer.value==='earthquakes'){
-      for(const event of [...visibleQuakes].reverse()){
-        const pin=project(event.longitude,event.latitude,cx,cy,r);
-        if(pin.front<=.035)continue;
-        const selected=event.id===selectedQuake;
-        ctx.beginPath();ctx.arc(pin.x,pin.y,selected?7:4,0,2*Math.PI);
-        ctx.fillStyle=selected?'#cdffff':'#5de5f4';ctx.fill();
-        ctx.strokeStyle='#071b24';ctx.lineWidth=1.5;ctx.stroke();
-        pins.push({...pin,event});
-      }
-    }
     if(layer.value==='iss'&&currentISS){
       const p=project(currentISS.longitude,currentISS.latitude,cx,cy,r);
       if(p.front>0){
@@ -101,6 +126,7 @@
     ctx.restore();
     ctx.strokeStyle='rgba(151,212,174,.20)';ctx.lineWidth=1;
     ctx.beginPath();ctx.ellipse(cx,cy,r*1.13,r*.30,-.3,0,2*Math.PI);ctx.stroke();
+    pins=layer.value==='earthquakes'?drawQuakePins(cx,cy,r):[];
     ctx.fillStyle='#84b99e';ctx.font='9px system-ui';
     ctx.fillText('EARTH / ILLUSTRATIVE',12,18);
   }
@@ -130,12 +156,25 @@
     dragPointer=null;
     if(dragDistance+Math.hypot(e.clientX-px,e.clientY-py)>6||layer.value!=='earthquakes')return;
     const box=canvas.getBoundingClientRect();
-    let nearest=null, distance=14;
+    const x=(e.clientX-box.left)*canvas.clientWidth/box.width;
+    const y=(e.clientY-box.top)*canvas.clientHeight/box.height;
+    let nearest=null, distance=Infinity;
     for(const pin of pins){
-      const fromPointer=Math.hypot(pin.x-(e.clientX-box.left),pin.y-(e.clientY-box.top));
-      if(fromPointer<distance){nearest=pin;distance=fromPointer;}
+      const fromPointer=Math.hypot(pin.x-x,pin.y-y);
+      if(fromPointer<=pin.hitRadius&&fromPointer<distance){nearest=pin;distance=fromPointer;}
     }
-    if(nearest)selectQuake(nearest.event);
+    if(!nearest)return;
+    if(nearest.events.length>1){
+      clusterIds=new Set(nearest.events.map(event=>event.id));
+      selectedQuake=null;
+      setRotation(false);
+      renderQuakes();
+      quakeGroupTitle.focus();
+      draw();
+    }else{
+      clusterIds=null;
+      selectQuake(nearest.events[0]);
+    }
   });
   function cancelDrag(e){if(e.pointerId===dragPointer)dragPointer=null;}
   canvas.addEventListener('pointercancel',cancelDrag);
@@ -184,8 +223,12 @@
     const now=Date.now();
     const cutoff=now-Number(quakeWindow.value)*86400000;
     visibleQuakes=(quakeFeed?.events||[]).filter(event=>event.occurred_at_ms>=cutoff);
+    const cluster=clusterIds?visibleQuakes.filter(event=>clusterIds.has(event.id)):[];
+    if(!cluster.length)clusterIds=null;
+    quakeGroup.hidden=!clusterIds;
+    if(clusterIds)quakeGroupTitle.textContent=`${cluster.length} ${cluster.length===1?'report':'reports'} in this group`;
     quakeList.replaceChildren();
-    for(const event of visibleQuakes){
+    for(const event of clusterIds?cluster:visibleQuakes){
       const row=document.createElement('li');
       const button=document.createElement('button');
       button.type='button';button.dataset.quakeId=event.id;
@@ -234,7 +277,12 @@
     finally{quakeLoading=false;renderQuakes();draw();}
   }
 
-  quakeWindow.addEventListener('change',()=>{renderQuakes();draw();});
+  quakeShowAll.addEventListener('click',()=>{
+    clusterIds=null;
+    renderQuakes();draw();
+    (quakeList.querySelector('button')||quakeWindow).focus({preventScroll:true});
+  });
+  quakeWindow.addEventListener('change',()=>{clusterIds=null;renderQuakes();draw();});
   quakePause.addEventListener('click',()=>{
     quakePaused=!quakePaused;
     quakePause.textContent=quakePaused?'Resume updates':'Pause updates';
