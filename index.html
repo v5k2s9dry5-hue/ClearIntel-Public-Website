@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="/assets/styles.css">
   <link rel="stylesheet" href="/assets/dashboard.css?v=header-mark">
   <script src="/assets/app.js" defer></script>
-  <script src="/assets/earth.js?v=dashboard" defer></script>
+  <script src="/assets/earth.js?v=world-map" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -64,8 +64,12 @@
               <div class="globe-controls">
                 <button type="button" id="earth-motion" class="globe-control" aria-pressed="false">Pause rotation</button>
                 <button type="button" id="earth-uk-view" class="globe-control" disabled>Zoom to UK</button>
+                <div class="globe-controls" role="group" aria-label="Globe zoom">
+                  <button type="button" id="earth-zoom-out" class="globe-control" aria-label="Zoom out" disabled>−</button>
+                  <button type="button" id="earth-zoom-in" class="globe-control" aria-label="Zoom in">+</button>
+                </div>
               </div>
-              <span>UK coastline by Natural Earth</span>
+              <span id="earth-map-credit">Map data: Natural Earth</span>
             </div>
           </section>
           <section id="dashboard-feed" class="dashboard-panel dashboard-feed" aria-labelledby="dashboard-feed-heading">

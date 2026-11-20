@@ -17,6 +17,9 @@
   const locate = document.getElementById('iss-find');
   const motion = document.getElementById('earth-motion');
   const ukView = document.getElementById('earth-uk-view');
+  const zoomIn = document.getElementById('earth-zoom-in');
+  const zoomOut = document.getElementById('earth-zoom-out');
+  const mapCredit = document.getElementById('earth-map-credit');
   const layer = document.getElementById('globe-layer');
   const reportPanel = document.getElementById('earthquake-panel');
   const issPanel = document.getElementById('iss-panel');
@@ -47,9 +50,11 @@
   };
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const RAD = Math.PI / 180;
-  const UK_ZOOM = 7;
+  const zoomLevels = [1,3,7];
+  const UK_ZOOM = zoomLevels.at(-1);
   let rot = -18, tilt = 19, playing = !reduced, dragPointer = null, px = 0, py = 0;
-  let zoomed = false, previousWorld = null, coastline = null;
+  let zoom = 1, previousWorld = null, coastline = null;
+  let worldMap = null, detailedMap = null, detailLoading = false, detailFailed = false;
   let points = [], currentISS = null, lastDraw = 0, lastTick = 0;
   let reportsPaused = false;
   let visibleReports = [], pins = [], selectedReport = null, clusterIds = null;
@@ -87,8 +92,41 @@
   }
   function drawCoastline(cx,cy,r){
     if(!coastline)return;
-    ctx.fillStyle='#224768';ctx.strokeStyle='#9bdbef';ctx.lineWidth=zoomed?1.05:.65;
+    ctx.fillStyle='#224768';ctx.strokeStyle='#9bdbef';ctx.lineWidth=zoom>1?1.05:.65;
     for(const {coords,closed} of coastline.tracks)strokeTrack(coords,cx,cy,r,closed);
+  }
+  function prepareWorldMap(data){
+    function prepare(tracks){
+      return tracks.map(coords=>{
+        let west=180,east=-180,south=90,north=-90;
+        for(const [lon,lat] of coords){
+          west=Math.min(west,lon);east=Math.max(east,lon);
+          south=Math.min(south,lat);north=Math.max(north,lat);
+        }
+        return {coords,west,east,south,north};
+      });
+    }
+    return {coastlines:prepare(data.coastlines),borders:prepare(data.borders)};
+  }
+  function drawWorldMap(map,cx,cy,r){
+    const extent=Math.hypot(cx,cy+4)/r;
+    const angle=Math.asin(Math.min(1,extent))+RAD;
+    const centralLon=((rot+180)%360+360)%360-180;
+    const latitude=angle/RAD;
+    const longitude=Math.abs(tilt)+latitude>=90?180:Math.asin(Math.min(1,Math.sin(angle)/Math.cos(tilt*RAD)))/RAD;
+    const west=centralLon-longitude,east=centralLon+longitude;
+    function inView(track){
+      if(extent>=1)return true;
+      if(track.south>tilt+latitude||track.north<tilt-latitude)return false;
+      if(longitude>=180)return true;
+      return (track.east>=west&&track.west<=east)
+        || (west < -180&&track.east>=west+360)
+        || (east > 180&&track.west<=east-360);
+    }
+    ctx.strokeStyle='#729ec0';ctx.lineWidth=zoom>1?.85:.65;
+    for(const track of map.coastlines){if(inView(track))strokeTrack(track.coords,cx,cy,r);}
+    ctx.strokeStyle='#4d7395';ctx.lineWidth=zoom>1?.7:.5;
+    for(const track of map.borders){if(inView(track))strokeTrack(track.coords,cx,cy,r);}
   }
   function drawReportPins(cx,cy,r){
     const activeLayer=reportLayers[layer.value];
@@ -128,7 +166,7 @@
     const width=canvas.clientWidth, height=canvas.clientHeight;
     if(!width||!height)return;
     ctx.clearRect(0,0,width,height);
-    const cx=width/2, cy=height/2-4, r=Math.min(width*0.39,height*0.45)*(zoomed?UK_ZOOM:1);
+    const cx=width/2, cy=height/2-4, r=Math.min(width*0.39,height*0.45)*zoom;
     const halo=ctx.createRadialGradient(cx,cy,r*.8,cx,cy,r*1.4);
     halo.addColorStop(0,'rgba(72,152,246,.23)');halo.addColorStop(1,'rgba(31,72,130,0)');
     ctx.fillStyle=halo;ctx.beginPath();ctx.arc(cx,cy,r*1.4,0,Math.PI*2);ctx.fill();
@@ -140,15 +178,20 @@
     ctx.strokeStyle='rgba(129,176,223,.23)';ctx.lineWidth=.65;
     for(let lon=-180;lon<=180;lon+=30)strokeTrack(drawGrid(lon),cx,cy,r);
     for(let lat=-75;lat<=75;lat+=15)strokeTrack(Array.from({length:361},(_,i)=>[-180+i,lat]),cx,cy,r);
-    for(const [lon,lat] of points){
-      if(insideCoastline(lon,lat))continue;
-      const p=project(lon,lat,cx,cy,r);
-      if(p.front>0.015){
-        ctx.fillStyle=p.front>.35?'rgba(124,183,235,.72)':'rgba(85,138,191,.48)';
-        ctx.fillRect(p.x-1.1,p.y-1.1,2.2,2.2);
+    const map=zoom>1&&detailedMap?detailedMap:worldMap;
+    if(map){
+      drawWorldMap(map,cx,cy,r);
+    }else{
+      for(const [lon,lat] of points){
+        if(insideCoastline(lon,lat))continue;
+        const p=project(lon,lat,cx,cy,r);
+        if(p.front>0.015){
+          ctx.fillStyle=p.front>.35?'rgba(124,183,235,.72)':'rgba(85,138,191,.48)';
+          ctx.fillRect(p.x-1.1,p.y-1.1,2.2,2.2);
+        }
       }
     }
-    drawCoastline(cx,cy,r);
+    if(!map||previousWorld&&!detailedMap)drawCoastline(cx,cy,r);
     if(layer.value==='iss'&&currentISS){
       const p=project(currentISS.longitude,currentISS.latitude,cx,cy,r);
       if(p.front>0){
@@ -162,19 +205,19 @@
     shade.addColorStop(0,'rgba(8,14,17,.22)');shade.addColorStop(.45,'rgba(0,0,0,0)');shade.addColorStop(1,'rgba(0,0,0,.37)');
     ctx.fillStyle=shade;ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);ctx.fill();
     ctx.restore();
-    if(!zoomed){
+    if(zoom===1){
       ctx.strokeStyle='rgba(143,184,231,.21)';ctx.lineWidth=1;
       ctx.beginPath();ctx.ellipse(cx,cy,r*1.13,r*.30,-.3,0,2*Math.PI);ctx.stroke();
     }
     pins=reportLayers[layer.value]?drawReportPins(cx,cy,r):[];
     ctx.fillStyle='#9ebbd6';ctx.font='9px system-ui';
-    ctx.fillText(zoomed?'REGIONAL VIEW':'EARTH / ILLUSTRATIVE',12,18);
+    ctx.fillText(zoom>1?'REGIONAL VIEW':'WORLD VIEW',12,18);
   }
   function frame(now){
     if(!lastTick)lastTick=now;
     const delta=Math.min(now-lastTick,80);lastTick=now;
     if(playing&&dragPointer===null){
-      rot=(rot+delta*.0033/(zoomed?UK_ZOOM:1))%360;
+      rot=(rot+delta*.0033/zoom)%360;
       if(now-lastDraw>35){draw();lastDraw=now;}
     }
     requestAnimationFrame(frame);
@@ -202,9 +245,8 @@
     const dx=e.clientX-px, dy=e.clientY-py;
     dragDistance+=Math.hypot(dx,dy);
     // The projection subtracts the view longitude from every point.
-    const scale=zoomed?UK_ZOOM:1;
-    rot=(rot-dx*.48/scale)%360;
-    tilt=clamp(tilt+dy*.25/scale,-90,90);
+    rot=(rot-dx*.48/zoom)%360;
+    tilt=clamp(tilt+dy*.25/zoom,-90,90);
     px=e.clientX;py=e.clientY;draw();
   });
   canvas.addEventListener('pointerup',e=>{
@@ -244,32 +286,67 @@
   }
   setRotation(playing);
   motion.addEventListener('click',()=>setRotation(!playing));
-  function setZoomed(active){
-    zoomed=active;
-    ukView.textContent=active?'World view':'Zoom to UK';
+  function updateMapCredit(){
+    if(!mapCredit)return;
+    const status=zoom===1||detailedMap?'':detailFailed?' · Overview detail':' · Loading detail';
+    mapCredit.textContent='Map data: Natural Earth'+status;
+  }
+  async function loadDetailedMap(){
+    if(detailedMap||detailLoading)return;
+    detailLoading=true;detailFailed=false;updateMapCredit();
+    try{
+      const response=await fetch('/assets/world-map-detail.txt');
+      if(!response.ok)throw Error('Map detail unavailable');
+      const packed=(await response.text()).trim();
+      const bytes=Uint8Array.from(atob(packed),char=>char.charCodeAt(0));
+      const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+      detailedMap=prepareWorldMap(await new Response(stream).json());
+      ukView.disabled=false;
+      draw();
+    }catch(_){detailFailed=true;}
+    finally{detailLoading=false;updateMapCredit();}
+  }
+  function setZoom(value){
+    zoom=value;
+    if(zoomIn)zoomIn.disabled=zoom===UK_ZOOM;
+    if(zoomOut)zoomOut.disabled=zoom===1;
+    ukView.textContent=previousWorld?'World view':'Zoom to UK';
+    updateMapCredit();
+    if(zoom>1)loadDetailedMap();
   }
   ukView.addEventListener('click',()=>{
-    if(zoomed){
-      setZoomed(false);
-      ({rot,tilt}=previousWorld);
-      setRotation(previousWorld.playing);
+    if(previousWorld){
+      const world=previousWorld;
       previousWorld=null;
+      ({rot,tilt}=world);
+      setRotation(world.playing);
+      setZoom(1);
     }else{
       previousWorld={rot,tilt,playing};
       rot=-4.5;tilt=54.7;
-      setZoomed(true);
+      setZoom(UK_ZOOM);
       setRotation(false);
     }
     draw();
   });
-  function leaveRegionalView(){
-    if(!zoomed)return;
-    setZoomed(false);
+  function stepZoom(step){
+    const next=zoomLevels[zoomLevels.indexOf(zoom)+step];
+    if(!next)return;
+    if(next===1)previousWorld=null;
+    setZoom(next);
+    setRotation(false);
+    draw();
+  }
+  zoomIn?.addEventListener('click',()=>stepZoom(1));
+  zoomOut?.addEventListener('click',()=>stepZoom(-1));
+  function leaveUKView(){
+    if(!previousWorld)return;
     previousWorld=null;
+    setZoom(1);
   }
   locate.addEventListener('click',()=>{
     if(!currentISS)return;
-    leaveRegionalView();
+    leaveUKView();
     rot=currentISS.longitude;tilt=clamp(currentISS.latitude*.35,-35,35);
     if(viewControls&&mobileDashboard.matches){showDashboardView('map');mapTab.focus();}
     else{draw();}
@@ -297,7 +374,7 @@
 
   function selectReport(event){
     selectedReport=event.id;
-    if(!insideCoastline(event.longitude,event.latitude))leaveRegionalView();
+    if(!insideCoastline(event.longitude,event.latitude))leaveUKView();
     rot=event.longitude;tilt=event.latitude;
     setRotation(false);
     renderReports();
@@ -407,7 +484,15 @@
     draw();
   }
   layer.addEventListener('change',changeLayer);
-  fetch('/assets/earth-land.json').then(r=>{if(!r.ok)throw Error();return r.json();}).then(data=>{if(Array.isArray(data)){points=data;draw();}}).catch(()=>{});
+  fetch('/assets/world-map.json').then(response=>{
+    if(!response.ok)throw Error('World map unavailable');
+    return response.json();
+  }).then(data=>{
+    worldMap=prepareWorldMap(data);draw();
+  }).catch(()=>fetch('/assets/earth-land.json').then(response=>{
+    if(!response.ok)throw Error('Map fallback unavailable');
+    return response.json();
+  }).then(data=>{if(Array.isArray(data)){points=data;draw();}}).catch(()=>{}));
   fetch('/assets/uk-coastline.json').then(response=>{
     if(!response.ok)throw Error('Coastline unavailable');
     return response.json();
