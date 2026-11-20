@@ -21,7 +21,7 @@
   const utcTime = new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'});
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const RAD = Math.PI / 180;
-  let rot = -18, tilt = 19, playing = !reduced, dragging = false, px = 0, py = 0;
+  let rot = -18, tilt = 19, playing = !reduced, dragPointer = null, px = 0, py = 0;
   let points = [], currentISS = null, lastDraw = 0, lastTick = 0;
   let quakeFeed = null, quakeFailed = false, quakePaused = false, quakeLoading = false;
   let visibleQuakes = [], pins = [], selectedQuake = null, dragDistance = 0, issLoading = false;
@@ -107,22 +107,28 @@
   function frame(now){
     if(!lastTick)lastTick=now;
     const delta=Math.min(now-lastTick,80);lastTick=now;
-    if(playing&&!dragging)rot=(rot+delta*.0033)%360;
+    if(playing&&dragPointer===null)rot=(rot+delta*.0033)%360;
     if(now-lastDraw>35){draw();lastDraw=now;}
     requestAnimationFrame(frame);
   }
   canvas.addEventListener('pointerdown',e=>{
-    dragging=true;dragDistance=0;px=e.clientX;py=e.clientY;canvas.setPointerCapture(e.pointerId);
+    if(!e.isPrimary||e.button!==0||dragPointer!==null)return;
+    dragPointer=e.pointerId;dragDistance=0;px=e.clientX;py=e.clientY;
+    canvas.setPointerCapture(e.pointerId);
   });
   canvas.addEventListener('pointermove',e=>{
-    if(!dragging)return;
-    dragDistance+=Math.hypot(e.clientX-px,e.clientY-py);
-    rot+=(e.clientX-px)*.48;tilt=clamp(tilt+(e.clientY-py)*.25,-65,65);
+    if(e.pointerId!==dragPointer)return;
+    const dx=e.clientX-px, dy=e.clientY-py;
+    dragDistance+=Math.hypot(dx,dy);
+    // The projection subtracts the view longitude from every point.
+    rot=(rot-dx*.48)%360;
+    tilt=clamp(tilt+dy*.25,-90,90);
     px=e.clientX;py=e.clientY;draw();
   });
   canvas.addEventListener('pointerup',e=>{
-    dragging=false;
-    if(dragDistance>6||layer.value!=='earthquakes')return;
+    if(e.pointerId!==dragPointer)return;
+    dragPointer=null;
+    if(dragDistance+Math.hypot(e.clientX-px,e.clientY-py)>6||layer.value!=='earthquakes')return;
     const box=canvas.getBoundingClientRect();
     let nearest=null, distance=14;
     for(const pin of pins){
@@ -131,7 +137,9 @@
     }
     if(nearest)selectQuake(nearest.event);
   });
-  canvas.addEventListener('pointercancel',()=>{dragging=false;});
+  function cancelDrag(e){if(e.pointerId===dragPointer)dragPointer=null;}
+  canvas.addEventListener('pointercancel',cancelDrag);
+  canvas.addEventListener('lostpointercapture',cancelDrag);
   function setRotation(active){
     playing=active;
     motion.textContent=playing?'Pause rotation':'Resume rotation';
