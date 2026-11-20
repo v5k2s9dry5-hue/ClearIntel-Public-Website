@@ -10,6 +10,8 @@ from email.utils import parsedate_to_datetime
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
+from time import monotonic
 from urllib.error import HTTPError, URLError
 import socket
 import re
@@ -24,10 +26,31 @@ SPECULATIVE = re.compile(r"\b(?:threatens?|warns?|vows?|could|might|may|potentia
 STOPWORDS = {"today","now","latest","news","breaking","live","reports","report","reporting","bombing","bombings","bomb","bombed","attack","attacks","attacked","airstrike","airstrikes","strike","strikes","explosion","explosions","missile","missiles","happened","in","on","at","of","the","a","an","and","or","about","any","is","there","were","has","been","did"}
 
 
+RATE_LIMIT_COOLDOWN_SECONDS = 60
+_rate_limit_lock = Lock()
+_rate_limited_until: dict[str, float] = {}
+
+
+class ProviderCooldownError(Exception):
+    pass
+
+
 def _get(url: str) -> bytes:
+    host = urlsplit(url).netloc
+    with _rate_limit_lock:
+        if monotonic() < _rate_limited_until.get(host, 0):
+            raise ProviderCooldownError()
+        _rate_limited_until.pop(host, None)
+
     req = Request(url, headers=HEADERS)
-    with urlopen(req, timeout=7) as response:
-        return response.read(MAX_RESPONSE_BYTES + 1)[:MAX_RESPONSE_BYTES]
+    try:
+        with urlopen(req, timeout=7) as response:
+            return response.read(MAX_RESPONSE_BYTES + 1)[:MAX_RESPONSE_BYTES]
+    except HTTPError as error:
+        if error.code == 429:
+            with _rate_limit_lock:
+                _rate_limited_until[host] = monotonic() + RATE_LIMIT_COOLDOWN_SECONDS
+        raise
 
 
 def _date(value: str) -> datetime | None:
@@ -102,12 +125,19 @@ def fetch_bing(query: str, days: int, incident_only: bool = True) -> list[dict]:
 
 def _provider_error(error: Exception) -> str:
     """Safe diagnostic category: never expose full upstream messages or URLs."""
+    if isinstance(error, ProviderCooldownError):
+        return 'temporarily paused after HTTP 429'
     if isinstance(error, HTTPError):
         return 'HTTP ' + str(error.code)
     if isinstance(error, (TimeoutError, socket.timeout)):
         return 'timeout'
     if isinstance(error, URLError):
-        return 'connection or DNS error'
+        reason = error.reason
+        if isinstance(reason, (TimeoutError, socket.timeout)):
+            return 'timeout'
+        if isinstance(reason, socket.gaierror):
+            return 'DNS error'
+        return 'connection error'
     if isinstance(error, (ValueError, json.JSONDecodeError, ET.ParseError)):
         return 'invalid provider response'
     return type(error).__name__
