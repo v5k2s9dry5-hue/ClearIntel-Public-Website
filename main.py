@@ -22,12 +22,14 @@ from pydantic import BaseModel, Field, ValidationError
 
 from news import search_news
 from earthquakes import router as earthquake_router
+from wildfires import router as wildfire_router
 
 ROOT = Path(__file__).resolve().parent
 PUBLIC_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
 app = FastAPI(title="ClearIntel public website", docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/assets", StaticFiles(directory=ROOT / "assets"), name="assets")
 app.include_router(earthquake_router)
+app.include_router(wildfire_router)
 MAX_SEARCH_BODY_BYTES = 2048
 SEARCH_CACHE_SECONDS = 20
 SEARCH_CACHE_ENTRIES = 128
