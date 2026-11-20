@@ -1,11 +1,20 @@
 import unittest
+from collections import OrderedDict, deque
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 from fastapi.testclient import TestClient
 from unittest.mock import patch
 from main import app
 
+SEARCH_RESPONSE = {'results': [], 'sources_checked': ['test'], 'provider_errors': []}
+
 class PublicSiteTests(unittest.TestCase):
     def setUp(self):
-        self.client=TestClient(app)
+        self.client=TestClient(app, client=('93.184.216.34', 50000))
+        self.enterContext(patch.multiple(
+            'main', _rate={}, _site_searches=deque(), _search_cache=OrderedDict(),
+            _active_searches=0, _next_rate_cleanup=0,
+        ))
 
     def test_home_and_health(self):
         self.assertEqual(self.client.get('/').status_code,200)
@@ -32,6 +41,90 @@ class PublicSiteTests(unittest.TestCase):
     def test_html_csp(self):
         r=self.client.get('/')
         self.assertIn("script-src 'self'",r.headers['content-security-policy'])
+        self.assertEqual(r.headers['strict-transport-security'], 'max-age=31536000')
+
+    def test_search_body_and_content_type_limits(self):
+        with patch('main.search_news') as provider:
+            self.assertEqual(self.client.post('/api/news', data={'query': 'London'}).status_code, 415)
+            response = self.client.post('/api/news', json={'query': 'x' * 2048})
+            self.assertEqual(response.status_code, 413)
+            self.assertEqual(response.headers['cache-control'], 'no-store')
+            provider.assert_not_called()
+
+    def test_repeated_searches_use_cache_but_count_toward_client_limit(self):
+        with patch('main.search_news', return_value=SEARCH_RESPONSE) as provider:
+            for attempt in range(5):
+                response = self.client.post('/api/news', json={'query': 'London'})
+                self.assertEqual(response.status_code, 200, attempt)
+            response = self.client.post('/api/news', json={'query': 'London'},
+                                        headers={'X-Forwarded-For': '192.0.2.1'})
+            self.assertEqual(response.status_code, 429)
+            self.assertGreater(int(response.headers['retry-after']), 0)
+            provider.assert_called_once()
+
+    def test_site_limit_applies_across_client_addresses(self):
+        other_client = TestClient(app, client=('93.184.216.35', 50000))
+        with patch('main.SITE_SEARCHES_PER_MINUTE', 1):
+            with patch('main.search_news', return_value=SEARCH_RESPONSE) as provider:
+                self.assertEqual(self.client.post('/api/news', json={'query': 'London'}).status_code, 200)
+                response = other_client.post('/api/news', json={'query': 'Bristol'})
+                self.assertEqual(response.status_code, 429)
+                provider.assert_called_once()
+
+    def test_shared_proxy_uses_site_limit_without_trusting_forwarded_header(self):
+        proxy = TestClient(app, client=('10.0.0.5', 50000))
+        headers = {'X-Forwarded-For': '93.184.216.34'}
+        with patch('main.SITE_SEARCHES_PER_MINUTE', 6):
+            with patch('main.search_news', return_value=SEARCH_RESPONSE):
+                for _ in range(6):
+                    response = proxy.post('/api/news', json={'query': 'London'}, headers=headers)
+                    self.assertEqual(response.status_code, 200)
+                self.assertEqual(proxy.post('/api/news', json={'query': 'London'}).status_code, 429)
+
+    def test_concurrency_limit_releases_after_provider_work(self):
+        started, release = Event(), Event()
+
+        def provider(*args, **kwargs):
+            started.set()
+            if not release.wait(5):
+                raise AssertionError('Timed out waiting to release provider')
+            return SEARCH_RESPONSE
+
+        with patch('main.MAX_ACTIVE_PROVIDER_SEARCHES', 1), patch('main.search_news', side_effect=provider):
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                pending = pool.submit(self.client.post, '/api/news', json={'query': 'London'})
+                try:
+                    self.assertTrue(started.wait(5))
+                    self.assertEqual(self.client.post('/api/news', json={'query': 'Bristol'}).status_code, 429)
+                finally:
+                    release.set()
+                self.assertEqual(pending.result().status_code, 200)
+            self.assertEqual(self.client.post('/api/news', json={'query': 'Bristol'}).status_code, 200)
+
+    def test_iss_refresh_is_shared_and_success_is_cached(self):
+        started, release = Event(), Event()
+        position = {'latitude': 1.0, 'longitude': 2.0, 'timestamp': 100}
+
+        def provider():
+            started.set()
+            if not release.wait(5):
+                raise AssertionError('Timed out waiting to release ISS provider')
+            return position
+
+        cache = {'data': None, 'expires': 0, 'error_expires': 0}
+        with patch('main._iss_cache', cache), patch('main._iss_location', side_effect=provider) as fetch:
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                pending = pool.submit(self.client.get, '/api/iss')
+                try:
+                    self.assertTrue(started.wait(5))
+                    refreshing = self.client.get('/api/iss')
+                    self.assertEqual(refreshing.status_code, 503)
+                    self.assertEqual(refreshing.headers['retry-after'], '2')
+                finally:
+                    release.set()
+                self.assertEqual(pending.result().json(), position)
+            self.assertEqual(self.client.get('/api/iss').json(), position)
+            fetch.assert_called_once()
 
 if __name__=='__main__':
     unittest.main()
