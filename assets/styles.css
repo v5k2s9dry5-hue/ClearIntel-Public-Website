@@ -36,6 +36,18 @@
 .globe-control{padding:8px 12px;color:#cce9db;background:#1b3830;border:1px solid #446c59;border-radius:7px;font-size:11px;font-weight:700}
 .globe-control:disabled{opacity:.45;cursor:not-allowed}
 .globe-control:hover:not(:disabled){background:#305b45}
+.globe-topline h2{margin:0;color:#e4f9fc;font-size:17px;letter-spacing:0}
+.globe-topline label,.quake-controls label{display:flex;align-items:center;gap:7px;color:#b0cbd0;font-size:11px;letter-spacing:0}
+.globe-topline select,.quake-controls select{width:auto;min-height:34px;padding:5px 8px;background:#102630;border:1px solid #365965;border-radius:7px;color:#e2f7fa}
+.quake-controls{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:12px}
+#iss-panel{margin-top:12px}
+#quake-status{min-height:0;margin-bottom:8px}
+#quake-status.stale{color:#f3c994;border-color:#806147}
+.quake-list{display:grid;gap:4px;list-style:none;margin:8px 0 0;padding:0;max-height:126px;overflow:auto}
+.quake-list button{width:100%;text-align:left;padding:7px 9px;border:1px solid #294852;border-radius:6px;background:#0c2027;color:#d3e8ee;font-size:12px}
+.quake-list button:hover,.quake-list button[aria-pressed="true"]{border-color:#5de5f4;background:#15313b}
+.quake-detail:not([hidden]){display:grid;gap:2px;padding:9px 10px;border:1px solid #386573;border-radius:7px;background:#102a33;color:#ddf7fa;font-size:12px}
+.quake-detail a{width:fit-content;color:#9af3fb}
 .result-card,.results-header,.result-meta,.result-title,.results-foot,.result-warning,.provider-note{min-width:0;overflow-wrap:anywhere}
 @media(max-width:900px){.hero{grid-template-columns:1fr;gap:32px}.hero-visual{max-width:570px;justify-self:center;width:100%}.hero h1{font-size:clamp(38px,7vw,60px);letter-spacing:-2px}.eyebrow{white-space:normal;flex-wrap:wrap}}
 @media(max-width:760px){
