@@ -31,3 +31,13 @@ jobs:
           node --check assets/research-pdf.js
       - name: Country change indicator checks
         run: node scripts/test_country_changes.cjs
+      - name: Install Chromium browser test dependencies
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Desktop and mobile research workflow smoke
+        run: |
+          python -m uvicorn main:app --host 127.0.0.1 --port 8000 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          python scripts/browser_smoke.py
