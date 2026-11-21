@@ -2,36 +2,53 @@
 const $ = id => document.getElementById(id);
 const el = (name, cls, text) => { const node = document.createElement(name); if(cls)node.className=cls; if(text!=null)node.textContent=text; return node; };
 
-// Click, hover and keyboard-friendly contextual help. All text is textContent, not HTML.
-function closeHelp(except) {
-  document.querySelectorAll('.help-button').forEach(button => {
-    if(button===except)return;
-    button.dataset.pinned='';
-    button.setAttribute('aria-expanded','false');
-    const pop = button.parentElement.querySelector('.help-popover');
-    if(pop)pop.remove();
-  });
-}
-document.querySelectorAll('.help-button').forEach(button => {
-  const show = () => {
-    if(button.getAttribute('aria-expanded')==='true')return;
-    closeHelp(button);button.setAttribute('aria-expanded','true');
-    const pop=el('div','help-popover',button.dataset.help);
-    pop.setAttribute('role','tooltip');button.parentElement.appendChild(pop);
-  };
-  button.addEventListener('mouseenter',show);
-  button.addEventListener('click',e=>{
-    e.stopPropagation();
-    const pinned=button.dataset.pinned==='1';
+// Contextual help opens on click or keyboard activation, with hover on desktop.
+const hoverHelp = window.matchMedia('(min-width: 761px) and (hover: hover)');
+let openHelp = null;
+
+document.querySelectorAll('.help-button').forEach((button, index) => {
+  const wrapper = button.parentElement;
+  const panel = el('div', 'help-popover', button.dataset.help);
+  panel.id = 'help-panel-' + (index + 1);
+  panel.hidden = true;
+  button.setAttribute('aria-controls', panel.id);
+  wrapper.appendChild(panel);
+
+  const show = pinned => {
     closeHelp();
-    if(!pinned){show();button.dataset.pinned='1';}
+    panel.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+    button.setAttribute('aria-describedby', panel.id);
+    openHelp = { button, panel, pinned };
+  };
+
+  button.addEventListener('pointerenter', event => {
+    if (hoverHelp.matches && event.pointerType === 'mouse' && !openHelp?.pinned) show(false);
   });
-  button.parentElement.addEventListener('mouseleave',()=>{
-    if(button.dataset.pinned!=='1')closeHelp();
+  wrapper.addEventListener('pointerleave', () => {
+    if (openHelp?.button === button && !openHelp.pinned) closeHelp();
+  });
+  button.addEventListener('click', () => {
+    if (openHelp?.button === button && openHelp.pinned) closeHelp();
+    else show(true);
   });
 });
-document.addEventListener('click',e=>{if(!e.target.closest('.help-wrapper'))closeHelp();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeHelp();});
+
+function closeHelp() {
+  if (!openHelp) return;
+  const { button, panel } = openHelp;
+  panel.hidden = true;
+  button.setAttribute('aria-expanded', 'false');
+  button.removeAttribute('aria-describedby');
+  openHelp = null;
+}
+
+document.addEventListener('click', event => {
+  if (!event.target.closest('.help-wrapper')) closeHelp();
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') closeHelp();
+});
 
 // Mobile navigation.
 $('menu-toggle').addEventListener('click',()=>{
