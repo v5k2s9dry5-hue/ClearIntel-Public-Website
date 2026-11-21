@@ -44,7 +44,7 @@ class CountryNewsTests(TestCase):
         self.assertEqual(result['basis'], 'developing')
         self.assertEqual([story['source'] for story in result['story']], ['one.example', 'two.example'])
 
-    def test_stale_unsafe_and_single_unranked_results_do_not_make_a_lead(self):
+    def test_only_valid_single_report_is_labelled_recent(self):
         provider = fixture_provider(
             article('US issues flood warnings', 'future.example', -1),
             article('Tell us your views about flooding', 'unrelated.example', 1),
@@ -53,8 +53,21 @@ class CountryNewsTests(TestCase):
             article('US reports floods', 'valid.example', 2),
         )
         result = search_country_news('US', NOW, (provider,))
-        self.assertEqual(result['basis'], 'unavailable')
-        self.assertEqual(result['story'], [])
+        self.assertEqual(result['basis'], 'recent')
+        self.assertEqual([row['source'] for row in result['story']], ['valid.example'])
+
+    def test_spain_publisher_order_and_weekly_fallback(self):
+        lead = dict(article('El Congreso debate el presupuesto', 'elpais.example', 4),
+                    country_code='ES', publisher_rank=1)
+        latest = dict(article('Una nueva estación', 'elpais.example', 1),
+                      country_code='ES', publisher_rank=2)
+        result = search_country_news('ES', NOW, (fixture_provider(latest, lead),))
+        self.assertEqual(result['basis'], 'publisher')
+        self.assertEqual(result['story'][0]['title'], lead['title'])
+        earlier = dict(lead, published=(NOW - timedelta(days=4)).isoformat())
+        result = search_country_news('ES', NOW, (fixture_provider(earlier),))
+        self.assertEqual(result['basis'], 'weekly')
+        self.assertEqual(search_country_news('PT', NOW, (fixture_provider(earlier),))['story'], [])
 
     def test_national_edition_order_beats_age_and_country_name_matching(self):
         lead = dict(article('MPs reject the draft budget', 'lead.example', 9),
@@ -113,7 +126,7 @@ class CountryNewsTests(TestCase):
         self.assertEqual(result['story'], [])
 
     def test_uk_timeline_links_a_recent_national_story_without_claiming_it_is_breaking(self):
-        from current_events import parse_uk_timeline
+        from current_events import parse_country_timeline
 
         text = """== Events ==
 ===November===
@@ -125,7 +138,7 @@ class CountryNewsTests(TestCase):
 * 21 November – A future event.<ref>{{Cite web |url=https://publisher.example/predicted}}</ref>
 == References ==
 """
-        rows = parse_uk_timeline(text, 2026, 'https://en.wikipedia.org/wiki/2026_in_the_United_Kingdom')
+        rows = parse_country_timeline(text, 2026, 'https://en.wikipedia.org/wiki/2026_in_the_United_Kingdom', 'GB', 'UK')
         self.assertEqual(len(rows), 2)
         result = search_country_news('GB', NOW, (fixture_provider(*rows),))
         self.assertEqual(result['basis'], 'national_digest')

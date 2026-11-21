@@ -96,3 +96,6 @@
  .footer-top,.footer-bottom{overflow-wrap:anywhere}
 }
 @media(max-width:360px){.brand{font-size:17px}.brand small{font-size:7px}.menu-toggle{padding:7px 8px}.hero h1{font-size:34px}.globe-content{padding:10px}.orbital-readout{gap:8px}.orbital-readout b{font-size:10px}.hero-meta{font-size:7px}.principle-inner{gap:7px;font-size:9px}}
+
+#search-country:not([hidden]){display:grid;gap:.5rem;margin-top:1rem}
+#search-country[hidden]{display:none}

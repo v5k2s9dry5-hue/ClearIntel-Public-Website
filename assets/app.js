@@ -157,6 +157,102 @@ function reportExport(payload,search){
   return {controls,choiceFor,refreshSelection};
 }
 
+function renderCountryCard(container,country,entry){
+  function reportLink(url, text){
+    const link=document.createElement('a');
+    link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=text;
+    return link;
+  }
+
+    const utcTime=new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'});
+    const utcDate=new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',dateStyle:'medium'});
+    const title=document.createElement('strong');
+    title.textContent=country.place+' · Country news';
+    const status=document.createElement('span');
+    status.setAttribute('role','status');
+    const story=entry?.data?.story||[];
+    if(!entry?.data){
+      status.textContent=entry?.failed?'The news sources are temporarily unavailable.':'Checking national headlines…';
+    }else if(!story.length){
+      status.textContent='No leading headline available from the sources checked.';
+    }else{
+      const labels={
+        national:'Lead story in the national edition',
+        developing:'Recent story covered by multiple outlets',
+        editorial:'Selected international story',
+        publisher:'First current headline in this publisher’s feed',
+        weekly:'Latest available country coverage in the past week',
+        recent:'Recent country coverage',
+        national_digest:'Selected national story',
+      };
+      const tag=labels[entry.data.basis]||'Recent coverage';
+      status.textContent=`${tag} · Checked ${utcTime.format(new Date(entry.data.checked_at_utc))} UTC`;
+    }
+    if(entry?.data?.provider_errors.length)status.textContent+=' · Partial source coverage';
+    if(entry?.data && entry.failed)status.textContent+=' · Refresh unavailable';
+    const links=document.createElement('div');
+    links.className='country-sources';
+    for(const article of story){
+      const link=reportLink(article.url, article.title);
+      const source=document.createElement('span');
+      const timestamp=new Date(article.feed_time_utc);
+      if(article.editorial){
+        source.textContent=`${article.source||'Publisher'} · Event date · ${utcDate.format(timestamp)}`;
+        links.append(link,source);
+        for(const citation of article.citations.slice(1)){
+          links.append(reportLink(citation.url,citation.name||'Publisher report'));
+        }
+        const attribution=document.createElement('span');
+        attribution.append(
+          document.createTextNode('Adapted and shortened from '),
+          reportLink(article.attribution_url, article.attribution_title||'Wikipedia Current events'),
+          document.createTextNode(' · '),
+          reportLink('https://creativecommons.org/licenses/by-sa/4.0/', 'CC BY-SA 4.0'),
+        );
+        links.append(attribution);
+      }else{
+        source.textContent=`${article.source||'Publisher'} · ${article.time_basis} · ${utcTime.format(timestamp)} UTC`;
+        links.append(link,source);
+      }
+    }
+    if(entry?.data?.edition_url){
+      links.append(reportLink(entry.data.edition_url,'Open national headlines on Google News'));
+    }else if(!story.length && (entry?.data||entry?.failed)){
+      const external=new URL('https://news.google.com/search');
+      external.searchParams.set('q',country.place+' when:1d');
+      external.searchParams.set('hl','en-GB');
+      links.append(reportLink(external.href,'Browse recent headlines on Google News'));
+    }
+    container.replaceChildren(title,status,links);
+}
+
+let countryList;
+let countrySearchVersion=0;
+async function showSearchCountry(query){
+  const version=++countrySearchVersion;
+  const panel=$('search-country');
+  panel.hidden=true;
+  try{
+    countryList??=fetch('/assets/countries.json').then(r=>r.json()).then(data=>data.events)
+      .catch(error=>{countryList=null;throw error;});
+    const places=await countryList;
+    const aliases={uk:'GB',usa:'US','united states of america':'US',britain:'GB','españa':'ES'};
+    const term=query.toLowerCase();
+    const country=places.find(item=>item.id===(aliases[term]||query.toUpperCase())||item.place.toLowerCase()===term);
+    if(!country||version!==countrySearchVersion)return;
+    panel.hidden=false;
+    renderCountryCard(panel,country,null);
+    try{
+      const response=await fetch('/api/country-news/'+encodeURIComponent(country.id));
+      if(!response.ok)throw Error();
+      const data=await response.json();
+      if(version===countrySearchVersion)renderCountryCard(panel,country,{data});
+    }catch{
+      if(version===countrySearchVersion)renderCountryCard(panel,country,{failed:true});
+    }
+  }catch{ /* General news search still runs when the country index is unavailable. */ }
+}
+
 function renderResults(payload,search){
   const area=$('news-results');area.replaceChildren();
   const header=el('div','results-header');
@@ -190,6 +286,7 @@ $('news-form').addEventListener('submit',async e=>{
     fillStatus('Enter at least two characters','Try a country abbreviation such as UK or US.','error');
     return;
   }
+  showSearchCountry(query);
   const incidentOnly=$('incident-only').checked;
   const timeWindow=$('news-window').value;
   const submit=$('news-submit');submit.disabled=true;

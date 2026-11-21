@@ -137,10 +137,10 @@ def _timeline_sources(text):
         }
 
 
-def parse_uk_timeline(wikitext, year, attribution_url):
+def parse_country_timeline(wikitext, year, attribution_url, code, name):
     events = re.search(r'^==\s*Events\s*==[ \t]*\n(.*?)(?=^==[^=]|\Z)', wikitext, re.MULTILINE | re.DOTALL)
     if not events:
-        raise ValueError('UK events section unavailable')
+        raise ValueError('Events section unavailable')
     records = []
     event_day = None
     month_heading = None
@@ -150,12 +150,12 @@ def parse_uk_timeline(wikitext, year, attribution_url):
             event_day = None
             month_heading = line.strip('= ').capitalize()
             continue
-        if month_heading not in MONTH_NAMES:
+        if month_heading and month_heading not in MONTH_NAMES:
             continue
         if match := TIMELINE_DATE.fullmatch(line):
             try:
                 month = MONTH_NAMES.index(match[3].capitalize()) + 1
-                if match[3].capitalize() != month_heading:
+                if month_heading and match[3].capitalize() != month_heading:
                     event_day = None
                     continue
                 event_day = date(year, month, int(match[2] or match[1]))
@@ -181,16 +181,17 @@ def parse_uk_timeline(wikitext, year, attribution_url):
             records.append({
                 'title': summary, 'source': citations[0]['name'], 'url': citations[0]['url'],
                 'published': event_day.isoformat() + 'T00:00:00Z', 'time_basis': 'Event date',
-                'editorial': True, 'national_digest': True, 'country_code': 'GB',
+                'editorial': True, 'national_digest': True, 'country_code': code,
                 'citations': citations[:3], 'attribution_url': attribution_url,
-                'attribution_title': 'Wikipedia’s UK events timeline',
+                'attribution_title': f'Wikipedia’s {name} events timeline',
             })
     return records
 
 
-@lru_cache(maxsize=4)
-def uk_timeline(year, _cache_interval):
-    page_title = f'{year} in the United Kingdom'
+@lru_cache(maxsize=256)
+def country_timeline(year, code, name, _cache_interval):
+    article = 'the ' if code in {'GB','US','AE','NL','PH','BS','GM','CD','CG','DO','CF'} else ''
+    page_title = f'{year} in {article}{name}'
     params = urlencode({
         'action': 'parse', 'page': page_title, 'prop': 'wikitext|revid',
         'format': 'json', 'formatversion': 2,
@@ -199,4 +200,4 @@ def uk_timeline(year, _cache_interval):
     attribution = 'https://en.wikipedia.org/wiki/' + page_title.replace(' ', '_')
     if type(page.get('revid')) is int:
         attribution = f'https://en.wikipedia.org/w/index.php?oldid={page["revid"]}'
-    return parse_uk_timeline(page['wikitext'], year, attribution)
+    return parse_country_timeline(page['wikitext'], year, attribution, code, 'UK' if code == 'GB' else name)

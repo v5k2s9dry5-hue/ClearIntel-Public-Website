@@ -11,12 +11,12 @@
   <meta property="og:description" content="Clear information from public sources. Research, evidence review and client-ready reporting.">
   <title>ClearIntel | OSINT Research & Public-Source Intelligence</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/styles.css?v=inline-help">
+  <link rel="stylesheet" href="/assets/styles.css?v=world-news">
   <link rel="stylesheet" href="/assets/dashboard.css?v=military-map">
   <script src="/assets/research-pdf.js" defer></script>
-  <script src="/assets/app.js?v=short-search" defer></script>
+  <script src="/assets/app.js?v=world-news" defer></script>
   <script src="/assets/timeline.js?v=event-timeline" defer></script>
-  <script src="/assets/earth.js?v=uk-digest" defer></script>
+  <script src="/assets/earth.js?v=world-news" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -129,6 +129,7 @@
           <div class="filter-row"><div class="filter-field"><label for="news-window">Feed date window</label><select id="news-window"><option value="24h">Last 24 hours (UTC)</option><option value="7d">Last 7 days (UTC)</option></select></div><label class="checkbox-line"><input id="incident-only" type="checkbox" checked><span>Incident-related headlines only</span></label><div class="help-wrapper"><button type="button" class="help-button" aria-label="Help with incident filtering" aria-expanded="false" data-help="Filters out many opinion, prediction and political-commentary headlines that do not describe a reported attack, strike or explosion. It may also miss valid reports. A match is not proof an incident occurred.">?</button></div></div>
           <p class="input-note">Publicly available reporting only. Never enter sensitive personal information. Feed dates may reflect publication or first-seen time, not the date an incident happened.</p>
         </form>
+        <section id="search-country" class="result-card" aria-live="polite" hidden></section>
         <div id="news-results" class="results" aria-live="polite">
           <div class="empty-state"><div class="empty-mark">⌕</div><strong>Ready to investigate a news topic</strong><p>Enter a location or subject above to search recent coverage. Results will appear here automatically.</p></div>
         </div>

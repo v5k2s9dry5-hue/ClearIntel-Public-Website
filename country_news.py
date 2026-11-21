@@ -3,12 +3,14 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import json
+import unicodedata
+import xml.etree.ElementTree as ET
 import re
 from time import monotonic
 from urllib.parse import urlencode, urlsplit
 
-from current_events import editorial_events, uk_timeline
-from news import _collect, _date, _get, _parse_google_rss, _safe_link, fetch_gdelt, fetch_google
+from current_events import editorial_events, country_timeline
+from news import _collect, _date, _get, _parse_google_rss, _safe_link, fetch_gdelt, fetch_google, fetch_bing
 
 COUNTRY_POINTS = Path(__file__).with_name('assets') / 'countries.json'
 COUNTRIES = {
@@ -22,6 +24,7 @@ ALIASES = {
     'CZ': ('Czech Republic', 'Czech'),
     'DE': ('German',),
     'FR': ('French',),
+    'ES': ('Spanish', 'España', 'Madrid'),
     'GB': ('UK', 'Britain', 'British', 'England', 'Scotland', 'Wales', 'Northern Ireland'),
     'GE': ('Tbilisi',),
     'IE': ('Irish',),
@@ -76,6 +79,38 @@ def _fetch_edition(code):
             for rank, article in enumerate(_parse_google_rss(_get(url), country_code=code), start=1)]
 
 
+NATIONAL_FEEDS = {
+    'AU': ('ABC News', 'https://www.abc.net.au/news/feed/51120/rss.xml'),
+    'BB': ('Barbados Today', 'https://barbadostoday.bb/feed/'),
+    'BR': ('G1 Política', 'https://g1.globo.com/rss/g1/politica/'),
+    'DE': ('Tagesschau', 'https://www.tagesschau.de/inland/index~rss2.xml'),
+    'FR': ('Franceinfo', 'https://www.franceinfo.fr/france.rss'),
+    'IN': ('The Hindu', 'https://www.thehindu.com/news/national/feeder/default.rss'),
+    'IT': ('ANSA Cronaca', 'https://www.ansa.it/sito/notizie/cronaca/cronaca_rss.xml'),
+    'NZ': ('RNZ', 'https://www.rnz.co.nz/rss/national.xml'),
+    'US': ('NPR', 'https://feeds.npr.org/1003/rss.xml'),
+    'ES': ('El País', 'https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/espana/portada'),
+    'GB': ('BBC News', 'https://feeds.bbci.co.uk/news/uk/rss.xml'),
+}
+GUARDIAN_SECTIONS = {
+    'GB': 'uk-news', 'US': 'us-news', 'AU': 'australia-news',
+    'AE': 'world/united-arab-emirates', 'TR': 'world/turkey', 'CZ': 'world/czech-republic',
+}
+
+
+def _publisher_reports(url, source, code, national):
+    channel = ET.fromstring(_get(url)).find('channel')
+    if channel is None:
+        raise ValueError('Invalid publisher feed')
+    if source == 'The Guardian' and urlsplit(channel.findtext('link', '')).path.rstrip('/') != urlsplit(url).path.removesuffix('/rss'):
+        raise ValueError('Wrong country section')
+    return [{
+        'title': item.findtext('title', ''), 'url': item.findtext('link', ''),
+        'published': item.findtext('pubDate', ''), 'source': source, 'country_code': code,
+        'publisher_rank': rank if national else None, 'time_basis': 'Publication time',
+    } for rank, item in enumerate(channel.findall('item'), 1)]
+
+
 def _fetch_country_reports(code, name, names, now):
     topic = ' OR '.join(f'"{term}"' for term in names)
 
@@ -85,11 +120,11 @@ def _fetch_country_reports(code, name, names, now):
     def fetch_current_events(*_args):
         return editorial_events(int(monotonic() // 300))
 
-    def fetch_uk_digest(*_args):
+    def fetch_country_digest(*_args):
         interval = int(monotonic() // 300)
-        oldest = now.date() - timedelta(days=1)
+        oldest = now.date() - timedelta(days=6)
         return [article for year in dict.fromkeys((now.year, oldest.year))
-                for article in uk_timeline(year, interval)]
+                for article in country_timeline(year, code, name, interval)]
 
     def fetch_reports(provider):
         def fetch(query, days, incident_only):
@@ -98,8 +133,20 @@ def _fetch_country_reports(code, name, names, now):
         return fetch
 
     regional = fetch_national_edition if code in EDITIONS else fetch_reports(fetch_google)
-    editorial = fetch_uk_digest if code == 'GB' else fetch_current_events
-    return _collect(name, 2, False, (regional, fetch_reports(fetch_gdelt), editorial))
+    def fetch_guardian(*_args):
+        ascii_name = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode().lower()
+        slug = re.sub('[^a-z0-9]+', '-', ascii_name).strip('-')
+        section = GUARDIAN_SECTIONS.get(code, 'world/' + slug)
+        return _publisher_reports(f'https://www.theguardian.com/{section}/rss', 'The Guardian', code, False)
+
+    providers = [regional, fetch_guardian, fetch_country_digest, fetch_reports(fetch_gdelt),
+                 fetch_current_events, fetch_bing]
+    if code in NATIONAL_FEEDS:
+        def fetch_domestic_desk(*_args):
+            source, url = NATIONAL_FEEDS[code]
+            return _publisher_reports(url, source, code, True)
+        providers.insert(0, fetch_domestic_desk)
+    return _collect(name, 2, False, providers)
 
 
 def _match_country(title, code, names):
@@ -112,7 +159,7 @@ def _match_country(title, code, names):
     )
 
 
-def _headlines(articles, code, names, now):
+def _headlines(articles, code, names, now, *, weekly=False):
     headlines = []
     for article in articles:
         title = str(article.get('title', '')).strip()
@@ -121,10 +168,12 @@ def _headlines(articles, code, names, now):
         stamp = _date(str(article.get('published', '')))
         if not (title and stamp and _safe_link(url)):
             continue
+        if weekly and not (article.get('editorial') or article.get('country_code') == code):
+            continue
         if article.get('editorial'):
-            if not 0 <= (now.date() - stamp.date()).days <= 1:
+            if not 0 <= (now.date() - stamp.date()).days <= (6 if weekly else 1):
                 continue
-        elif not now - timedelta(hours=REPORT_HOURS) <= stamp <= now + timedelta(minutes=5):
+        elif not now - timedelta(hours=168 if weekly else REPORT_HOURS) <= stamp <= now + timedelta(minutes=5):
             continue
         if article.get('editorial') and article.get('country_code') != code:
             locations = {place.casefold() for place in (*names, *EDITORIAL_PLACE_NAMES.get(code, ()))}
@@ -147,6 +196,7 @@ def _headlines(articles, code, names, now):
         headlines.append({
             'title': title, 'source': source[:90], 'url': url, 'publisher': publisher,
             'edition_rank': article.get('edition_rank'),
+            'publisher_rank': article.get('publisher_rank'),
             'editorial': article.get('editorial', False),
             'national_digest': article.get('national_digest', False),
             'attribution_title': article.get('attribution_title', 'Wikipedia Current events'),
@@ -185,13 +235,18 @@ def _leading_story(headlines):
     if len(strongest) >= 2:
         return 'developing', strongest[:3]
 
+    publisher_leads = [item for item in headlines if item['publisher_rank'] is not None]
+    if publisher_leads:
+        return 'publisher', [min(publisher_leads, key=lambda item: item['publisher_rank'])]
+
     editorial = [item for item in headlines if item['editorial']]
     if editorial:
         selected = max(editorial, key=lambda item: (
             item['national_digest'], item['feed_time_utc'], len(item['citations']),
         ))
         return ('national_digest' if selected['national_digest'] else 'editorial'), [selected]
-    # A single unranked result does not establish a leading national story.
+    if headlines:
+        return 'recent', headlines[:1]
     return 'unavailable', []
 
 
@@ -206,9 +261,14 @@ def search_country_news(code, now=None, fetchers=None):
         articles, checked, errors = _collect(name, 2, False, fetchers, topic=f'({topic})')
     headlines = _headlines(articles, code, names, now)
     basis, story = _leading_story(headlines)
+    if not story:
+        weekly = _headlines(articles, code, names, now, weekly=True)
+        if weekly:
+            basis, story = 'weekly', weekly[:1]
     for article in story:
         article.pop('publisher')
         article.pop('edition_rank')
+        article.pop('publisher_rank')
     return {
         'country': name, 'story': story, 'basis': basis,
         'edition_url': EDITION_PATH + '?' + _edition_params(code) if code in EDITIONS else '',
