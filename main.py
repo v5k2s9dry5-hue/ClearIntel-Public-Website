@@ -47,7 +47,7 @@ _next_rate_cleanup = 0.0
 
 
 class Query(BaseModel):
-    query: str = Field(min_length=3, max_length=140)
+    query: str = Field(min_length=2, max_length=140)
     window: str = Field(default="24h", pattern="^(24h|7d)$")
     incident_only: bool = True
 
@@ -154,8 +154,8 @@ def _admit_search(peer: str | None, key: tuple[str, str, bool] | tuple[str]) -> 
 async def news(request: Request):
     payload = await _search_payload(request)
     query = payload.query.strip()
-    if len(query) < 3 or any(ord(x) < 32 for x in query):
-        raise HTTPException(400, "Enter a valid search with at least three characters.")
+    if len(query) < 2 or any(ord(x) < 32 for x in query):
+        raise HTTPException(400, "Enter a valid search with at least two characters.")
 
     return await _cached_news(
         request, (query, payload.window, payload.incident_only), SEARCH_CACHE_SECONDS,

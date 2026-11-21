@@ -32,6 +32,13 @@ AFTERMATH = re.compile(r"\b(?:after|following)\b", re.I)
 STOPWORDS = {"today","now","latest","news","breaking","live","reports","report","reporting","bombing","bombings","bomb","bombed","attack","attacks","attacked","airstrike","airstrikes","strike","strikes","explosion","explosions","missile","missiles","happened","in","on","at","of","the","a","an","and","or","about","any","is","there","were","has","been","did"}
 
 
+SHORT_LOCATIONS = {
+    'uk': ('UK', 'United Kingdom', 'Britain', 'British'),
+    'gb': ('Great Britain', 'United Kingdom', 'Britain', 'UK'),
+    'us': ('US', 'United States', 'USA', 'U.S.'),
+}
+
+
 RATE_LIMIT_COOLDOWN_SECONDS = 60
 _rate_limit_lock = Lock()
 _rate_limited_until: dict[str, float] = {}
@@ -83,10 +90,8 @@ def _safe_link(url: str) -> bool:
 
 
 def fetch_gdelt(query: str, days: int, incident_only: bool = True, *, topic: str = "") -> list[dict]:
-    terms = _subject(query)
-    # GDELT's query language supports Boolean clauses, but the user input does not become raw query syntax.
-    if not topic:
-        topic = " AND ".join('"'+t+'"' for t in terms[:3]) if terms else '"world"'
+    # Country aliases come from a fixed list. Raw user input does not become query syntax.
+    topic = topic or _provider_topic(query, joiner=' AND ', quote=True) or '"world"'
     incident = ' (bombing OR bombed OR airstrike OR explosion OR missile OR struck OR attack)' if incident_only else ''
     params = {"query": topic + incident, "mode": "artlist", "format": "json",
               "maxrecords": "75", "timespan": f"{days}d", "sort": "datedesc"}
@@ -98,7 +103,7 @@ def fetch_gdelt(query: str, days: int, incident_only: bool = True, *, topic: str
 
 
 def fetch_google(query: str, days: int, incident_only: bool = True, *, topic: str = "") -> list[dict]:
-    topic = topic or " ".join(_subject(query)) or query
+    topic = topic or _provider_topic(query) or query
     q = f'{topic} (bombing OR bombed OR airstrike OR explosion OR missiles OR attack) when:{days}d' if incident_only else f'{topic} when:{days}d'
     url = "https://news.google.com/rss/search?" + urlencode({"q": q, "hl": "en-GB", "gl": "GB", "ceid": "GB:en"})
     return _parse_google_rss(_get(url))
@@ -128,7 +133,7 @@ def _parse_google_rss(content, country_code=None):
 
 def fetch_bing(query: str, days: int, incident_only: bool = True) -> list[dict]:
     """Search-indexed news RSS, an independent fallback when other providers fail."""
-    topic = ' '.join(_subject(query)) or query
+    topic = _provider_topic(query) or query
     suffix = ' (bombing OR bombed OR airstrike OR explosion OR missile OR attack)' if incident_only else ''
     url = 'https://www.bing.com/news/search?' + urlencode({'q': topic + suffix, 'format': 'rss'})
     root = ET.fromstring(_get(url))
@@ -167,6 +172,17 @@ def _subject(query: str) -> list[str]:
     return [w for w in words if w not in STOPWORDS and len(w) > 1][:5]
 
 
+def _provider_topic(query, joiner=' ', quote=False):
+    parts = []
+    for term in _subject(query)[:3 if quote else 5]:
+        aliases = SHORT_LOCATIONS.get(term)
+        if aliases:
+            parts.append('(' + ' OR '.join(f'"{alias}"' for alias in aliases) + ')')
+        else:
+            parts.append(f'"{term}"' if quote else term)
+    return joiner.join(parts)
+
+
 def _reports_incident(title: str) -> bool:
     main, *aftermath = AFTERMATH.split(title, maxsplit=1)
     return any(
@@ -176,13 +192,19 @@ def _reports_incident(title: str) -> bool:
 
 
 def _relevance(title: str, subject: list[str], incident_only: bool) -> int:
-    lowered = title.casefold()
-    if subject and not any(re.search(r"(?<!\w)"+re.escape(t)+r"(?!\w)", lowered) for t in subject):
+    matches = 0
+    for term in subject:
+        aliases = SHORT_LOCATIONS.get(term, (term,))
+        if any(re.search(r'(?<!\w)' + re.escape(alias) + r'(?!\w)', title,
+                         0 if alias in ('US', 'UK', 'USA', 'U.S.') else re.I)
+               for alias in aliases):
+            matches += 1
+    if subject and not matches:
         return -1
     is_incident = bool(INCIDENT.search(title))
     if incident_only and not _reports_incident(title):
         return -1
-    return (4 if is_incident else 0) + sum(1 for t in subject if t in lowered)
+    return (4 if is_incident else 0) + matches
 
 
 def _collect(query, days, incident_only, fetchers, **options):

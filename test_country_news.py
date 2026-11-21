@@ -111,3 +111,24 @@ class CountryNewsTests(TestCase):
         result = search_country_news('GB', NOW, (fixture_provider(update, second),))
         self.assertEqual(result['basis'], 'unavailable')
         self.assertEqual(result['story'], [])
+
+    def test_uk_timeline_links_a_recent_national_story_without_claiming_it_is_breaking(self):
+        from current_events import parse_uk_timeline
+
+        text = """== Events ==
+===November===
+* 19 November
+**Old story.<ref>{{Cite web |url=https://publisher.example/old |website=Daily Paper}}</ref>
+* 20 November
+**The UK and the EU reach a trade deal.<ref name="repeat"/><ref>{{Cite web |url=https://publisher.example/deal |website=Daily Paper}}</ref>
+=== Predicted and scheduled events ===
+* 21 November – A future event.<ref>{{Cite web |url=https://publisher.example/predicted}}</ref>
+== References ==
+"""
+        rows = parse_uk_timeline(text, 2026, 'https://en.wikipedia.org/wiki/2026_in_the_United_Kingdom')
+        self.assertEqual(len(rows), 2)
+        result = search_country_news('GB', NOW, (fixture_provider(*rows),))
+        self.assertEqual(result['basis'], 'national_digest')
+        self.assertEqual(result['story'][0]['url'], 'https://publisher.example/deal')
+        self.assertEqual(result['story'][0]['time_basis'], 'Event date')
+        self.assertEqual(result['story'][0]['attribution_title'], 'Wikipedia’s UK events timeline')

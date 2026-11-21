@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime, timedelta, timezone
-from news import _date, _relevance, _subject, search_news
+from news import _date, _provider_topic, _relevance, _subject, search_news
 
 NOW=datetime(2026,11,19,17,0,tzinfo=timezone.utc)
 
@@ -15,6 +15,11 @@ class NewsTests(unittest.TestCase):
     def test_user_query_becomes_subject(self):
         self.assertEqual(_subject('Iran bombing today'), ['iran'])
         self.assertEqual(_subject('Bahrain missiles today'), ['bahrain'])
+
+    def test_short_country_queries_match_full_names(self):
+        self.assertIn('"United Kingdom"', _provider_topic('UK'))
+        self.assertGreater(_relevance('New United Kingdom trade figures published', ['uk'], False), 0)
+        self.assertEqual(_relevance('Tell us your views', ['us'], False), -1)
 
     def test_filters_old_and_speculative_titles(self):
         rows=[

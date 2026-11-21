@@ -675,6 +675,7 @@
         national:'Lead story in the national edition',
         developing:'Recent story covered by multiple outlets',
         editorial:'Selected international story',
+        national_digest:'Selected national story',
       };
       const tag=labels[entry.data.basis]||'Recent coverage';
       status.textContent=`${tag} · Checked ${utcTime.format(new Date(entry.data.checked_at_utc))} UTC`;
@@ -696,7 +697,7 @@
         const attribution=document.createElement('span');
         attribution.append(
           document.createTextNode('Adapted and shortened from '),
-          reportLink(article.attribution_url, 'Wikipedia Current events'),
+          reportLink(article.attribution_url, article.attribution_title||'Wikipedia Current events'),
           document.createTextNode(' · '),
           reportLink('https://creativecommons.org/licenses/by-sa/4.0/', 'CC BY-SA 4.0'),
         );

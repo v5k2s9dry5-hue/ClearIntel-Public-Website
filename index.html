@@ -14,9 +14,9 @@
   <link rel="stylesheet" href="/assets/styles.css?v=inline-help">
   <link rel="stylesheet" href="/assets/dashboard.css?v=military-map">
   <script src="/assets/research-pdf.js" defer></script>
-  <script src="/assets/app.js?v=mobile-home" defer></script>
+  <script src="/assets/app.js?v=short-search" defer></script>
   <script src="/assets/timeline.js?v=event-timeline" defer></script>
-  <script src="/assets/earth.js?v=national-headlines" defer></script>
+  <script src="/assets/earth.js?v=uk-digest" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -125,7 +125,7 @@
       <div class="research-panel">
         <form id="news-form" class="news-form">
           <div class="field-head"><label for="news-query">What are you researching?</label><div class="help-wrapper"><button type="button" class="help-button" aria-label="Help with news searches" aria-expanded="false" data-help="Search for a location or topic, for example ‘Iran bombing today’. ClearIntel shows published headlines within the time window. Headlines are not independently verified incidents.">?</button></div></div>
-          <div class="search-input-row"><div class="search-input"><span class="search-symbol" aria-hidden="true">⌕</span><input id="news-query" type="search" required maxlength="140" minlength="3" placeholder="e.g. Iran bombing today" autocomplete="off"></div><button class="button button-primary search-submit" type="submit" id="news-submit">Search recent reports <span aria-hidden="true">→</span></button></div>
+          <div class="search-input-row"><div class="search-input"><span class="search-symbol" aria-hidden="true">⌕</span><input id="news-query" type="search" required maxlength="140" minlength="2" placeholder="e.g. Iran bombing today" autocomplete="off"></div><button class="button button-primary search-submit" type="submit" id="news-submit">Search recent reports <span aria-hidden="true">→</span></button></div>
           <div class="filter-row"><div class="filter-field"><label for="news-window">Feed date window</label><select id="news-window"><option value="24h">Last 24 hours (UTC)</option><option value="7d">Last 7 days (UTC)</option></select></div><label class="checkbox-line"><input id="incident-only" type="checkbox" checked><span>Incident-related headlines only</span></label><div class="help-wrapper"><button type="button" class="help-button" aria-label="Help with incident filtering" aria-expanded="false" data-help="Filters out many opinion, prediction and political-commentary headlines that do not describe a reported attack, strike or explosion. It may also miss valid reports. A match is not proof an incident occurred.">?</button></div></div>
           <p class="input-note">Publicly available reporting only. Never enter sensitive personal information. Feed dates may reflect publication or first-seen time, not the date an incident happened.</p>
         </form>

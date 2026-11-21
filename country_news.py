@@ -7,7 +7,7 @@ import re
 from time import monotonic
 from urllib.parse import urlencode, urlsplit
 
-from current_events import editorial_events
+from current_events import editorial_events, uk_timeline
 from news import _collect, _date, _get, _parse_google_rss, _safe_link, fetch_gdelt, fetch_google
 
 COUNTRY_POINTS = Path(__file__).with_name('assets') / 'countries.json'
@@ -76,7 +76,7 @@ def _fetch_edition(code):
             for rank, article in enumerate(_parse_google_rss(_get(url), country_code=code), start=1)]
 
 
-def _fetch_country_reports(code, name, names):
+def _fetch_country_reports(code, name, names, now):
     topic = ' OR '.join(f'"{term}"' for term in names)
 
     def fetch_national_edition(*_args):
@@ -85,6 +85,12 @@ def _fetch_country_reports(code, name, names):
     def fetch_current_events(*_args):
         return editorial_events(int(monotonic() // 300))
 
+    def fetch_uk_digest(*_args):
+        interval = int(monotonic() // 300)
+        oldest = now.date() - timedelta(days=1)
+        return [article for year in dict.fromkeys((now.year, oldest.year))
+                for article in uk_timeline(year, interval)]
+
     def fetch_reports(provider):
         def fetch(query, days, incident_only):
             return provider(query, days, incident_only, topic=f'({topic})')
@@ -92,7 +98,8 @@ def _fetch_country_reports(code, name, names):
         return fetch
 
     regional = fetch_national_edition if code in EDITIONS else fetch_reports(fetch_google)
-    return _collect(name, 2, False, (regional, fetch_reports(fetch_gdelt), fetch_current_events))
+    editorial = fetch_uk_digest if code == 'GB' else fetch_current_events
+    return _collect(name, 2, False, (regional, fetch_reports(fetch_gdelt), editorial))
 
 
 def _match_country(title, code, names):
@@ -119,7 +126,7 @@ def _headlines(articles, code, names, now):
                 continue
         elif not now - timedelta(hours=REPORT_HOURS) <= stamp <= now + timedelta(minutes=5):
             continue
-        if article.get('editorial'):
+        if article.get('editorial') and article.get('country_code') != code:
             locations = {place.casefold() for place in (*names, *EDITORIAL_PLACE_NAMES.get(code, ()))}
             if not locations.intersection(topic.casefold() for topic in article.get('topics', [])):
                 continue
@@ -141,6 +148,8 @@ def _headlines(articles, code, names, now):
             'title': title, 'source': source[:90], 'url': url, 'publisher': publisher,
             'edition_rank': article.get('edition_rank'),
             'editorial': article.get('editorial', False),
+            'national_digest': article.get('national_digest', False),
+            'attribution_title': article.get('attribution_title', 'Wikipedia Current events'),
             'citations': article.get('citations', []),
             'attribution_url': article.get('attribution_url', ''),
             'feed_time_utc': stamp.isoformat(),
@@ -178,7 +187,10 @@ def _leading_story(headlines):
 
     editorial = [item for item in headlines if item['editorial']]
     if editorial:
-        return 'editorial', [max(editorial, key=lambda item: (item['feed_time_utc'], len(item['citations'])))]
+        selected = max(editorial, key=lambda item: (
+            item['national_digest'], item['feed_time_utc'], len(item['citations']),
+        ))
+        return ('national_digest' if selected['national_digest'] else 'editorial'), [selected]
     # A single unranked result does not establish a leading national story.
     return 'unavailable', []
 
@@ -188,7 +200,7 @@ def search_country_news(code, now=None, fetchers=None):
     name = COUNTRIES[code]
     names = (name, *ALIASES.get(code, ()))
     if fetchers is None:
-        articles, checked, errors = _fetch_country_reports(code, name, names)
+        articles, checked, errors = _fetch_country_reports(code, name, names, now)
     else:
         topic = ' OR '.join(f'"{term}"' for term in names)
         articles, checked, errors = _collect(name, 2, False, fetchers, topic=f'({topic})')
