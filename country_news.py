@@ -143,7 +143,7 @@ CITY_ALIASES = {'Sevilla': ('Seville',), 'Málaga': ('Malaga',)}
 def _city_mention(title, code):
     for city, longitude, latitude in HEADLINE_CITIES.get(code, ()):
         forms = (city, *CITY_ALIASES.get(city, ()))
-        if any(re.search(r'(?<!\\w)' + re.escape(form) + r'(?!\\w)', title, re.I)
+        if any(re.search(r'(?<!\w)' + re.escape(form) + r'(?!\w)', title, re.I)
                for form in forms):
             return {'city': city, 'longitude': longitude, 'latitude': latitude}
     return None
