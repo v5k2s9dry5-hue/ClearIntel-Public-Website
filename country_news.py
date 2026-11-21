@@ -100,6 +100,55 @@ GUARDIAN_SECTIONS = {
 }
 
 
+# These are country-scoped publisher sections, not additional rankings of the
+# national homepage. Keep regional titles available without calling local
+# reporting the country's leading national story.
+REGIONAL_FEEDS = {
+    'GB': (
+        ('BBC England', 'https://feeds.bbci.co.uk/news/england/rss.xml'),
+        ('BBC Scotland', 'https://feeds.bbci.co.uk/news/scotland/rss.xml'),
+        ('BBC Wales', 'https://feeds.bbci.co.uk/news/wales/rss.xml'),
+        ('BBC Northern Ireland', 'https://feeds.bbci.co.uk/news/northern_ireland/rss.xml'),
+    ),
+    'ES': (
+        ('El Mundo España', 'https://e00-elmundo.uecdn.es/elmundo/rss/espana.xml'),
+    ),
+}
+
+# Approximate city-centre points, used ONLY when a headline explicitly
+# names the city. These are headline mentions, not verified event locations.
+HEADLINE_CITIES = {
+    'GB': (
+        ('London', -0.1276, 51.5072), ('Bristol', -2.5879, 51.4545),
+        ('Birmingham', -1.8904, 52.4862), ('Manchester', -2.2426, 53.4808),
+        ('Liverpool', -2.9785, 53.4084), ('Leeds', -1.5491, 53.8008),
+        ('Sheffield', -1.4701, 53.3811), ('Newcastle', -1.6132, 54.9783),
+        ('Cardiff', -3.1791, 51.4816), ('Edinburgh', -3.1883, 55.9533),
+        ('Glasgow', -4.2518, 55.8642), ('Belfast', -5.9301, 54.5973),
+        ('Aberdeen', -2.0943, 57.1497), ('Southampton', -1.4044, 50.9097),
+        ('Nottingham', -1.1505, 52.9548),
+    ),
+    'ES': (
+        ('Madrid', -3.7038, 40.4168), ('Barcelona', 2.1734, 41.3851),
+        ('Valencia', -0.3763, 39.4699), ('Sevilla', -5.9845, 37.3891),
+        ('Málaga', -4.4214, 36.7213), ('Zaragoza', -0.8891, 41.6488),
+        ('Bilbao', -2.9350, 43.2630), ('Granada', -3.5986, 37.1773),
+        ('Alicante', -0.4907, 38.3452), ('Murcia', -1.1307, 37.9922),
+        ('Valladolid', -4.7286, 41.6523), ('Vigo', -8.7207, 42.2406),
+    ),
+}
+CITY_ALIASES = {'Sevilla': ('Seville',), 'Málaga': ('Malaga',)}
+
+
+def _city_mention(title, code):
+    for city, longitude, latitude in HEADLINE_CITIES.get(code, ()):
+        forms = (city, *CITY_ALIASES.get(city, ()))
+        if any(re.search(r'(?<!\\w)' + re.escape(form) + r'(?!\\w)', title, re.I)
+               for form in forms):
+            return {'city': city, 'longitude': longitude, 'latitude': latitude}
+    return None
+
+
 def _publisher_reports(url, source, code, national):
     channel = ET.fromstring(_get(url)).find('channel')
     if channel is None:
@@ -174,6 +223,11 @@ def _fetch_country_reports(code, name, names, now):
             source, url = NATIONAL_FEEDS[code]
             return _publisher_reports(url, source, code, True)
         providers.insert(0, fetch_domestic_desk)
+    for source, url in REGIONAL_FEEDS.get(code, ()):
+        def fetch_region(*_args, source=source, url=url):
+            return _publisher_reports(url, source, code, False)
+        fetch_region.__name__ = 'fetch_' + re.sub(r'[^a-z0-9]+', '_', source.casefold())
+        providers.append(fetch_region)
     if code == 'KE':
         def fetch_kenya_news(*_args):
             return _publisher_reports('https://www.tuko.co.ke/rss/kenya.rss', 'Tuko', code, True)
@@ -303,6 +357,21 @@ def search_country_news(code, now=None, fetchers=None):
                     key=lambda pair: pair[0], reverse=True)
     stories = [group for _, group in ranked[:3]]
     publisher_count = len({item['publisher'] for item in headlines})
+    # A city pin asserts only that a current, source-linked headline mentions a
+    # city name. It does not infer where an event occurred or that it happened.
+    city_mentions = []
+    city_seen = set()
+    for article in headlines:
+        mention = _city_mention(article['title'], code)
+        if mention and mention['city'] not in city_seen:
+            city_seen.add(mention['city'])
+            city_mentions.append({
+                **mention, 'headline': article['title'], 'url': article['url'],
+                'source': article['source'], 'feed_time_utc': article['feed_time_utc'],
+                'label': 'Headline mentions city',
+            })
+        if len(city_mentions) >= 15:
+            break
     logging.getLogger('uvicorn.error').info(
         'Country coverage code=%s stories=%d publishers=%d weekly=%s',
         code, len(stories), publisher_count, weekly and bool(stories))
@@ -315,6 +384,7 @@ def search_country_news(code, now=None, fetchers=None):
     lead = stories[0] if stories else {'basis': 'unavailable', 'reports': []}
     return {
         'country': name, 'stories': stories, 'publisher_count': publisher_count,
+        'city_mentions': city_mentions,
         'story': lead['reports'], 'basis': lead['basis'],
         'edition_url': EDITION_PATH + '?' + _edition_params(code) if code in EDITIONS else '',
         'checked_at_utc': now.isoformat(), 'sources_checked': checked, 'provider_errors': errors,
