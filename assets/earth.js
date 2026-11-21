@@ -47,6 +47,7 @@
   const utcDate = new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',dateStyle:'medium'});
   const countryRefreshMs = 300000;
   let countryBrief = null;
+  let selectedCityMention = null;
   let militaryArchive = null;
   const reportLayers = {
     earthquakes: {
@@ -278,13 +279,14 @@
       const group=groups[i];
       const count=group.events.length;
       const selected=group.events.some(event=>event.id===selectedReport);
+      const cityPin=activeLayer.mode==='countries' && group.events.every(event=>event.cityMention);
       if(activeLayer.mode==='archive'&&count===1){
         drawMilitaryMarker(group,activeLayer,selected);
         continue;
       }
-      const radius=count>99?15:count>1?12:selected?7:4;
+      const radius=count>99?15:count>1?12:cityPin?5:selected?7:4;
       ctx.beginPath();ctx.arc(group.x,group.y,radius,0,2*Math.PI);
-      ctx.fillStyle=selected?activeLayer.selectedMarker:activeLayer.marker;ctx.fill();
+      ctx.fillStyle=cityPin?'#78c8ec':selected?activeLayer.selectedMarker:activeLayer.marker;ctx.fill();
       ctx.strokeStyle='#071b24';ctx.lineWidth=1.5;ctx.stroke();
       if(count>1){ctx.fillStyle='#071b24';ctx.fillText(String(count),group.x,group.y);}
       group.hitRadius=Math.max(14,radius+4);
@@ -535,6 +537,7 @@
   function selectReport(event){
     const active = reportLayers[layer.value];
     selectedReport=event.id;
+    selectedCityMention=active.mode==='countries'&&event.cityMention?event:null;
     if(active.mode==='countries' && (countryBrief?.id!==event.id || countryBrief?.failed)){
       if(countryBrief?.id!==event.id)countryBrief = {id:event.id};
       refreshCountryBrief();
@@ -552,7 +555,21 @@
     if(!active)return;
     const focused=document.activeElement?.dataset.reportId;
     const now=Date.now();
-    if(active.mode) visibleReports=active.feed?.events||[];
+    if(active.mode==='countries'){
+      const allCountries=active.feed?.events||[];
+      visibleReports=[...allCountries];
+      // City pins are sourced from explicit mentions in recent headlines.
+      // They appear only after selecting a country and fetching its brief.
+      const base=allCountries.find(event=>event.id===selectedReport);
+      if(base && countryBrief?.id===base.id && countryBrief?.data?.city_mentions){
+        for(const mention of countryBrief.data.city_mentions){
+          if(!Number.isFinite(mention.longitude)||!Number.isFinite(mention.latitude))continue;
+          visibleReports.push({...base,longitude:mention.longitude,latitude:mention.latitude,
+            cityMention:true,city:mention.city,place:mention.city+', '+base.place,
+            headline:mention.headline,url:mention.url,source:mention.source});
+        }
+      }
+    } else if(active.mode) visibleReports=active.feed?.events||[];
     else renderLiveTimeline(active, now);
     if(active.mode==='countries'){
       countrySelect.value=selectedReport||'';
@@ -570,7 +587,8 @@
       const row=document.createElement('li');
       const button=document.createElement('button');
       button.type='button';button.dataset.reportId=event.id;
-      const label=document.createElement('span');label.textContent=active.title(event);
+      const label=document.createElement('span');
+      label.textContent=event.cityMention?event.city+' · headline mention':active.title(event);
       button.append(label);
       if(active.mode!=='countries'){
         const time=document.createElement('time');
@@ -619,7 +637,7 @@
     }
     if(active.mode){
       reportStatus.textContent=active.mode==='countries'
-        ? 'Select a country on the globe or from the list. Top stories refresh every 5 minutes.'
+        ? 'Select a country on the globe or from the list. Headlines refresh every 5 minutes. Blue city pins mark places named in reports, not verified incident locations.'
         : `${visibleReports.length} selected public reports about completed events.`;
       reportStatus.classList.remove('stale');
       return;
@@ -662,6 +680,11 @@
     const country = reportLayers.countries.feed.events.find(event=>event.id===selectedReport);
     const entry=countryBrief;
     renderCountryCard(reportDetail,country,entry);
+    if(selectedCityMention?.city && selectedCityMention?.url){
+      const note=document.createElement('div');note.className='country-city-note';
+      note.textContent='Map pin: '+selectedCityMention.city+' is mentioned in a headline. This is not a verified incident location.';
+      reportDetail.append(note,reportLink(selectedCityMention.url,'Read headline mentioning '+selectedCityMention.city));
+    }
   }
 
   async function refreshCountryBrief(){
@@ -672,11 +695,12 @@
       const response=await fetch('/api/country-news/'+encodeURIComponent(entry.id),{cache:'no-store'});
       if(!response.ok)throw Error('Country news unavailable');
       entry.data=await response.json();
+      entry.change=window.ClearIntelCountryChanges?.(entry.id,entry.data);
       entry.failed=false;
     }catch(_){entry.failed=true;}
     finally{
       entry.loading=false;
-      if(layer.value==='countries' && countryBrief===entry && selectedReport===entry.id)renderCountryBrief();
+      if(layer.value==='countries' && countryBrief===entry && selectedReport===entry.id){renderReports();draw();}
     }
   }
 
@@ -718,7 +742,7 @@
     if(event){
       selectReport(event);
     }else{
-      selectedReport=null;countryBrief=null;renderReports();draw();
+      selectedReport=null;selectedCityMention=null;countryBrief=null;renderReports();draw();
     }
   });
   reportShowAll.addEventListener('click',()=>{
@@ -745,7 +769,7 @@
     archiveActive=active?.mode==='archive';
     militaryLegend.hidden=!archiveActive;
     if(archiveActive)militaryKind.textContent=active.kind;
-    clusterIds=null;selectedReport=null;timelineStart=null;visibleReports=[];countryBrief=null;
+    clusterIds=null;selectedReport=null;selectedCityMention=null;timelineStart=null;visibleReports=[];countryBrief=null;
     reportPanel.hidden=!active;issPanel.hidden=Boolean(active);
     feedHeading.textContent=active?.mode?active.name:'Live feed';
     countryControls.hidden=active?.mode!=='countries';
