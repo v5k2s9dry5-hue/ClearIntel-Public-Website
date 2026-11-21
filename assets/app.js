@@ -2,6 +2,28 @@
 const $ = id => document.getElementById(id);
 const el = (name, cls, text) => { const node = document.createElement(name); if(cls)node.className=cls; if(text!=null)node.textContent=text; return node; };
 
+// Compare successive successful country feed checks in this browser session.
+// Badges describe feed changes, not independently verified real-world events.
+const countrySnapshots = new Map();
+window.ClearIntelCountryChanges = (code, data) => {
+  const current = (data.stories || []).map(group => {
+    const report = group.reports?.[0];
+    return {url: report?.url || '', title: report?.title || '',
+      sources: (group.reports || []).map(item => item.url).sort().join('|')};
+  }).filter(item => item.url);
+  const previous = countrySnapshots.get(code);
+  countrySnapshots.set(code, current);
+  if (!previous) return {statuses: current.map(() => ''), newCount: 0, updatedCount: 0, initial: true};
+  const byUrl = new Map(previous.map(item => [item.url, item]));
+  const statuses = current.map(item => {
+    const old = byUrl.get(item.url);
+    if (!old) return 'new';
+    return old.title !== item.title || old.sources !== item.sources ? 'updated' : '';
+  });
+  return {statuses, newCount: statuses.filter(value => value === 'new').length,
+    updatedCount: statuses.filter(value => value === 'updated').length, initial: false};
+};
+
 // Contextual help opens on click or keyboard activation, with hover on desktop.
 const hoverHelp = window.matchMedia('(min-width: 761px) and (hover: hover)');
 let openHelp = null;
@@ -17,6 +39,16 @@ document.querySelectorAll('.help-button').forEach((button, index) => {
   const show = pinned => {
     closeHelp();
     panel.hidden = false;
+    // Fixed-position popovers must be measured against the visible viewport.
+    // This avoids clipping the help text off the left edge on small phones.
+    const target = button.getBoundingClientRect();
+    const width = Math.min(280, Math.max(160, window.innerWidth - 24));
+    const left = Math.max(12, Math.min(window.innerWidth - width - 12,
+      target.left + target.width / 2 - width / 2));
+    panel.style.width = width + 'px';
+    panel.style.left = left + 'px';
+    panel.style.top = Math.max(12, Math.min(window.innerHeight - panel.offsetHeight - 12,
+      target.bottom + 10)) + 'px';
     button.setAttribute('aria-expanded', 'true');
     button.setAttribute('aria-describedby', panel.id);
     openHelp = { button, panel, pinned };
@@ -49,6 +81,8 @@ document.addEventListener('click', event => {
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') closeHelp();
 });
+window.addEventListener('resize', closeHelp);
+document.addEventListener('scroll', closeHelp, true);
 
 // A fresh homepage visit starts at the top. Section links and history navigation
 // keep their own scroll positions.
@@ -188,16 +222,24 @@ function renderCountryCard(container,country,entry){
     }
     if(entry?.data?.provider_errors.length)status.textContent+=' · Partial source coverage';
     if(entry?.data && entry.failed)status.textContent+=' · Refresh unavailable';
+    if(entry?.change && (entry.change.newCount || entry.change.updatedCount)){
+      const parts=[];
+      if(entry.change.newCount)parts.push(entry.change.newCount+' new in feed');
+      if(entry.change.updatedCount)parts.push(entry.change.updatedCount+' changed');
+      status.textContent+=' · Since previous check: '+parts.join(', ');
+    }
     const links=document.createElement('div');
     links.className='country-sources';
     const list=document.createElement('ol');
     list.className='country-top-stories';
-    for(const group of stories){
+    for(const [index,group] of stories.entries()){
       const [article,...related]=group.reports;
       const row=document.createElement('li');
       const content=document.createElement('div');
       row.append(content);
       list.append(row);
+      const change=entry?.change?.statuses?.[index];
+      if(change)content.append(el('span','country-change-badge',change==='new'?'New in feed':'Updated in feed'));
       const link=reportLink(article.url, article.title);
       const source=document.createElement('span');
       const timestamp=new Date(article.feed_time_utc);
@@ -225,6 +267,11 @@ function renderCountryCard(container,country,entry){
       }
     }
     if(stories.length)links.append(list);
+    if(data?.city_mentions?.length){
+      const mentionCount=data.city_mentions.length;
+      links.append(el('span','country-city-note',mentionCount+' city '+(mentionCount===1?'mention':'mentions')+
+        ' located from headlines. Map pins show mentioned places, not verified incident positions.'));
+    }
     if(entry?.data?.edition_url){
       links.append(reportLink(entry.data.edition_url,'Open national headlines on Google News'));
     }else if(!stories.length && (entry?.data||entry?.failed)){
@@ -256,7 +303,8 @@ async function showSearchCountry(query){
       const response=await fetch('/api/country-news/'+encodeURIComponent(country.id));
       if(!response.ok)throw Error();
       const data=await response.json();
-      if(version===countrySearchVersion)renderCountryCard(panel,country,{data});
+      if(version===countrySearchVersion)renderCountryCard(panel,country,{
+        data,change:window.ClearIntelCountryChanges(country.id,data)});
     }catch{
       if(version===countrySearchVersion)renderCountryCard(panel,country,{failed:true});
     }
