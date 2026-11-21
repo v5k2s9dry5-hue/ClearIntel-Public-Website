@@ -101,7 +101,7 @@ document.addEventListener('keydown', event => {
   if (event.key === 'Escape') closeHelp();
 });
 window.addEventListener('resize', closeHelp);
-document.addEventListener('scroll', closeHelp, true);
+document.addEventListener('scroll', () => { if (window.innerWidth > 760) closeHelp(); }, true);
 
 // A fresh homepage visit starts at the top. Section links and history navigation
 // keep their own scroll positions.
