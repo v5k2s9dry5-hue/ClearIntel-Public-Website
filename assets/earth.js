@@ -20,6 +20,13 @@
   const zoomIn = document.getElementById('earth-zoom-in');
   const zoomOut = document.getElementById('earth-zoom-out');
   const mapCredit = document.getElementById('earth-map-credit');
+  const mapInstructions = document.getElementById('map-instructions');
+  const projectionControls = document.getElementById('map-projection');
+  const flatButton = document.getElementById('projection-flat');
+  const globeButton = document.getElementById('projection-globe');
+  const resetMap = document.getElementById('earth-reset-map');
+  const militaryLegend = document.getElementById('military-map-legend');
+  const militaryKind = document.getElementById('military-map-kind');
   const layer = document.getElementById('globe-layer');
   const reportPanel = document.getElementById('earthquake-panel');
   const issPanel = document.getElementById('iss-panel');
@@ -61,11 +68,11 @@
       marker:'#a7ef8a', selectedMarker:'#e5ffd7', title:event=>event.place,
     },
     aviation: {
-      endpoint:'/assets/military-reports.json', name:'Military aviation', mode:'archive', category:'aviation',
+      endpoint:'/assets/military-reports.json?v=military-map', name:'Military aviation', mode:'archive', category:'aviation', kind:'Aviation report',
       marker:'#f3ce70', selectedMarker:'#fff0b8', title:event=>event.title,
     },
     maritime: {
-      endpoint:'/assets/military-reports.json', name:'Naval activity', mode:'archive', category:'maritime',
+      endpoint:'/assets/military-reports.json?v=military-map', name:'Naval activity', mode:'archive', category:'maritime', kind:'Naval report',
       marker:'#b3a7ff', selectedMarker:'#eee4ff', title:event=>event.title,
     },
   };
@@ -81,6 +88,7 @@
   let visibleReports = [], pins = [], selectedReport = null, clusterIds = null;
   let timelineStart = null;
   let dragDistance = 0, issLoading = false;
+  let flatMap = false, preferFlat = true, archiveActive = false;
   const clamp = (v,min,max)=>Math.min(max,Math.max(min,v));
   const project = (lon,lat,cx,cy,r) => {
     const a=(lon-rot)*RAD, b=lat*RAD, t=tilt*RAD;
@@ -150,12 +158,108 @@
     ctx.strokeStyle='#4d7395';ctx.lineWidth=zoom>1?.7:.5;
     for(const track of map.borders){if(inView(track))strokeTrack(track.coords,cx,cy,r);}
   }
-  function drawReportPins(cx,cy,r){
+  const longitudeDelta = (lon, center) => ((lon - center + 180) % 360 + 360) % 360 - 180;
+  const flatScale = width => width * zoom / 360;
+
+  function flatPoint(lon, lat, cx, cy, scale){
+    return {x:cx+longitudeDelta(lon,rot)*scale, y:cy-(lat-tilt)*scale, front:1};
+  }
+
+  function drawFlatMap(width,height){
+    const cx=width/2, cy=height/2, scale=flatScale(width);
+    ctx.fillStyle='#081928';
+    ctx.fillRect(0,0,width,height);
+    ctx.strokeStyle='#1b3549';
+    ctx.lineWidth=.7;
+    ctx.beginPath();
+    for(let lon=-180;lon<180;lon+=30){
+      const {x}=flatPoint(lon,0,cx,cy,scale);
+      ctx.moveTo(x,0);ctx.lineTo(x,height);
+    }
+    for(let lat=-75;lat<=75;lat+=15){
+      const {y}=flatPoint(0,lat,cx,cy,scale);
+      ctx.moveTo(0,y);ctx.lineTo(width,y);
+    }
+    ctx.stroke();
+    const map=zoom>1&&detailedMap?detailedMap:worldMap;
+    if(map){
+      ctx.fillStyle='#17394e';
+      ctx.strokeStyle='#4f788e';
+      ctx.lineWidth=.8;
+      for(const track of map.coastlines)drawFlatTrack(track,cx,cy,scale,true);
+      ctx.strokeStyle='#386178';
+      for(const track of map.borders)drawFlatTrack(track,cx,cy,scale,false);
+    }else{
+      ctx.fillStyle='#4f788e';
+      for(const [lon,lat] of points){
+        const {x,y}=flatPoint(lon,lat,cx,cy,scale);
+        ctx.fillRect(x,y,1.5,1.5);
+      }
+    }
+    pins=drawReportPins(cx,cy,scale,flatPoint);
+  }
+
+  function drawFlatTrack(track,cx,cy,scale,fill){
+    if(track.south>tilt+cy/scale || track.north<tilt-cy/scale)return;
+    const {coords,west,east}=track;
+    // Repeat the geometry across the map seam so panning across 180° remains continuous.
+    const center=rot+longitudeDelta((west+east)/2,rot);
+    const shift=center-(west+east)/2;
+    for(const offset of [shift-360,shift,shift+360]){
+      if((west+offset-rot)*scale>cx || (east+offset-rot)*scale< -cx)continue;
+      ctx.beginPath();
+      let lastLon=null, canFill=true;
+      for(const [lon,lat] of coords){
+        const x=cx+(lon+offset-rot)*scale, y=cy-(lat-tilt)*scale;
+        if(lastLon===null || Math.abs(lastLon-lon)>180){
+          if(lastLon!==null)canFill=false;
+          ctx.moveTo(x,y);
+        }else ctx.lineTo(x,y);
+        lastLon=lon;
+      }
+      const first=coords[0], last=coords.at(-1);
+      if(fill&&canFill&&first[0]===last[0]&&first[1]===last[1])ctx.fill();
+      ctx.stroke();
+    }
+  }
+
+  function drawMilitaryMarker(group,active,selected){
+    const {x,y}=group;
+    const ink=selected?active.selectedMarker:active.marker;
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.beginPath();ctx.arc(0,0,selected?14:12,0,2*Math.PI);
+    ctx.fillStyle='#101c2a';ctx.fill();
+    ctx.strokeStyle=ink;ctx.lineWidth=selected?2:1;ctx.stroke();
+    ctx.fillStyle=ink;
+    ctx.beginPath();
+    const outline=active.category==='aviation'
+      ? [[0,-8],[2,-5],[2,-1],[8,3],[8,5],[2,3],[2,6],[4,7],[4,9],[0,8],[-4,9],[-4,7],[-2,6],[-2,3],[-8,5],[-8,3],[-2,-1],[-2,-5]]
+      : [[0,-8],[6,-3],[5,5],[3,8],[-3,8],[-5,5],[-6,-3]];
+    ctx.moveTo(...outline[0]);
+    for(const [dx,dy] of outline.slice(1))ctx.lineTo(dx,dy);
+    ctx.closePath();ctx.fill();
+    if(active.category==='maritime'){
+      ctx.fillStyle='#101c2a';ctx.fillRect(-2,-2,4,6);
+    }
+    ctx.restore();
+    const label=group.events[0].place.split(',')[0];
+    ctx.save();
+    ctx.font='600 11px system-ui';ctx.textAlign='left';ctx.textBaseline='middle';
+    const width=ctx.measureText(label).width+12;
+    const left=x+width+17<canvas.clientWidth?x+17:x-width-17;
+    ctx.fillStyle='#0b1929';ctx.fillRect(left,y-10,width,20);
+    ctx.fillStyle=ink;ctx.fillText(label,left+6,y);
+    ctx.restore();
+    group.hitRadius=20;
+  }
+
+  function drawReportPins(cx,cy,r,projection=project){
     const activeLayer=reportLayers[layer.value];
     const groups=[];
     for(const event of visibleReports){
-      const point=project(event.longitude,event.latitude,cx,cy,r);
-      if(point.front<=.035)continue;
+      const point=projection(event.longitude,event.latitude,cx,cy,r);
+      if(point.front<=.035||point.x<0||point.y<0||point.x>canvas.clientWidth||point.y>canvas.clientHeight)continue;
       let closest=null, distance=27;
       for(const group of groups){
         const gap=Math.hypot(point.x-group.x,point.y-group.y);
@@ -174,6 +278,10 @@
       const group=groups[i];
       const count=group.events.length;
       const selected=group.events.some(event=>event.id===selectedReport);
+      if(activeLayer.mode==='archive'&&count===1){
+        drawMilitaryMarker(group,activeLayer,selected);
+        continue;
+      }
       const radius=count>99?15:count>1?12:selected?7:4;
       ctx.beginPath();ctx.arc(group.x,group.y,radius,0,2*Math.PI);
       ctx.fillStyle=selected?activeLayer.selectedMarker:activeLayer.marker;ctx.fill();
@@ -188,6 +296,7 @@
     const width=canvas.clientWidth, height=canvas.clientHeight;
     if(!width||!height)return;
     ctx.clearRect(0,0,width,height);
+    if(flatMap){drawFlatMap(width,height);return;}
     const cx=width/2, cy=height/2-4, r=Math.min(width*0.39,height*0.45)*zoom;
     const halo=ctx.createRadialGradient(cx,cy,r*.8,cx,cy,r*1.4);
     halo.addColorStop(0,'rgba(72,152,246,.23)');halo.addColorStop(1,'rgba(31,72,130,0)');
@@ -238,7 +347,7 @@
   function frame(now){
     if(!lastTick)lastTick=now;
     const delta=Math.min(now-lastTick,80);lastTick=now;
-    if(playing&&dragPointer===null){
+    if(playing&&!flatMap&&dragPointer===null){
       rot=(rot+delta*.0033/zoom)%360;
       if(now-lastDraw>35){draw();lastDraw=now;}
     }
@@ -266,10 +375,13 @@
     if(e.pointerId!==dragPointer)return;
     const dx=e.clientX-px, dy=e.clientY-py;
     dragDistance+=Math.hypot(dx,dy);
-    // The projection subtracts the view longitude from every point.
-    rot=(rot-dx*.48/zoom)%360;
-    tilt=clamp(tilt+dy*.25/zoom,-90,90);
-    px=e.clientX;py=e.clientY;draw();
+    // Both projections subtract the view longitude from every point.
+    const scale=flatMap?flatScale(canvas.clientWidth):null;
+    rot=(rot-dx*(flatMap?1/scale:.48/zoom))%360;
+    tilt=clamp(tilt+dy*(flatMap?1/scale:.25/zoom),-90,90);
+    px=e.clientX;py=e.clientY;
+    if(flatMap)resetMap.disabled=false;
+    draw();
   });
   canvas.addEventListener('pointerup',e=>{
     if(e.pointerId!==dragPointer)return;
@@ -333,6 +445,7 @@
     if(zoomIn)zoomIn.disabled=zoom===UK_ZOOM;
     if(zoomOut)zoomOut.disabled=zoom===1;
     ukView.textContent=previousWorld?'World view':'Zoom to UK';
+    resetMap.disabled=zoom===1&&rot===0&&tilt===12;
     updateMapCredit();
     if(zoom>1)loadDetailedMap();
   }
@@ -359,6 +472,31 @@
     setRotation(false);
     draw();
   }
+  function resetFlatMap(){
+    previousWorld=null;
+    rot=0;tilt=12;
+    setZoom(1);
+    draw();
+  }
+  resetMap.addEventListener('click',resetFlatMap);
+
+  function updateProjection(){
+    flatMap=archiveActive&&preferFlat;
+    projectionControls.hidden=!archiveActive;
+    flatButton.setAttribute('aria-pressed',String(flatMap));
+    globeButton.setAttribute('aria-pressed',String(!flatMap));
+    motion.hidden=flatMap;
+    resetMap.hidden=!flatMap;
+    ukView.hidden=flatMap;
+    canvas.setAttribute('aria-label',flatMap
+      ? 'Interactive map of past public reports. Select a marker or use the feed.'
+      : 'Interactive globe. You can also select events in the feed.');
+    mapInstructions.textContent=flatMap?'Drag to pan · Select a marker':'Drag to rotate · Select a pin or count';
+    draw();
+  }
+  flatButton.addEventListener('click',()=>{preferFlat=true;updateProjection();});
+  globeButton.addEventListener('click',()=>{preferFlat=false;updateProjection();});
+
   zoomIn?.addEventListener('click',()=>stepZoom(1));
   zoomOut?.addEventListener('click',()=>stepZoom(-1));
   function leaveUKView(){
@@ -403,7 +541,8 @@
     }
     if(!insideCoastline(event.longitude,event.latitude))leaveUKView();
     rot=event.longitude;tilt=event.latitude;
-    setRotation(false);
+    if(flatMap)resetMap.disabled=false;
+    else setRotation(false);
     renderReports();
     draw();
   }
@@ -457,8 +596,10 @@
     else if(selected && active.mode==='archive'){
       const title=document.createElement('strong');title.textContent=selected.title;
       const date=document.createElement('span');
-      date.textContent=`${selected.place} · Reported ${utcDate.format(new Date(selected.reported_on))}`;
-      reportDetail.replaceChildren(title,date,reportLink(selected.url, `Read the ${selected.source} report`));
+      date.textContent=`Reported ${utcDate.format(new Date(selected.reported_on))}`;
+      const context=document.createElement('span');
+      context.textContent=`${selected.type} · ${selected.place}`;
+      reportDetail.replaceChildren(title,context,date,reportLink(selected.url, `Read the ${selected.source} report`));
     }else if(selected){
       const title=document.createElement('strong');title.textContent=active.title(selected);
       const date=document.createElement('span');
@@ -634,6 +775,10 @@
   function changeLayer(){
     const active=reportLayers[layer.value];
     dashboard.dataset.layer=layer.value;
+    const wasArchive=archiveActive;
+    archiveActive=active?.mode==='archive';
+    militaryLegend.hidden=!archiveActive;
+    if(archiveActive)militaryKind.textContent=active.kind;
     clusterIds=null;selectedReport=null;timelineStart=null;visibleReports=[];countryBrief=null;
     reportPanel.hidden=!active;issPanel.hidden=Boolean(active);
     feedHeading.textContent=active?.mode?active.name:'Live feed';
@@ -641,6 +786,13 @@
     reportControls.hidden=Boolean(active?.mode);
     reportTimeline.hidden=Boolean(active?.mode);
     reportShowAll.textContent=active?.mode==='countries'?'Clear group':'Show all reports';
+    if(!wasArchive&&archiveActive&&preferFlat){
+      previousWorld=null;
+      rot=0;tilt=12;
+      setZoom(1);
+    }
+    if(archiveActive&&mobileDashboard.matches)showDashboardView('map');
+    updateProjection();
     if(active){
       if(!active.mode)reportWindow.value=active.window;
       reportList.setAttribute('aria-label',active.mode==='countries'?'Countries and territories':`${active.name} reports`);

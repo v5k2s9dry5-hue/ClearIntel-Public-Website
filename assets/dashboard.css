@@ -214,3 +214,31 @@
 .dashboard[data-layer="countries"] .quake-list button::before { background: #a7ef8a; }
 .dashboard[data-layer="aviation"] .quake-list button::before { background: #f3ce70; }
 .dashboard[data-layer="maritime"] .quake-list button::before { background: #b3a7ff; }
+
+.dashboard .map-projection[hidden],
+.dashboard .military-map-legend[hidden] { display: none; }
+.dashboard .map-projection { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid #365172; border-radius: 9px; }
+.dashboard .map-projection .globe-control { background: transparent; border-color: transparent; }
+.dashboard .map-projection .globe-control[aria-pressed="true"] { background: #244663; color: #fff; border-color: #486786; }
+
+.dashboard[data-layer="aviation"] { --military-accent: #f3ce70; }
+.dashboard[data-layer="maritime"] { --military-accent: #b3a7ff; }
+.military-map-legend {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border: 1px solid #365172;
+  border-radius: 7px;
+  background: #0b1929;
+  color: #e1eef7;
+  font-size: 12px;
+  pointer-events: none;
+}
+.military-map-legend > span { width: 8px; height: 8px; border-radius: 50%; background: var(--military-accent); }
+.military-map-legend > small { color: #abc1d5; font-size: 11px; border-left: 1px solid #365172; padding-left: 7px; }
+.dashboard[data-layer="aviation"] .quake-detail,
+.dashboard[data-layer="maritime"] .quake-detail { border-left: 3px solid var(--military-accent); }

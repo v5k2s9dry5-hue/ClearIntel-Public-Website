@@ -50,6 +50,16 @@ document.addEventListener('keydown', event => {
   if (event.key === 'Escape') closeHelp();
 });
 
+// A fresh homepage visit starts at the top. Section links and history navigation
+// keep their own scroll positions.
+window.addEventListener('pageshow', event => {
+  const navigation = performance.getEntriesByType('navigation')[0];
+  if(event.persisted || navigation?.type === 'back_forward' || window.location.hash) return;
+  window.requestAnimationFrame(() => {
+    if(!window.location.hash) window.scrollTo({top:0, left:0, behavior:'instant'});
+  });
+});
+
 // Mobile navigation.
 $('menu-toggle').addEventListener('click',()=>{
   const expanded=$('menu-toggle').getAttribute('aria-expanded')==='true';

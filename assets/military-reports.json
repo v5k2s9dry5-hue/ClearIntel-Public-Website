@@ -3,6 +3,7 @@
     {
       "id": "high-north-mission-wrap-up-2026",
       "category": "maritime",
+      "type": "Mission return",
       "title": "Royal Navy flagship returns after High North mission",
       "place": "Portsmouth, United Kingdom",
       "latitude": 50.8,
@@ -14,6 +15,7 @@
     {
       "id": "red-arrows-duxford-2026",
       "category": "aviation",
+      "type": "Air display",
       "title": "Red Arrows end their 2026 display season at Duxford",
       "place": "Duxford, United Kingdom",
       "latitude": 52.1,
@@ -25,6 +27,7 @@
     {
       "id": "red-arrows-new-york-2026",
       "category": "aviation",
+      "type": "Flypast",
       "title": "RAF reports Red Arrows’ New York flypast on completed US tour",
       "place": "New York, United States",
       "latitude": 40.7,
@@ -36,6 +39,7 @@
     {
       "id": "rimpac-conclusion-2026",
       "category": "maritime",
+      "type": "Maritime exercise",
       "title": "RIMPAC 2026 maritime exercise concludes",
       "place": "Hawaii, United States",
       "latitude": 21.3,
