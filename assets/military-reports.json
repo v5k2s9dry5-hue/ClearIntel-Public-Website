@@ -25,6 +25,30 @@
       "url": "https://www.raf.mod.uk/display-teams/red-arrows/news/final-2026-red-arrows-display-concludes-busy-season/"
     },
     {
+      "id": "snowbirds-toronto-2026",
+      "category": "aviation",
+      "type": "Air display",
+      "title": "Canadian Forces Snowbirds fly at the Toronto air show",
+      "place": "Toronto, Canada",
+      "latitude": 43.6,
+      "longitude": -79.4,
+      "reported_on": "2026-09-07",
+      "source": "CityNews Toronto",
+      "url": "https://toronto.citynews.ca/video/2026/09/07/snowbirds-ct-114-tutor-jets-fly-in-canadian-international-air-show-one-last-time/"
+    },
+    {
+      "id": "brazil-independence-display-2026",
+      "category": "aviation",
+      "type": "Air display",
+      "title": "Brazilian Air Force display marks Independence Day",
+      "place": "Brasília, Brazil",
+      "latitude": -15.8,
+      "longitude": -47.9,
+      "reported_on": "2026-09-07",
+      "source": "Brazilian Air Force",
+      "url": "https://www.fab.mil.br/noticia/institucional/21099/2026/09/forca-aerea-brasileira-celebra-o-dia-da-independencia-com-desfile-na-esplanada-dos-ministerios/"
+    },
+    {
       "id": "red-arrows-new-york-2026",
       "category": "aviation",
       "type": "Flypast",
@@ -37,6 +61,18 @@
       "url": "https://www.raf.mod.uk/display-teams/red-arrows/news/red-arrows-home-after-successful-us-tour/"
     },
     {
+      "id": "darwin-public-flying-display-2026",
+      "category": "aviation",
+      "type": "Air display",
+      "title": "Public flying display held at Mindil Beach",
+      "place": "Darwin, Australia",
+      "latitude": -12.5,
+      "longitude": 130.8,
+      "reported_on": "2026-08-07",
+      "source": "Australian Department of Defence",
+      "url": "https://www.defence.gov.au/news-events/releases/2026-08-07/exercise-pitch-black-2026-concludes"
+    },
+    {
       "id": "rimpac-conclusion-2026",
       "category": "maritime",
       "type": "Maritime exercise",
@@ -47,6 +83,114 @@
       "reported_on": "2026-07-31",
       "source": "US Pacific Fleet",
       "url": "https://www.cpf.navy.mil/RIMPAC/lang/en/"
+    },
+    {
+      "id": "sail250-boston-2026",
+      "category": "maritime",
+      "type": "Fleet celebration",
+      "title": "Sail250 fleet celebration wraps up in Boston",
+      "place": "Boston, United States",
+      "latitude": 42.4,
+      "longitude": -71.1,
+      "reported_on": "2026-07-17",
+      "source": "US Coast Guard",
+      "url": "https://www.news.uscg.mil/Press-Releases/Article/4549421/coast-guard-concludes-nationwide-maritime-safety-security-operations-for-sail250/"
+    },
+    {
+      "id": "baltops-kiel-2026",
+      "category": "maritime",
+      "type": "Maritime exercise",
+      "title": "BALTOPS 2026 concludes in Kiel",
+      "place": "Kiel, Germany",
+      "latitude": 54.3,
+      "longitude": 10.1,
+      "reported_on": "2026-06-19",
+      "source": "US Naval Forces Europe and Africa",
+      "url": "https://www.c6f.navy.mil/Press-Room/News/Article/4522166/baltops-2026-concludes-in-kiel-germany/"
+    },
+    {
+      "id": "simons-town-navy-festival-2026",
+      "category": "maritime",
+      "type": "Naval festival",
+      "title": "South African Navy festival takes place in Simon’s Town",
+      "place": "Simon’s Town, South Africa",
+      "latitude": -34.2,
+      "longitude": 18.4,
+      "reported_on": "2026-04-22",
+      "source": "DefenceWeb",
+      "url": "https://defenceweb.co.za/sea/sea-sea/sa-navy-festival-sails-through-stormy-weekend-in-simons-town/"
+    },
+    {
+      "id": "kakadu-sydney-fleet-review-2026",
+      "category": "maritime",
+      "type": "Fleet review",
+      "title": "International fleet review marks Australia’s Navy anniversary",
+      "place": "Sydney, Australia",
+      "latitude": -33.9,
+      "longitude": 151.2,
+      "reported_on": "2026-04-01",
+      "source": "Australian Department of Defence",
+      "url": "https://www.defence.gov.au/news-events/news/2026-04-01/kakadu-makes-history-harbour"
+    },
+    {
+      "id": "singapore-airshow-2026",
+      "category": "aviation",
+      "type": "Air display",
+      "title": "International air forces fly at Singapore Airshow",
+      "place": "Changi, Singapore",
+      "latitude": 1.4,
+      "longitude": 104.0,
+      "reported_on": "2026-02-09",
+      "source": "Singapore Airshow",
+      "url": "https://www.singaporeairshow.com/others/singapore-airshow-newsroom/2026/singapore-airshow-2026-through-the-lens-highlights-from-the-groundbreaking-milestone-10th-edition"
+    },
+    {
+      "id": "paris-air-show-2025",
+      "category": "aviation",
+      "type": "Air display",
+      "title": "US military aircraft take part in the Paris Air Show",
+      "place": "Le Bourget, France",
+      "latitude": 49.0,
+      "longitude": 2.4,
+      "reported_on": "2025-06-23",
+      "source": "US Air Forces in Europe and Air Forces Africa",
+      "url": "https://www.mildenhall.af.mil/News/Article-Display/Article/4222835/usaf-showcased-global-airpower-innovation-at-paris-air-show/"
+    },
+    {
+      "id": "manama-imx-closing-2025",
+      "category": "maritime",
+      "type": "Maritime exercise",
+      "title": "International Maritime Exercise closes in Manama",
+      "place": "Manama, Bahrain",
+      "latitude": 26.2,
+      "longitude": 50.6,
+      "reported_on": "2025-02-20",
+      "source": "US Naval Forces Central Command",
+      "url": "https://www.dvidshub.net/news/491117/international-maritime-exercise-2025-concludes"
+    },
+    {
+      "id": "aero-india-exhibition-2025",
+      "category": "aviation",
+      "type": "Air show",
+      "title": "Aero India holds its closing ceremony in Bengaluru",
+      "place": "Bengaluru, India",
+      "latitude": 13.0,
+      "longitude": 77.6,
+      "reported_on": "2025-02-12",
+      "source": "India Press Information Bureau",
+      "url": "https://www.pib.gov.in/Pressreleaseshare.aspx?PRID=2102439&lang=2&reg=48"
+    },
+    {
+      "id": "japan-fleet-review-rescue-exercise-2022",
+      "category": "maritime",
+      "type": "Search and rescue exercise",
+      "title": "Japan reports a multinational sea rescue exercise",
+      "place": "Sagami Bay, Japan",
+      "latitude": 35.2,
+      "longitude": 139.4,
+      "reported_on": "2022-11-08",
+      "source": "Japan Maritime Self-Defense Force",
+      "url": "https://www.mod.go.jp/msdf/sf/english/news/2022/11/1108.html"
     }
   ]
 }

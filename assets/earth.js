@@ -68,11 +68,11 @@
       marker:'#a7ef8a', selectedMarker:'#e5ffd7', title:event=>event.place,
     },
     aviation: {
-      endpoint:'/assets/military-reports.json?v=military-map', name:'Military aviation', mode:'archive', category:'aviation', kind:'Aviation report',
+      endpoint:'/assets/military-reports.json?v=archive-expanded', name:'Military aviation', mode:'archive', category:'aviation', kind:'Aviation report',
       marker:'#f3ce70', selectedMarker:'#fff0b8', title:event=>event.title,
     },
     maritime: {
-      endpoint:'/assets/military-reports.json?v=military-map', name:'Naval activity', mode:'archive', category:'maritime', kind:'Naval report',
+      endpoint:'/assets/military-reports.json?v=archive-expanded', name:'Naval activity', mode:'archive', category:'maritime', kind:'Naval report',
       marker:'#b3a7ff', selectedMarker:'#eee4ff', title:event=>event.title,
     },
   };
