@@ -1,0 +1,33 @@
+name: ClearIntel checks
+on:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt httpx
+      - name: Python tests (offline fixtures)
+        run: python -m unittest discover -p 'test_*.py' -v
+      - name: JavaScript syntax
+        run: |
+          node --check assets/app.js
+          node --check assets/earth.js
+          node --check assets/timeline.js
+          node --check assets/research-pdf.js
+      - name: Country change indicator checks
+        run: node scripts/test_country_changes.cjs

@@ -207,10 +207,10 @@ def _relevance(title: str, subject: list[str], incident_only: bool) -> int:
     return (4 if is_incident else 0) + matches
 
 
-def _collect(query, days, incident_only, fetchers, **options):
+def _collect(query, days, incident_only, fetchers, *, workers=3, **options):
     combined, checked, errors = [], [], []
     # Each live source uses a bounded timeout; calls run concurrently to avoid 3x waiting.
-    with ThreadPoolExecutor(max_workers=min(3,len(fetchers))) as pool:
+    with ThreadPoolExecutor(max_workers=min(workers,len(fetchers))) as pool:
         pending = {pool.submit(provider, query, days, incident_only, **options):
                    getattr(provider, '__name__', 'source').replace('fetch_', '') for provider in fetchers}
         for future in as_completed(pending):

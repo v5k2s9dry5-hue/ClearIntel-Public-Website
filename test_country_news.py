@@ -159,3 +159,37 @@ class CountryNewsTests(TestCase):
         self.assertEqual(result['story'][0]['url'], 'https://publisher.example/deal')
         self.assertEqual(result['story'][0]['time_basis'], 'Event date')
         self.assertEqual(result['story'][0]['attribution_title'], 'Wikipedia’s UK events timeline')
+
+    def test_explicit_uk_city_headline_gets_precise_mention_not_incident_claim(self):
+        from country_news import _city_mention
+        self.assertEqual(_city_mention('Manchester launches new bus network', 'GB')['city'], 'Manchester')
+        self.assertIsNone(_city_mention('ManchesterUnited releases a statement', 'GB'))
+        self.assertIsNone(_city_mention('Manchester launches new bus network', 'ES'))
+        rows = [
+            dict(article('Council announces roadworks in Manchester', 'north.example', 1), country_code='GB'),
+            dict(article('Bristol council launches new initiative', 'west.example', 2), country_code='GB'),
+            dict(article('Council announces roadworks in Manchester', 'north.example', 50), country_code='GB'),
+        ]
+        result = search_country_news('GB', NOW, (fixture_provider(*rows),))
+        self.assertEqual([item['city'] for item in result['city_mentions']], ['Manchester', 'Bristol'])
+        self.assertTrue(all(item['label'] == 'Headline mentions city' for item in result['city_mentions']))
+        self.assertTrue(all(item['url'].startswith('https://') for item in result['city_mentions']))
+
+    def test_spanish_city_alias_and_editorial_section_feeds(self):
+        from country_news import _city_mention, REGIONAL_FEEDS
+        self.assertEqual(_city_mention('El ayuntamiento de Sevilla anuncia inversiones', 'ES')['city'], 'Sevilla')
+        self.assertEqual(_city_mention('Noticias de Seville hoy', 'ES')['city'], 'Sevilla')
+        self.assertEqual(_city_mention('Málaga anuncia obras en el puerto', 'ES')['city'], 'Málaga')
+        self.assertIn('news/england/rss.xml', REGIONAL_FEEDS['GB'][0][1])
+        self.assertIn('elmundo/rss/espana.xml', REGIONAL_FEEDS['ES'][0][1])
+
+    def test_regional_publisher_coverage_does_not_claim_national_ranking(self):
+        from country_news import _publisher_reports
+        feed = b'''<rss><channel><item><title>Cardiff transport upgrade</title>
+            <link>https://example.org/cardiff</link><pubDate>Sat, 21 Nov 2026 11:00:00 GMT</pubDate>
+            </item></channel></rss>'''
+        with patch('country_news._get', return_value=feed):
+            result = _publisher_reports('https://example.org/rss.xml', 'Regional desk', 'GB', False)
+        self.assertEqual(result[0]['country_code'], 'GB')
+        self.assertIsNone(result[0]['publisher_rank'])
+        self.assertEqual(result[0]['source'], 'Regional desk')
