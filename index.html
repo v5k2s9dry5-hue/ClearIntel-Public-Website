@@ -12,11 +12,11 @@
   <title>ClearIntel | OSINT Research & Public-Source Intelligence</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/styles.css?v=inline-help">
-  <link rel="stylesheet" href="/assets/dashboard.css?v=pdf-report">
+  <link rel="stylesheet" href="/assets/dashboard.css?v=country-news">
   <script src="/assets/research-pdf.js" defer></script>
   <script src="/assets/app.js?v=inline-help" defer></script>
   <script src="/assets/timeline.js?v=event-timeline" defer></script>
-  <script src="/assets/earth.js?v=event-timeline" defer></script>
+  <script src="/assets/earth.js?v=country-news" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -48,6 +48,9 @@
               <option value="earthquakes">Earthquakes</option>
               <option value="wildfires">Wildfires</option>
               <option value="iss">ISS position</option>
+              <option value="countries">Country news</option>
+              <option value="aviation">Military aviation</option>
+              <option value="maritime">Naval activity</option>
             </select>
           </label>
         </div>
@@ -77,11 +80,16 @@
           <section id="dashboard-feed" class="dashboard-panel dashboard-feed" aria-labelledby="dashboard-feed-heading">
             <h2 id="dashboard-feed-heading" tabindex="-1">Live feed</h2>
             <div id="earthquake-panel">
-              <div class="quake-controls">
+              <div id="report-controls" class="quake-controls">
                 <label for="quake-window">Time window
                   <select id="quake-window"><option value="1">Last 24 hours</option><option value="7">Last 7 days</option></select>
                 </label>
                 <button type="button" id="quake-pause" class="globe-control" aria-pressed="false">Pause updates</button>
+              </div>
+              <div id="country-controls" class="quake-controls" hidden>
+                <label for="country-select">Country or territory
+                  <select id="country-select"><option value="">Choose a country</option></select>
+                </label>
               </div>
               <p id="quake-status" class="orbital-status" role="status">Checking USGS earthquake reports…</p>
               <div id="report-timeline" class="report-timeline" aria-label="Public report timeline"></div>

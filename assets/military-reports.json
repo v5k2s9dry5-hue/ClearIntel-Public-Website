@@ -1,0 +1,48 @@
+{
+  "events": [
+    {
+      "id": "high-north-mission-wrap-up-2026",
+      "category": "maritime",
+      "title": "Royal Navy flagship returns after High North mission",
+      "place": "Portsmouth, United Kingdom",
+      "latitude": 50.8,
+      "longitude": -1.1,
+      "reported_on": "2026-11-16",
+      "source": "Royal Navy",
+      "url": "https://www.royalnavy.mod.uk/news/2026/november/16/20261116-hms-prince-of-wales-returns-home-after-high-north-mission"
+    },
+    {
+      "id": "red-arrows-duxford-2026",
+      "category": "aviation",
+      "title": "Red Arrows end their 2026 display season at Duxford",
+      "place": "Duxford, United Kingdom",
+      "latitude": 52.1,
+      "longitude": 0.2,
+      "reported_on": "2026-10-05",
+      "source": "Royal Air Force",
+      "url": "https://www.raf.mod.uk/display-teams/red-arrows/news/final-2026-red-arrows-display-concludes-busy-season/"
+    },
+    {
+      "id": "red-arrows-new-york-2026",
+      "category": "aviation",
+      "title": "RAF reports Red Arrows’ New York flypast on completed US tour",
+      "place": "New York, United States",
+      "latitude": 40.7,
+      "longitude": -74.0,
+      "reported_on": "2026-08-17",
+      "source": "Royal Air Force",
+      "url": "https://www.raf.mod.uk/display-teams/red-arrows/news/red-arrows-home-after-successful-us-tour/"
+    },
+    {
+      "id": "rimpac-conclusion-2026",
+      "category": "maritime",
+      "title": "RIMPAC 2026 maritime exercise concludes",
+      "place": "Hawaii, United States",
+      "latitude": 21.3,
+      "longitude": -157.9,
+      "reported_on": "2026-07-31",
+      "source": "US Pacific Fleet",
+      "url": "https://www.cpf.navy.mil/RIMPAC/lang/en/"
+    }
+  ]
+}

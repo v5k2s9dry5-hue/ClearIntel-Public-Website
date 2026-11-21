@@ -23,6 +23,11 @@
   const layer = document.getElementById('globe-layer');
   const reportPanel = document.getElementById('earthquake-panel');
   const issPanel = document.getElementById('iss-panel');
+  const feedHeading = document.getElementById('dashboard-feed-heading');
+  const reportControls = document.getElementById('report-controls');
+  const reportTimeline = document.getElementById('report-timeline');
+  const countryControls = document.getElementById('country-controls');
+  const countrySelect = document.getElementById('country-select');
   const reportWindow = document.getElementById('quake-window');
   const reportPause = document.getElementById('quake-pause');
   const reportStatus = document.getElementById('quake-status');
@@ -32,6 +37,10 @@
   const reportGroupTitle = document.getElementById('quake-group-title');
   const reportShowAll = document.getElementById('quake-show-all');
   const utcTime = new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'});
+  const utcDate = new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',dateStyle:'medium'});
+  const countryRefreshMs = 300000;
+  let countryBrief = null;
+  let militaryArchive = null;
   const reportLayers = {
     earthquakes: {
       endpoint:'/api/earthquakes', name:'USGS earthquake', minimum:' · M4.5+',
@@ -46,6 +55,18 @@
       marker:'#ffae68', selectedMarker:'#ffe6c4', window:'7',
       title:event=>event.title, source:event=>event.source,
       status:event=>event.closed?'Closed in EONET':'Open in EONET',
+    },
+    countries: {
+      endpoint:'/assets/countries.json', name:'Country news', mode:'countries',
+      marker:'#a7ef8a', selectedMarker:'#e5ffd7', title:event=>event.place,
+    },
+    aviation: {
+      endpoint:'/assets/military-reports.json', name:'Military aviation', mode:'archive', category:'aviation',
+      marker:'#f3ce70', selectedMarker:'#fff0b8', title:event=>event.title,
+    },
+    maritime: {
+      endpoint:'/assets/military-reports.json', name:'Naval activity', mode:'archive', category:'maritime',
+      marker:'#b3a7ff', selectedMarker:'#eee4ff', title:event=>event.title,
     },
   };
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -374,7 +395,12 @@
   }
 
   function selectReport(event){
+    const active = reportLayers[layer.value];
     selectedReport=event.id;
+    if(active.mode==='countries' && (countryBrief?.id!==event.id || countryBrief?.failed)){
+      if(countryBrief?.id!==event.id)countryBrief = {id:event.id};
+      refreshCountryBrief();
+    }
     if(!insideCoastline(event.longitude,event.latitude))leaveUKView();
     rot=event.longitude;tilt=event.latitude;
     setRotation(false);
@@ -387,6 +413,86 @@
     if(!active)return;
     const focused=document.activeElement?.dataset.reportId;
     const now=Date.now();
+    if(active.mode) visibleReports=active.feed?.events||[];
+    else renderLiveTimeline(active, now);
+    if(active.mode==='countries'){
+      countrySelect.value=selectedReport||'';
+      countrySelect.disabled=!active.feed;
+    }
+    const cluster=clusterIds?visibleReports.filter(event=>clusterIds.has(event.id)):[];
+    if(!cluster.length)clusterIds=null;
+    reportGroup.hidden=!clusterIds;
+    if(clusterIds){
+      const noun=active.mode==='countries'?'location':'report';
+      reportGroupTitle.textContent=`${cluster.length} ${noun}${cluster.length===1?'':'s'} in this group`;
+    }
+    reportList.replaceChildren();
+    for(const event of clusterIds?cluster:active.mode==='countries'?[]:visibleReports){
+      const row=document.createElement('li');
+      const button=document.createElement('button');
+      button.type='button';button.dataset.reportId=event.id;
+      const label=document.createElement('span');label.textContent=active.title(event);
+      button.append(label);
+      if(active.mode!=='countries'){
+        const time=document.createElement('time');
+        time.className='report-time';
+        if(active.mode==='archive'){
+          time.dateTime=event.reported_on;
+          time.textContent=`${event.place} · Reported ${utcDate.format(new Date(event.reported_on))}`;
+        }else{
+          time.dateTime=new Date(event[active.timeField]).toISOString();
+          time.textContent=`${utcTime.format(event[active.timeField])} UTC`;
+        }
+        button.append(time);
+      }
+      button.setAttribute('aria-pressed',String(event.id===selectedReport));
+      button.addEventListener('click',()=>selectReport(event));
+      row.append(button);reportList.append(row);
+      if(focused===event.id)button.focus({preventScroll:true});
+    }
+    const selected=visibleReports.find(event=>event.id===selectedReport);
+    reportDetail.hidden=!selected;
+    if(showMap)showMap.hidden=!selected;
+    if(selected && active.mode==='countries') renderCountryBrief();
+    else if(selected && active.mode==='archive'){
+      const title=document.createElement('strong');title.textContent=selected.title;
+      const date=document.createElement('span');
+      date.textContent=`${selected.place} · Reported ${utcDate.format(new Date(selected.reported_on))}`;
+      reportDetail.replaceChildren(title,date,reportLink(selected.url, `Read the ${selected.source} report`));
+    }else if(selected){
+      const title=document.createElement('strong');title.textContent=active.title(selected);
+      const date=document.createElement('span');
+      const status=active.status(selected);
+      date.textContent=`${active.timeLabel} ${utcTime.format(selected[active.timeField])} UTC${status?' · '+status:''}`;
+      const link=reportLink(selected.url, `View ${active.source(selected)}`);
+      const existingLink=reportDetail.querySelector('a');
+      if(existingLink?.href===link.href){
+        reportDetail.querySelector('strong').textContent=title.textContent;
+        reportDetail.querySelector('span').textContent=date.textContent;
+      }else{reportDetail.replaceChildren(title,date,link);}
+    }
+    if(!active.feed){
+      reportStatus.textContent=reportsPaused&&!active.mode?'Updates paused':active.failed?`${active.name} feed unavailable.`:`Checking ${active.name} reports…`;
+      reportStatus.classList.toggle('stale',Boolean(active.failed));
+      return;
+    }
+    if(active.mode){
+      reportStatus.textContent=active.mode==='countries'
+        ? 'Select a country on the globe or from the list. Headlines refresh every 5 minutes while open.'
+        : `${visibleReports.length} selected public reports about completed events.`;
+      reportStatus.classList.remove('stale');
+      return;
+    }
+    const updated=active.feed[active.feedTime];
+    const stale=active.failed||active.feed.stale||now-updated>300000;
+    const count=visibleReports.length;
+    const summary=count?`${count} ${active.name} ${count===1?'report':'reports'}${active.minimum}`:`No ${active.name} reports in this window${active.minimum}`;
+    const status=(reportsPaused?'Updates paused · ':'')+(stale?'Showing older data · ':'');
+    reportStatus.textContent=`${status}${summary}${timelineStart!==null?' · Timeline filtered':''} · ${active.feedLabel} ${utcTime.format(updated)} UTC`;
+    reportStatus.classList.toggle('stale',stale);
+  }
+
+  function renderLiveTimeline(active, now){
     const cutoff=now-Number(reportWindow.value)*86400000;
     const allReports=(active.feed?.events||[]).filter(event=>Number.isFinite(event[active.timeField]) && event[active.timeField]>=cutoff && event[active.timeField]<=now);
     const step=Number(reportWindow.value)===1?7200000:86400000;
@@ -403,76 +509,104 @@
         renderReports();draw();
       }
     });
-    const cluster=clusterIds?visibleReports.filter(event=>clusterIds.has(event.id)):[];
-    if(!cluster.length)clusterIds=null;
-    reportGroup.hidden=!clusterIds;
-    if(clusterIds)reportGroupTitle.textContent=`${cluster.length} ${cluster.length===1?'report':'reports'} in this group`;
-    reportList.replaceChildren();
-    for(const event of clusterIds?cluster:visibleReports){
-      const row=document.createElement('li');
-      const button=document.createElement('button');
-      button.type='button';button.dataset.reportId=event.id;
-      const label=document.createElement('span');label.textContent=active.title(event);
-      const time=document.createElement('time');time.className='report-time';
-      time.dateTime=new Date(event[active.timeField]).toISOString();
-      time.textContent=`${utcTime.format(event[active.timeField])} UTC`;
-      button.append(label,time);
-      button.setAttribute('aria-pressed',String(event.id===selectedReport));
-      button.addEventListener('click',()=>selectReport(event));
-      row.append(button);reportList.append(row);
-      if(focused===event.id)button.focus({preventScroll:true});
+  }
+
+  function reportLink(url, text){
+    const link=document.createElement('a');
+    link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=text;
+    return link;
+  }
+
+  function renderCountryBrief(){
+    const country = reportLayers.countries.feed.events.find(event=>event.id===selectedReport);
+    const entry=countryBrief;
+    const title=document.createElement('strong');
+    title.textContent=country.place;
+    const status=document.createElement('span');
+    status.setAttribute('role','status');
+    const story=entry?.data?.story||[];
+    if(!entry?.data){
+      status.textContent=entry?.failed?'News sources are unavailable. Try selecting this country again.':'Checking recent headlines…';
+    }else if(!story.length){
+      status.textContent='No dated headlines matched this country in the past 7 days.';
+    }else{
+      const tag=entry.data.window_hours===24?'Top recent headline':'Latest coverage from the past 7 days';
+      status.textContent=`${tag} · Checked ${utcTime.format(new Date(entry.data.checked_at_utc))} UTC`;
     }
-    const selected=visibleReports.find(event=>event.id===selectedReport);
-    reportDetail.hidden=!selected;
-    if(showMap)showMap.hidden=!selected;
-    if(selected){
-      const title=document.createElement('strong');title.textContent=active.title(selected);
-      const date=document.createElement('span');
-      const status=active.status(selected);
-      date.textContent=`${active.timeLabel} ${utcTime.format(selected[active.timeField])} UTC${status?' · '+status:''}`;
-      const link=document.createElement('a');link.href=selected.url;link.target='_blank';
-      link.rel='noopener noreferrer';link.textContent=`View ${active.source(selected)}`;
-      const existingLink=reportDetail.querySelector('a');
-      if(existingLink?.href===link.href){
-        reportDetail.querySelector('strong').textContent=title.textContent;
-        reportDetail.querySelector('span').textContent=date.textContent;
-      }else{reportDetail.replaceChildren(title,date,link);}
+    if(entry?.data?.provider_errors.length)status.textContent+=' · Partial source coverage';
+    if(entry?.data && entry.failed)status.textContent+=' · Refresh unavailable';
+    const links=document.createElement('div');
+    links.className='country-sources';
+    for(const article of story){
+      const link=reportLink(article.url, article.title);
+      const source=document.createElement('span');
+      source.textContent=`${article.source||'Publisher'} · ${article.time_basis} · ${utcTime.format(new Date(article.feed_time_utc))} UTC`;
+      links.append(link,source);
     }
-    if(!active.feed){
-      reportStatus.textContent=reportsPaused?'Updates paused':active.failed?`${active.name} feed unavailable.`:`Checking ${active.name} reports…`;
-      reportStatus.classList.toggle('stale',Boolean(active.failed));
-      return;
+    reportDetail.replaceChildren(title,status,links);
+  }
+
+  async function refreshCountryBrief(){
+    const entry=countryBrief;
+    if(!entry || entry.loading || entry.id!==selectedReport)return;
+    entry.loading=true;
+    try{
+      const response=await fetch('/api/country-news/'+encodeURIComponent(entry.id),{cache:'no-store'});
+      if(!response.ok)throw Error('Country news unavailable');
+      entry.data=await response.json();
+      entry.failed=false;
+    }catch(_){entry.failed=true;}
+    finally{
+      entry.loading=false;
+      if(layer.value==='countries' && countryBrief===entry && selectedReport===entry.id)renderCountryBrief();
     }
-    const updated=active.feed[active.feedTime];
-    const stale=active.failed||active.feed.stale||now-updated>300000;
-    const count=visibleReports.length;
-    const summary=count?`${count} ${active.name} ${count===1?'report':'reports'}${active.minimum}`:`No ${active.name} reports in this window${active.minimum}`;
-    const status=(reportsPaused?'Updates paused · ':'')+(stale?'Showing older data · ':'');
-    reportStatus.textContent=`${status}${summary}${timelineStart!==null?' · Timeline filtered':''} · ${active.feedLabel} ${utcTime.format(updated)} UTC`;
-    reportStatus.classList.toggle('stale',stale);
   }
 
   async function refreshReports(){
     const active=reportLayers[layer.value];
-    if(!active||reportsPaused||active.loading)return;
+    if(!active||active.loading||(!active.mode&&reportsPaused)||(active.mode&&active.feed))return;
     active.loading=true;
     try{
-      const response=await fetch(active.endpoint,{cache:'no-store'});
-      if(!response.ok)throw Error('Report feed unavailable');
-      const latest=await response.json();
-      if(!Number.isFinite(latest[active.feedTime])||!Array.isArray(latest.events))throw Error('Invalid report data');
-      if(!reportsPaused){active.feed=latest;active.failed=false;}
-    }catch(_){if(!reportsPaused)active.failed=true;}
+      if(active.mode==='archive'&&!militaryArchive){
+        militaryArchive=loadReportFeed(active.endpoint).catch(error=>{militaryArchive=null;throw error;});
+      }
+      const latest=await (active.mode==='archive'?militaryArchive:loadReportFeed(active.endpoint));
+      if(!Array.isArray(latest.events)||(!active.mode&&!Number.isFinite(latest[active.feedTime])))throw Error('Invalid report data');
+      if(active.mode==='countries'){
+        for(const event of latest.events)countrySelect.add(new Option(event.place,event.id));
+      }
+      if(active.mode || !reportsPaused){
+        active.feed=active.mode==='archive'
+          ? {events:latest.events.filter(event=>event.category===active.category)}
+          : latest;
+        active.failed=false;
+      }
+    }catch(_){if(active.mode||!reportsPaused)active.failed=true;}
     finally{
       active.loading=false;
       if(reportLayers[layer.value]===active){renderReports();draw();}
     }
   }
 
+  async function loadReportFeed(endpoint){
+    const response=await fetch(endpoint,{cache:'no-store'});
+    if(!response.ok)throw Error('Report feed unavailable');
+    return response.json();
+  }
+
+  countrySelect.addEventListener('change',()=>{
+    const event=reportLayers.countries.feed?.events.find(event=>event.id===countrySelect.value);
+    clusterIds=null;
+    if(event){
+      selectReport(event);
+    }else{
+      selectedReport=null;countryBrief=null;renderReports();draw();
+    }
+  });
   reportShowAll.addEventListener('click',()=>{
     clusterIds=null;
     renderReports();draw();
-    (reportList.querySelector('button')||reportWindow).focus({preventScroll:true});
+    (reportList.querySelector('button')||(layer.value==='countries'?countrySelect:reportWindow)).focus({preventScroll:true});
   });
   reportWindow.addEventListener('change',()=>{
     reportLayers[layer.value].window=reportWindow.value;
@@ -489,11 +623,16 @@
   function changeLayer(){
     const active=reportLayers[layer.value];
     dashboard.dataset.layer=layer.value;
-    clusterIds=null;selectedReport=null;timelineStart=null;visibleReports=[];
+    clusterIds=null;selectedReport=null;timelineStart=null;visibleReports=[];countryBrief=null;
     reportPanel.hidden=!active;issPanel.hidden=Boolean(active);
+    feedHeading.textContent=active?.mode?active.name:'Live feed';
+    countryControls.hidden=active?.mode!=='countries';
+    reportControls.hidden=Boolean(active?.mode);
+    reportTimeline.hidden=Boolean(active?.mode);
+    reportShowAll.textContent=active?.mode==='countries'?'Clear group':'Show all reports';
     if(active){
-      reportWindow.value=active.window;
-      reportList.setAttribute('aria-label',`${active.name} reports`);
+      if(!active.mode)reportWindow.value=active.window;
+      reportList.setAttribute('aria-label',active.mode==='countries'?'Countries and territories':`${active.name} reports`);
       renderReports();refreshReports();
     }else{refreshISS();}
     draw();
@@ -526,7 +665,14 @@
   changeLayer();
   setInterval(()=>{if(!document.hidden&&layer.value==='iss')refreshISS();},30000);
   setInterval(()=>{
+    if(!document.hidden&&layer.value==='countries')refreshCountryBrief();
+  },countryRefreshMs);
+  setInterval(()=>{
     if(document.hidden||!reportLayers[layer.value])return;
+    if(reportLayers[layer.value].mode){
+      if(!reportLayers[layer.value].feed)refreshReports();
+      return;
+    }
     if(reportsPaused){renderReports();draw();}else refreshReports();
   },60000);
 })();
