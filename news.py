@@ -15,7 +15,7 @@ from time import monotonic
 from urllib.error import HTTPError, URLError
 import socket
 import re
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import parse_qs, urlencode, urlsplit
 from urllib.request import Request, urlopen
 from xml.etree import ElementTree as ET
 
@@ -101,7 +101,19 @@ def fetch_google(query: str, days: int, incident_only: bool = True, *, topic: st
     topic = topic or " ".join(_subject(query)) or query
     q = f'{topic} (bombing OR bombed OR airstrike OR explosion OR missiles OR attack) when:{days}d' if incident_only else f'{topic} when:{days}d'
     url = "https://news.google.com/rss/search?" + urlencode({"q": q, "hl": "en-GB", "gl": "GB", "ceid": "GB:en"})
-    root = ET.fromstring(_get(url))
+    return _parse_google_rss(_get(url))
+
+
+def _parse_google_rss(content, country_code=None):
+    root = ET.fromstring(content)
+    channel = root.find('channel')
+    if root.tag != 'rss' or channel is None:
+        raise ValueError('Invalid Google News RSS')
+    if country_code:
+        params = parse_qs(urlsplit(channel.findtext('link', '')).query)
+        edition = params.get('ceid', [''])[0].split(':')[0]
+        if edition != country_code and params.get('gl') != [country_code]:
+            raise ValueError('Feed returned the wrong country edition')
     records = []
     for item in root.findall(".//channel/item"):
         source = item.find("source")

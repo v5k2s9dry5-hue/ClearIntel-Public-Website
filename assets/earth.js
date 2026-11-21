@@ -619,7 +619,7 @@
     }
     if(active.mode){
       reportStatus.textContent=active.mode==='countries'
-        ? 'Select a country on the globe or from the list. Headlines refresh every 5 minutes while open.'
+        ? 'Select a country on the globe or from the list. The selected headline refreshes every 5 minutes.'
         : `${visibleReports.length} selected public reports about completed events.`;
       reportStatus.classList.remove('stale');
       return;
@@ -667,12 +667,16 @@
     status.setAttribute('role','status');
     const story=entry?.data?.story||[];
     if(!entry?.data){
-      status.textContent=entry?.failed?'The news sources are temporarily unavailable.':'Checking recent headlines…';
+      status.textContent=entry?.failed?'The news sources are temporarily unavailable.':'Checking national headlines…';
     }else if(!story.length){
-      status.textContent='No dated headlines matched this country in the past 7 days.';
+      status.textContent='No leading headline available from the sources checked.';
     }else{
-      const tag=entry.data.official_update?'Latest official update':
-        entry.data.window_hours===24?'Top recent headline':'Latest coverage from the past 7 days';
+      const labels={
+        national:'Lead story in the national edition',
+        developing:'Recent story covered by multiple outlets',
+        editorial:'Selected international story',
+      };
+      const tag=labels[entry.data.basis]||'Recent coverage';
       status.textContent=`${tag} · Checked ${utcTime.format(new Date(entry.data.checked_at_utc))} UTC`;
     }
     if(entry?.data?.provider_errors.length)status.textContent+=' · Partial source coverage';
@@ -682,18 +686,33 @@
     for(const article of story){
       const link=reportLink(article.url, article.title);
       const source=document.createElement('span');
-      source.textContent=`${article.source||'Publisher'} · ${article.time_basis} · ${utcTime.format(new Date(article.feed_time_utc))} UTC`;
-      links.append(link,source);
+      const timestamp=new Date(article.feed_time_utc);
+      if(article.editorial){
+        source.textContent=`${article.source||'Publisher'} · Event date · ${utcDate.format(timestamp)}`;
+        links.append(link,source);
+        for(const citation of article.citations.slice(1)){
+          links.append(reportLink(citation.url,citation.name||'Publisher report'));
+        }
+        const attribution=document.createElement('span');
+        attribution.append(
+          document.createTextNode('Adapted and shortened from '),
+          reportLink(article.attribution_url, 'Wikipedia Current events'),
+          document.createTextNode(' · '),
+          reportLink('https://creativecommons.org/licenses/by-sa/4.0/', 'CC BY-SA 4.0'),
+        );
+        links.append(attribution);
+      }else{
+        source.textContent=`${article.source||'Publisher'} · ${article.time_basis} · ${utcTime.format(timestamp)} UTC`;
+        links.append(link,source);
+      }
     }
-    if(entry?.data?.official_update && story[0]?.source==='GOV.UK'){
-      links.append(reportLink('https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/',
-        'Contains public sector information licensed under the Open Government Licence v3.0'));
-    }
-    if(!story.length && (entry?.data||entry?.failed)){
+    if(entry?.data?.edition_url){
+      links.append(reportLink(entry.data.edition_url,'Open national headlines on Google News'));
+    }else if(!story.length && (entry?.data||entry?.failed)){
       const external=new URL('https://news.google.com/search');
-      external.searchParams.set('q',country.place+' when:7d');
+      external.searchParams.set('q',country.place+' when:1d');
       external.searchParams.set('hl','en-GB');
-      links.append(reportLink(external.href,'Browse headlines on Google News'));
+      links.append(reportLink(external.href,'Browse recent headlines on Google News'));
     }
     reportDetail.replaceChildren(title,status,links);
   }
