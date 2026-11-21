@@ -20,8 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field, ValidationError
 
-from news import search_news
-from country_news import COUNTRIES, search_country_news
+from country_news import COUNTRIES, search_country_news, search_research as search_news
 from earthquakes import router as earthquake_router
 from wildfires import router as wildfire_router
 

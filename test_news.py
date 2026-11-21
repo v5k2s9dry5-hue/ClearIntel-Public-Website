@@ -58,6 +58,16 @@ class NewsTests(unittest.TestCase):
         r=search_news('Iran explosion',now=NOW,fetchers=[fake(rows)])
         self.assertFalse(r['results'])
 
+    def test_country_section_matches_without_repeating_country_name(self):
+        rows = [{'title': 'Parliament passes the budget', 'country_code': 'GB',
+                 'url': 'https://example.org/budget', 'published': NOW.isoformat()}]
+        def lookup(query, code, incidents):
+            return search_news(query, now=NOW, country_code=code, fetchers=[fake(rows)],
+                               incident_only=incidents)['results']
+        self.assertEqual(len(lookup('uk', 'GB', False)), 1)
+        self.assertFalse(lookup('uk', 'GB', True))
+        self.assertFalse(lookup('spain', 'ES', False))
+
     def test_date_formats(self):
         self.assertEqual(_date('20261119T170000Z'),NOW)
         self.assertEqual(_date('Thu, 19 Nov 2026 17:00:00 GMT'),NOW)

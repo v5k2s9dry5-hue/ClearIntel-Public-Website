@@ -10,7 +10,7 @@ from time import monotonic
 from urllib.parse import urlencode, urlsplit
 
 from current_events import editorial_events, country_timeline
-from news import _collect, _date, _get, _parse_google_rss, _safe_link, fetch_gdelt, fetch_google, fetch_bing
+from news import _collect, _date, _get, _parse_google_rss, _safe_link, fetch_gdelt, fetch_google, fetch_bing, search_news
 
 COUNTRY_POINTS = Path(__file__).with_name('assets') / 'countries.json'
 COUNTRIES = {
@@ -107,8 +107,37 @@ def _publisher_reports(url, source, code, national):
     return [{
         'title': item.findtext('title', ''), 'url': item.findtext('link', ''),
         'published': item.findtext('pubDate', ''), 'source': source, 'country_code': code,
-        'publisher_rank': rank if national else None, 'time_basis': 'Publication time',
+        'provider': source, 'publisher_rank': rank if national else None, 'time_basis': 'Publication time',
     } for rank, item in enumerate(channel.findall('item'), 1)]
+
+
+def guardian_reports(code, name):
+    ascii_name = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode().lower()
+    slug = re.sub('[^a-z0-9]+', '-', ascii_name).strip('-')
+    section = GUARDIAN_SECTIONS.get(code, 'world/' + slug)
+    return _publisher_reports(f'https://www.theguardian.com/{section}/rss', 'The Guardian', code, False)
+
+
+
+COUNTRY_QUERIES = {name.casefold(): code for code, name in COUNTRIES.items()}
+COUNTRY_QUERIES.update({code.lower(): code for code in COUNTRIES})
+COUNTRY_QUERIES.update({'uk': 'GB', 'britain': 'GB', 'usa': 'US',
+                        'united states of america': 'US', 'españa': 'ES'})
+
+
+def search_research(query, days, incident_only):
+    code = COUNTRY_QUERIES.get(query.strip().casefold())
+    if not code:
+        return search_news(query, days, incident_only)
+
+    def fetch_country_section(*_args):
+        if code in NATIONAL_FEEDS:
+            source, url = NATIONAL_FEEDS[code]
+            return _publisher_reports(url, source, code, True)
+        return guardian_reports(code, COUNTRIES[code])
+
+    return search_news(query, days, incident_only, country_code=code,
+                       fetchers=(fetch_country_section, fetch_google, fetch_bing, fetch_gdelt))
 
 
 def _fetch_country_reports(code, name, names, now):
@@ -134,10 +163,7 @@ def _fetch_country_reports(code, name, names, now):
 
     regional = fetch_national_edition if code in EDITIONS else fetch_reports(fetch_google)
     def fetch_guardian(*_args):
-        ascii_name = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode().lower()
-        slug = re.sub('[^a-z0-9]+', '-', ascii_name).strip('-')
-        section = GUARDIAN_SECTIONS.get(code, 'world/' + slug)
-        return _publisher_reports(f'https://www.theguardian.com/{section}/rss', 'The Guardian', code, False)
+        return guardian_reports(code, name)
 
     providers = [regional, fetch_guardian, fetch_country_digest, fetch_reports(fetch_gdelt),
                  fetch_current_events, fetch_bing]
