@@ -167,40 +167,45 @@ function renderCountryCard(container,country,entry){
     const utcTime=new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'});
     const utcDate=new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',dateStyle:'medium'});
     const title=document.createElement('strong');
-    title.textContent=country.place+' · Country news';
+    title.textContent='Top stories · '+country.place;
     const status=document.createElement('span');
     status.setAttribute('role','status');
-    const story=entry?.data?.story||[];
+    const data=entry?.data;
+    const stories=data?.stories||(data?.story?.length?[{basis:data.basis,reports:data.story}]:[]);
+    const labels={
+      national:'National edition', developing:'Multiple outlets', publisher:'Publisher’s selection',
+      editorial:'International digest', national_digest:'National digest',
+      weekly:'From the past week', recent:'Recent coverage',
+    };
     if(!entry?.data){
       status.textContent=entry?.failed?'The news sources are temporarily unavailable.':'Checking national headlines…';
-    }else if(!story.length){
+    }else if(!stories.length){
       status.textContent='No leading headline available from the sources checked.';
     }else{
-      const labels={
-        national:'Lead story in the national edition',
-        developing:'Recent story covered by multiple outlets',
-        editorial:'Selected international story',
-        publisher:'First current headline in this publisher’s feed',
-        weekly:'Latest available country coverage in the past week',
-        recent:'Recent country coverage',
-        national_digest:'Selected national story',
-      };
-      const tag=labels[entry.data.basis]||'Recent coverage';
-      status.textContent=`${tag} · Checked ${utcTime.format(new Date(entry.data.checked_at_utc))} UTC`;
+      const count=data.publisher_count;
+      const coverage=Number.isInteger(count)?` · ${count} ${count===1?'publisher':'publishers'} found`:'';
+      status.textContent=`Checked ${utcTime.format(new Date(data.checked_at_utc))} UTC${coverage}`;
     }
     if(entry?.data?.provider_errors.length)status.textContent+=' · Partial source coverage';
     if(entry?.data && entry.failed)status.textContent+=' · Refresh unavailable';
     const links=document.createElement('div');
     links.className='country-sources';
-    for(const article of story){
+    const list=document.createElement('ol');
+    list.className='country-top-stories';
+    for(const group of stories){
+      const [article,...related]=group.reports;
+      const row=document.createElement('li');
+      const content=document.createElement('div');
+      row.append(content);
+      list.append(row);
       const link=reportLink(article.url, article.title);
       const source=document.createElement('span');
       const timestamp=new Date(article.feed_time_utc);
       if(article.editorial){
         source.textContent=`${article.source||'Publisher'} · Event date · ${utcDate.format(timestamp)}`;
-        links.append(link,source);
+        content.append(link,source);
         for(const citation of article.citations.slice(1)){
-          links.append(reportLink(citation.url,citation.name||'Publisher report'));
+          content.append(reportLink(citation.url,citation.name||'Publisher report'));
         }
         const attribution=document.createElement('span');
         attribution.append(
@@ -209,15 +214,20 @@ function renderCountryCard(container,country,entry){
           document.createTextNode(' · '),
           reportLink('https://creativecommons.org/licenses/by-sa/4.0/', 'CC BY-SA 4.0'),
         );
-        links.append(attribution);
+        content.append(attribution);
       }else{
         source.textContent=`${article.source||'Publisher'} · ${article.time_basis} · ${utcTime.format(timestamp)} UTC`;
-        links.append(link,source);
+        content.append(link,source);
+      }
+      source.textContent+=' · '+(labels[group.basis]||'Recent coverage');
+      for(const report of related){
+        if(!report.editorial)content.append(reportLink(report.url,'Also covered by '+report.source));
       }
     }
+    if(stories.length)links.append(list);
     if(entry?.data?.edition_url){
       links.append(reportLink(entry.data.edition_url,'Open national headlines on Google News'));
-    }else if(!story.length && (entry?.data||entry?.failed)){
+    }else if(!stories.length && (entry?.data||entry?.failed)){
       const external=new URL('https://news.google.com/search');
       external.searchParams.set('q',country.place+' when:1d');
       external.searchParams.set('hl','en-GB');

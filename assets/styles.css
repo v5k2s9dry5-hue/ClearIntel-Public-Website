@@ -102,3 +102,8 @@
 #search-country .country-sources{display:grid;gap:.4rem;min-width:0;overflow-wrap:anywhere}
 #search-country .country-sources>span{font-size:.9rem}
 #search-country .country-sources>a{justify-self:start}
+
+.country-top-stories{padding-inline-start:1.55rem;margin:.3rem 0;display:grid;gap:.85rem}
+.country-top-stories li>div{display:grid;gap:.25rem;overflow-wrap:anywhere}
+.country-top-stories li::marker{font-weight:bold}
+.country-top-stories li>div>span{font-size:.88rem}

@@ -619,7 +619,7 @@
     }
     if(active.mode){
       reportStatus.textContent=active.mode==='countries'
-        ? 'Select a country on the globe or from the list. The selected headline refreshes every 5 minutes.'
+        ? 'Select a country on the globe or from the list. Top stories refresh every 5 minutes.'
         : `${visibleReports.length} selected public reports about completed events.`;
       reportStatus.classList.remove('stale');
       return;
