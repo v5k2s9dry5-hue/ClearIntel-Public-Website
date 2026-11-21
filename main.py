@@ -21,6 +21,7 @@ from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field, ValidationError
 
 from news import search_news
+from country_news import COUNTRIES, search_country_news
 from earthquakes import router as earthquake_router
 from wildfires import router as wildfire_router
 
@@ -40,7 +41,7 @@ MAX_ACTIVE_PROVIDER_SEARCHES = 4
 _rate_lock = Lock()
 _rate: dict[str, deque[float]] = {}
 _site_searches: deque[float] = deque()
-_search_cache: OrderedDict[tuple[str, str, bool], tuple[float, dict]] = OrderedDict()
+_search_cache: OrderedDict[tuple[str, str, bool] | tuple[str], tuple[float, dict]] = OrderedDict()
 _active_searches = 0
 _next_rate_cleanup = 0.0
 
@@ -109,7 +110,7 @@ def _client_key(request: Request) -> str | None:
     return str(address) if address.is_global else None
 
 
-def _admit_search(peer: str | None, key: tuple[str, str, bool]) -> dict | None:
+def _admit_search(peer: str | None, key: tuple[str, str, bool] | tuple[str]) -> dict | None:
     global _active_searches, _next_rate_cleanup
     with _rate_lock:
         now = monotonic()
@@ -151,24 +152,36 @@ def _admit_search(peer: str | None, key: tuple[str, str, bool]) -> dict | None:
 
 @app.post("/api/news", include_in_schema=False)
 async def news(request: Request):
-    global _active_searches
     payload = await _search_payload(request)
     query = payload.query.strip()
     if len(query) < 3 or any(ord(x) < 32 for x in query):
         raise HTTPException(400, "Enter a valid search with at least three characters.")
 
-    key = (query, payload.window, payload.incident_only)
+    return await _cached_news(
+        request, (query, payload.window, payload.incident_only), SEARCH_CACHE_SECONDS,
+        search_news, query, days=1 if payload.window == "24h" else 7,
+        incident_only=payload.incident_only,
+    )
+
+
+@app.get("/api/country-news/{code}", include_in_schema=False)
+async def country_news(code: str, request: Request):
+    if code not in COUNTRIES:
+        raise HTTPException(404, "Unknown country or territory.")
+    return await _cached_news(request, (code,), 300, search_country_news, code)
+
+
+async def _cached_news(request, key, cache_seconds, search, *args, **kwargs):
+    global _active_searches
     cached = _admit_search(_client_key(request), key)
     if cached is not None:
         return cached
     try:
-        result = await run_in_threadpool(search_news, query,
-                                         days=1 if payload.window == "24h" else 7,
-                                         incident_only=payload.incident_only)
+        result = await run_in_threadpool(search, *args, **kwargs)
         if not result["sources_checked"]:
             raise HTTPException(503, "News feeds unavailable (" + "; ".join(result["provider_errors"]) + "). Try again later.")
         with _rate_lock:
-            _search_cache[key] = (monotonic() + SEARCH_CACHE_SECONDS, result)
+            _search_cache[key] = (monotonic() + cache_seconds, result)
             _search_cache.move_to_end(key)
             if len(_search_cache) > SEARCH_CACHE_ENTRIES:
                 _search_cache.popitem(last=False)

@@ -204,3 +204,13 @@
   .timeline-tick { font-size: 8px; }
   .report-timeline { padding: 9px 6px; }
 }
+
+.dashboard #report-controls[hidden],
+.dashboard #country-controls[hidden],
+.dashboard #report-timeline[hidden] { display: none; }
+.dashboard #country-controls label { display: grid; gap: 5px; width: 100%; }
+.dashboard #country-select { width: 100%; }
+.dashboard .country-sources { display: grid; gap: 6px; overflow-wrap: anywhere; }
+.dashboard[data-layer="countries"] .quake-list button::before { background: #a7ef8a; }
+.dashboard[data-layer="aviation"] .quake-list button::before { background: #f3ce70; }
+.dashboard[data-layer="maritime"] .quake-list button::before { background: #b3a7ff; }
