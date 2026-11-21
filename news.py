@@ -114,9 +114,9 @@ def fetch_google(query: str, days: int, incident_only: bool = True, *, topic: st
 
 
 
-def fetch_bing(query: str, days: int, incident_only: bool = True, *, topic: str = "") -> list[dict]:
+def fetch_bing(query: str, days: int, incident_only: bool = True) -> list[dict]:
     """Search-indexed news RSS, an independent fallback when other providers fail."""
-    topic = topic or ' '.join(_subject(query)) or query
+    topic = ' '.join(_subject(query)) or query
     suffix = ' (bombing OR bombed OR airstrike OR explosion OR missile OR attack)' if incident_only else ''
     url = 'https://www.bing.com/news/search?' + urlencode({'q': topic + suffix, 'format': 'rss'})
     root = ET.fromstring(_get(url))

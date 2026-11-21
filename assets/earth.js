@@ -526,11 +526,12 @@
     status.setAttribute('role','status');
     const story=entry?.data?.story||[];
     if(!entry?.data){
-      status.textContent=entry?.failed?'News sources are unavailable. Try selecting this country again.':'Checking recent headlines…';
+      status.textContent=entry?.failed?'The news sources are temporarily unavailable.':'Checking recent headlines…';
     }else if(!story.length){
       status.textContent='No dated headlines matched this country in the past 7 days.';
     }else{
-      const tag=entry.data.window_hours===24?'Top recent headline':'Latest coverage from the past 7 days';
+      const tag=entry.data.official_update?'Latest official update':
+        entry.data.window_hours===24?'Top recent headline':'Latest coverage from the past 7 days';
       status.textContent=`${tag} · Checked ${utcTime.format(new Date(entry.data.checked_at_utc))} UTC`;
     }
     if(entry?.data?.provider_errors.length)status.textContent+=' · Partial source coverage';
@@ -542,6 +543,16 @@
       const source=document.createElement('span');
       source.textContent=`${article.source||'Publisher'} · ${article.time_basis} · ${utcTime.format(new Date(article.feed_time_utc))} UTC`;
       links.append(link,source);
+    }
+    if(entry?.data?.official_update && story[0]?.source==='GOV.UK'){
+      links.append(reportLink('https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/',
+        'Contains public sector information licensed under the Open Government Licence v3.0'));
+    }
+    if(!story.length && (entry?.data||entry?.failed)){
+      const external=new URL('https://news.google.com/search');
+      external.searchParams.set('q',country.place+' when:7d');
+      external.searchParams.set('hl','en-GB');
+      links.append(reportLink(external.href,'Browse headlines on Google News'));
     }
     reportDetail.replaceChildren(title,status,links);
   }
