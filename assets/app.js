@@ -185,7 +185,11 @@ function renderResults(payload,search){
 }
 $('news-form').addEventListener('submit',async e=>{
   e.preventDefault();
-  const query=$('news-query').value.trim();if(query.length<3)return;
+  const query=$('news-query').value.trim();
+  if(query.length<2){
+    fillStatus('Enter at least two characters','Try a country abbreviation such as UK or US.','error');
+    return;
+  }
   const incidentOnly=$('incident-only').checked;
   const timeWindow=$('news-window').value;
   const submit=$('news-submit');submit.disabled=true;

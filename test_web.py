@@ -34,6 +34,13 @@ class PublicSiteTests(unittest.TestCase):
             self.assertEqual(r.json()['results'],[])
             self.assertTrue(mock.called)
 
+    def test_two_character_search_is_accepted(self):
+        with patch('main.search_news', return_value=SEARCH_RESPONSE) as provider:
+            self.assertEqual(self.client.post('/api/news', json={'query': ' UK '}).status_code, 200)
+            provider.assert_called_once_with('UK', days=1, incident_only=True)
+            self.assertEqual(self.client.post('/api/news', json={'query': 'U'}).status_code, 422)
+            self.assertIn('minlength="2"', self.client.get('/').text)
+
     def test_reject_invalid_window(self):
         r=self.client.post('/api/news',json={'query':'Iran bombing today','window':'forever'})
         self.assertEqual(r.status_code,422)
