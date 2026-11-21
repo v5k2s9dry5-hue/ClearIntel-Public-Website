@@ -99,3 +99,6 @@
 
 #search-country:not([hidden]){display:grid;gap:.5rem;margin-top:1rem}
 #search-country[hidden]{display:none}
+#search-country .country-sources{display:grid;gap:.4rem;min-width:0;overflow-wrap:anywhere}
+#search-country .country-sources>span{font-size:.9rem}
+#search-country .country-sources>a{justify-self:start}

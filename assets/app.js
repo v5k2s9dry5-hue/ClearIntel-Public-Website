@@ -256,7 +256,7 @@ async function showSearchCountry(query){
 function renderResults(payload,search){
   const area=$('news-results');area.replaceChildren();
   const header=el('div','results-header');
-  const left=el('div','');left.append(el('span','result-kicker','PUBLIC NEWS FEED · UTC'),el('h3','',`${payload.results.length} recent matching headline${payload.results.length===1?'':'s'}`));
+  const left=el('div','');left.append(el('span','result-kicker','PUBLIC NEWS FEED · UTC'),el('h3','',`${payload.results.length} ${search.incidentOnly?'matching incident':'matching news'} headline${payload.results.length===1?'':'s'}`));
   const timeWindow=el('span','result-window', search.window==='24h'?'Last 24 hours':'Last 7 days');
   header.append(left,timeWindow);area.append(header);
   const notice=el('div','result-warning',payload.notice);area.append(notice);
