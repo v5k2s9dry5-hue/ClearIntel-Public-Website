@@ -232,7 +232,7 @@ def _fetch_country_reports(code, name, names, now):
         def fetch_kenya_news(*_args):
             return _publisher_reports('https://www.tuko.co.ke/rss/kenya.rss', 'Tuko', code, True)
         providers.insert(1, fetch_kenya_news)
-    return _collect(name, 2, False, providers)
+    return _collect(name, 2, False, providers, workers=6)
 
 
 def _match_country(title, code, names):
