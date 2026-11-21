@@ -39,16 +39,31 @@ document.querySelectorAll('.help-button').forEach((button, index) => {
   const show = pinned => {
     closeHelp();
     panel.hidden = false;
-    // Fixed-position popovers must be measured against the visible viewport.
-    // This avoids clipping the help text off the left edge on small phones.
-    const target = button.getBoundingClientRect();
-    const width = Math.min(280, Math.max(160, window.innerWidth - 24));
-    const left = Math.max(12, Math.min(window.innerWidth - width - 12,
-      target.left + target.width / 2 - width / 2));
-    panel.style.width = width + 'px';
-    panel.style.left = left + 'px';
-    panel.style.top = Math.max(12, Math.min(window.innerHeight - panel.offsetHeight - 12,
-      target.bottom + 10)) + 'px';
+    if (window.innerWidth <= 760) {
+      // Inline mobile help pushes controls down rather than covering the search
+      // input, button or filtering options.
+      const anchor = button.closest('.field-head, .filter-row');
+      if (anchor) anchor.insertAdjacentElement('afterend', panel);
+      panel.style.position = 'static';
+      panel.style.width = '100%';
+      panel.style.maxWidth = '100%';
+      panel.style.left = '';
+      panel.style.top = '';
+      panel.style.margin = '6px 0 12px';
+    } else {
+      // On desktops clamp the fixed popup within the visible viewport.
+      const target = button.getBoundingClientRect();
+      const width = Math.min(280, Math.max(160, window.innerWidth - 24));
+      const left = Math.max(12, Math.min(window.innerWidth - width - 12,
+        target.left + target.width / 2 - width / 2));
+      panel.style.position = 'fixed';
+      panel.style.maxWidth = '';
+      panel.style.width = width + 'px';
+      panel.style.left = left + 'px';
+      panel.style.margin = '';
+      panel.style.top = Math.max(12, Math.min(window.innerHeight - panel.offsetHeight - 12,
+        target.bottom + 10)) + 'px';
+    }
     button.setAttribute('aria-expanded', 'true');
     button.setAttribute('aria-describedby', panel.id);
     openHelp = { button, panel, pinned };
@@ -70,6 +85,10 @@ function closeHelp() {
   if (!openHelp) return;
   const { button, panel } = openHelp;
   panel.hidden = true;
+  if (panel.parentElement !== button.parentElement) button.parentElement.appendChild(panel);
+  panel.style.position = '';
+  panel.style.maxWidth = '';
+  panel.style.margin = '';
   button.setAttribute('aria-expanded', 'false');
   button.removeAttribute('aria-describedby');
   openHelp = null;
