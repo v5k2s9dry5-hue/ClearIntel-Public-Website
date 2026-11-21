@@ -71,3 +71,14 @@ class CountryNewsTests(TestCase):
             self.assertEqual(client.get('/api/country-news/GB').json(), result)
             self.assertEqual(client.get('/api/country-news/GB').json(), result)
             search.assert_called_once_with('GB')
+
+    def test_official_update_is_labelled_and_used_only_without_press_coverage(self):
+        update = article('Public announcement', 'official.example', 1)
+        update.update(official=True, country_code='GB')
+        press = article('UK opens a new railway station', 'press.example', 26)
+        with_press = search_country_news('GB', NOW, (fixture_provider(update, press),))
+        self.assertFalse(with_press['official_update'])
+        self.assertEqual(with_press['story'][0]['source'], 'press.example')
+        without_press = search_country_news('GB', NOW, (fixture_provider(update),))
+        self.assertTrue(without_press['official_update'])
+        self.assertEqual(without_press['story'][0]['source'], 'official.example')

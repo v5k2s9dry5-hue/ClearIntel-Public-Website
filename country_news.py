@@ -2,11 +2,14 @@
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from functools import lru_cache
 import json
 import re
-from urllib.parse import urlsplit
+from time import monotonic
+from urllib.parse import urlencode, urlsplit
+from xml.etree import ElementTree as ET
 
-from news import _collect, _date, _safe_link, fetch_bing, fetch_gdelt, fetch_google
+from news import _collect, _date, _get, _safe_link, fetch_gdelt, fetch_google
 
 COUNTRY_POINTS = Path(__file__).with_name('assets') / 'countries.json'
 COUNTRIES = {
@@ -38,6 +41,35 @@ AMBIGUOUS = {
 }
 
 
+@lru_cache(maxsize=4)
+def _official_feed(is_uk, _cache_interval):
+    if is_uk:
+        params = {
+            'filter_content_store_document_type': 'press_release',
+            'order': '-public_timestamp', 'count': 15,
+        }
+        payload = json.loads(_get('https://www.gov.uk/api/search.json?' + urlencode(params)))
+        return [{
+            'title': item.get('title', ''),
+            'url': 'https://www.gov.uk' + item['link'],
+            'published': item.get('public_timestamp', ''),
+            'source': 'GOV.UK', 'time_basis': 'GOV.UK update time', 'official': True,
+            'country_code': 'GB',
+        } for item in payload['results']
+                 if str(item.get('link', '')).startswith('/government/news/')]
+    url = 'https://www.ungeneva.org/news-media/press-items-list/rss.xml'
+    root = ET.fromstring(_get(url))
+    return [{
+        'title': item.findtext('title', ''), 'url': item.findtext('link', ''),
+        'published': item.findtext('pubDate', ''),
+        'source': 'United Nations Office at Geneva', 'time_basis': 'Publication time', 'official': True,
+    } for item in root.findall('./channel/item')]
+
+
+def fetch_official(query, _days, _incident_only, **_options):
+    return _official_feed(query == COUNTRIES['GB'], int(monotonic() // 300))
+
+
 def _match_country(title, code, names):
     if code in AMBIGUOUS:
         return bool(AMBIGUOUS[code].search(title))
@@ -55,8 +87,9 @@ def _headlines(articles, code, names, now):
         source = str(article.get('source', '')).strip()
         url = str(article.get('url', '')).strip()
         stamp = _date(str(article.get('published', '')))
-        if (not stamp or not now - timedelta(days=7) <= stamp <= now
-                or not _safe_link(url) or not _match_country(title, code, names)):
+        if not (title and stamp and now - timedelta(days=7) <= stamp <= now and _safe_link(url)):
+            continue
+        if article.get('country_code') != code and not _match_country(title, code, names):
             continue
         # RSS results often append the publisher to the headline.
         if source and title.casefold().endswith(' - ' + source.casefold()):
@@ -66,6 +99,7 @@ def _headlines(articles, code, names, now):
         publisher = re.sub(r'^(?:www\.|m\.)', '', domain or source.casefold())
         headlines.append({
             'title': title[:320], 'source': source[:90], 'url': url, 'publisher': publisher,
+            'official': article.get('official', False),
             'feed_time_utc': stamp.isoformat(),
             'time_basis': str(article.get('time_basis', 'Feed timestamp'))[:50],
         })
@@ -87,11 +121,11 @@ def _leading_story(headlines):
     if not groups:
         return []
     leading = max(groups, key=lambda group: len(group['reports']))
-    return [{key: value for key, value in report.items() if key != 'publisher'}
+    return [{key: value for key, value in report.items() if key not in ('publisher', 'official')}
             for report in list(leading['reports'].values())[:3]]
 
 
-def search_country_news(code, now=None, fetchers=(fetch_gdelt, fetch_google, fetch_bing)):
+def search_country_news(code, now=None, fetchers=(fetch_gdelt, fetch_google, fetch_official)):
     now = now or datetime.now(timezone.utc)
     name = COUNTRIES[code]
     names = (name, *ALIASES.get(code, ()))
@@ -99,9 +133,12 @@ def search_country_news(code, now=None, fetchers=(fetch_gdelt, fetch_google, fet
     articles, checked, errors = _collect(name, 7, False, fetchers, topic=f'({topic})')
     headlines = _headlines(articles, code, names, now)
     cutoff = (now - timedelta(hours=24)).isoformat()
-    recent = [headline for headline in headlines if headline['feed_time_utc'] >= cutoff]
+    press = [headline for headline in headlines if not headline['official']]
+    recent = [headline for headline in press if headline['feed_time_utc'] >= cutoff]
+    official = [headline for headline in headlines if headline['official']]
     return {
-        'country': name, 'story': _leading_story(recent or headlines),
+        'country': name, 'story': _leading_story(recent or press or official[:1]),
+        'official_update': not press and bool(official),
         'window_hours': 24 if recent else 168, 'checked_at_utc': now.isoformat(),
         'sources_checked': checked, 'provider_errors': errors,
     }
