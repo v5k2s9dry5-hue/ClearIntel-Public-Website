@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import json
+import logging
 import unicodedata
 import xml.etree.ElementTree as ET
 import re
@@ -86,6 +87,7 @@ NATIONAL_FEEDS = {
     'DE': ('Tagesschau', 'https://www.tagesschau.de/inland/index~rss2.xml'),
     'FR': ('Franceinfo', 'https://www.franceinfo.fr/france.rss'),
     'IN': ('The Hindu', 'https://www.thehindu.com/news/national/feeder/default.rss'),
+    'KE': ('The Standard', 'https://www.standardmedia.co.ke/rss/headlines.php'),
     'IT': ('ANSA Cronaca', 'https://www.ansa.it/sito/notizie/cronaca/cronaca_rss.xml'),
     'NZ': ('RNZ', 'https://www.rnz.co.nz/rss/national.xml'),
     'US': ('NPR', 'https://feeds.npr.org/1003/rss.xml'),
@@ -172,6 +174,10 @@ def _fetch_country_reports(code, name, names, now):
             source, url = NATIONAL_FEEDS[code]
             return _publisher_reports(url, source, code, True)
         providers.insert(0, fetch_domestic_desk)
+    if code == 'KE':
+        def fetch_kenya_news(*_args):
+            return _publisher_reports('https://www.tuko.co.ke/rss/kenya.rss', 'Tuko', code, True)
+        providers.insert(1, fetch_kenya_news)
     return _collect(name, 2, False, providers)
 
 
@@ -236,44 +242,48 @@ def _headlines(articles, code, names, now, *, weekly=False):
 
 def _story_groups(headlines):
     groups = []
-    for headline in headlines:
-        words = set(re.findall(r'\w+', headline['title'].casefold()))
-        group = next((group for group in groups
-                      if words == group['words'] or
-                      (len(words & group['words']) >= 5 and
-                       len(words & group['words']) / len(words | group['words']) >= .75)), None)
-        if group is None:
-            group = {'words': words, 'reports': {}}
-            groups.append(group)
-        group['reports'].setdefault(headline['publisher'], headline)
-    return [list(group['reports'].values()) for group in groups]
+    for item in headlines:
+        words = set(re.findall(r'\w+', item['title'].casefold()))
+        for first_words, reports in groups:
+            overlap = len(words & first_words)
+            if words == first_words or (overlap >= 5 and overlap / len(words | first_words) >= .64):
+                reports.append(item)
+                break
+        else:
+            groups.append((words, [item]))
+    return [reports for _, reports in groups]
 
 
-def _leading_story(headlines):
-    editions = [headline for headline in headlines if headline['edition_rank'] is not None]
-    if editions:
-        first = min(editions, key=lambda headline: headline['edition_rank'])
-        related = next((group for group in _story_groups(headlines) if first in group), [first])
-        return 'national', [first] + [item for item in related if item is not first][:2]
+def _rank_group(group):
+    def prominence(item):
+        return (item['edition_rank'] or 9999, item['publisher_rank'] or 9999,
+                not item['national_digest'], not item['editorial'])
 
-    corroborated = _story_groups([item for item in headlines if not item['editorial']])
-    strongest = max(corroborated, key=len, default=[])
-    if len(strongest) >= 2:
-        return 'developing', strongest[:3]
+    ordered = sorted(group, key=prominence)
+    lead = ordered[0]
+    publishers, titles, urls, reports = set(), set(), set(), []
+    for item in ordered:
+        title = ' '.join(re.findall(r'\w+', item['title'].casefold()))
+        duplicate = item['publisher'] in publishers or title in titles or item['url'] in urls
+        titles.add(title)
+        urls.add(item['url'])
+        publishers.add(item['publisher'])
+        if not duplicate:
+            reports.append(item)
 
-    publisher_leads = [item for item in headlines if item['publisher_rank'] is not None]
-    if publisher_leads:
-        return 'publisher', [min(publisher_leads, key=lambda item: item['publisher_rank'])]
-
-    editorial = [item for item in headlines if item['editorial']]
-    if editorial:
-        selected = max(editorial, key=lambda item: (
-            item['national_digest'], item['feed_time_utc'], len(item['citations']),
-        ))
-        return ('national_digest' if selected['national_digest'] else 'editorial'), [selected]
-    if headlines:
-        return 'recent', headlines[:1]
-    return 'unavailable', []
+    if lead['edition_rank']:
+        tier, basis = 5, 'national'
+    elif len(reports) >= 2:
+        tier, basis = 4, 'developing'
+    elif lead['publisher_rank']:
+        tier, basis = 3, 'publisher'
+    elif lead['editorial']:
+        tier, basis = 2, 'national_digest' if lead['national_digest'] else 'editorial'
+    else:
+        tier, basis = 1, 'recent'
+    priority = (tier, len(reports), -(lead['edition_rank'] or lead['publisher_rank'] or 9999),
+                max(item['feed_time_utc'] for item in group), lead['title'])
+    return priority, {'basis': basis, 'reports': reports[:3]}
 
 
 def search_country_news(code, now=None, fetchers=None):
@@ -286,17 +296,26 @@ def search_country_news(code, now=None, fetchers=None):
         topic = ' OR '.join(f'"{term}"' for term in names)
         articles, checked, errors = _collect(name, 2, False, fetchers, topic=f'({topic})')
     headlines = _headlines(articles, code, names, now)
-    basis, story = _leading_story(headlines)
-    if not story:
-        weekly = _headlines(articles, code, names, now, weekly=True)
+    weekly = not headlines
+    if weekly:
+        headlines = _headlines(articles, code, names, now, weekly=True)
+    ranked = sorted((_rank_group(group) for group in _story_groups(headlines)),
+                    key=lambda pair: pair[0], reverse=True)
+    stories = [group for _, group in ranked[:3]]
+    publisher_count = len({item['publisher'] for item in headlines})
+    logging.getLogger('uvicorn.error').info(
+        'Country coverage code=%s stories=%d publishers=%d weekly=%s',
+        code, len(stories), publisher_count, weekly and bool(stories))
+    for group in stories:
         if weekly:
-            basis, story = 'weekly', weekly[:1]
-    for article in story:
-        article.pop('publisher')
-        article.pop('edition_rank')
-        article.pop('publisher_rank')
+            group['basis'] = 'weekly'
+        for article in group['reports']:
+            for key in ('publisher', 'edition_rank', 'publisher_rank'):
+                article.pop(key)
+    lead = stories[0] if stories else {'basis': 'unavailable', 'reports': []}
     return {
-        'country': name, 'story': story, 'basis': basis,
+        'country': name, 'stories': stories, 'publisher_count': publisher_count,
+        'story': lead['reports'], 'basis': lead['basis'],
         'edition_url': EDITION_PATH + '?' + _edition_params(code) if code in EDITIONS else '',
         'checked_at_utc': now.isoformat(), 'sources_checked': checked, 'provider_errors': errors,
     }

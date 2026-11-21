@@ -44,6 +44,20 @@ class CountryNewsTests(TestCase):
         self.assertEqual(result['basis'], 'developing')
         self.assertEqual([story['source'] for story in result['story']], ['one.example', 'two.example'])
 
+    def test_distinct_top_three_and_identical_syndicated_copy(self):
+        lead = 'Kenya parliament votes on national housing reforms'
+        rows = [dict(article(lead, 'first.example', 2), publisher_rank=1),
+                article(lead, 'copy.example', 1),
+                article('Kenya introduces rail timetable', 'rail.example', 4),
+                article('Kenya hosts regional climate summit', 'climate.example', 3),
+                article('Kenya prepares for rainy season', 'weather.example', 5)]
+        result = search_country_news('KE', NOW, (fixture_provider(*rows),))
+        self.assertEqual(len(result['stories']), 3)
+        self.assertEqual(result['stories'][0]['basis'], 'publisher')
+        self.assertEqual(len(result['stories'][0]['reports']), 1)
+        self.assertEqual(result['story'], result['stories'][0]['reports'])
+        self.assertEqual(result['stories'][1]['reports'][0]['source'], 'climate.example')
+
     def test_only_valid_single_report_is_labelled_recent(self):
         provider = fixture_provider(
             article('US issues flood warnings', 'future.example', -1),
