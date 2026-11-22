@@ -8,7 +8,7 @@ Responsive public website with a limited, live *news-headline lookup* and a rese
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python -m unittest discover -s tests -v
+python -m unittest discover -p 'test_*.py' -v
 uvicorn main:app --host 127.0.0.1 --port 8080
 ```
 Open `http://127.0.0.1:8080`.
@@ -35,3 +35,13 @@ News is gathered live from GDELT and Google News RSS using bounded provider requ
 - Public enquiry uses `mailto:`: it opens the visitor's default email client and does not silently submit or store data.
 - No private ClearIntel modules, files, API tokens, Python subprocess execution or report downloads exposed to website visitors.
 - Static pages are indexable after publishing; Google visibility requires discovery and is not guaranteed.
+
+## Verify the deployed public site
+
+From the repository root, run:
+
+```bash
+python scripts/check_production.py https://clearintel-public.onrender.com
+```
+
+The read-only checker validates HTTPS responses, health, canonical URLs, public country page links, sitemap consistency, the Google verification file, security headers and dashboard HTML markers. Use the configured canonical public URL if it changes. It does not query live news providers, determine Google's indexing status, prove the deployed Git commit, or replace browser and security testing. Exit code 1 means at least one public check failed; a connection failure may indicate a cold start or network issue. Run again manually after deployment rather than polling aggressively.
