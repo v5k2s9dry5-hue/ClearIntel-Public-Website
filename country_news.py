@@ -254,7 +254,7 @@ def _fetch_country_reports(code, name, names, now):
         # Do not retry HTTP failures or bypass the existing host cooldown.
         try:
             found = _fetch_edition(code)
-        except ValueError:
+        except (ValueError, ET.ParseError):
             found = []
         if found:
             return found

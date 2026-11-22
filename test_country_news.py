@@ -217,6 +217,16 @@ class CountryNewsTests(TestCase):
             self.assertIn('"Dutch"', google.call_args.kwargs['topic'])
             self.assertNotIn('edition_rank', rows[0])
 
+    def test_malformed_edition_xml_falls_back_to_named_search(self):
+        from country_news import _fetch_country_reports
+        from xml.etree.ElementTree import ParseError
+        with (patch('country_news._fetch_edition', side_effect=ParseError('invalid XML')),
+              patch('country_news.fetch_google', return_value=[]) as google,
+              patch('country_news._collect') as collect):
+            collect.side_effect = lambda query, days, incident_only, providers, **kwargs: providers[0](query, days, incident_only)
+            _fetch_country_reports('NL', 'Netherlands', ('Netherlands', 'Dutch'), NOW)
+            google.assert_called_once()
+
     def test_country_edition_http_error_is_not_retried(self):
         from urllib.error import HTTPError
         from country_news import _fetch_country_reports
