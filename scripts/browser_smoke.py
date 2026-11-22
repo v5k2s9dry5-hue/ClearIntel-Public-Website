@@ -90,6 +90,12 @@ def check_site(browser, width):
     page.route("**/api/country-news/GB", lambda route: route_json(route, COUNTRY))
     page.route("**/api/news", lambda route: route_json(route, NEWS))
     page.goto(ROOT, wait_until="domcontentloaded")
+    page.evaluate("""() => {
+        const response = new Response(null, {status: 429, headers: {'Retry-After': '180'}});
+        if (ClearIntelMapRefresh.retryAt(response, 1000) !== 181000) throw Error('Retry-After ignored');
+        const malformed = new Response(null, {status: 503, headers: {'Retry-After': 'invalid'}});
+        if (ClearIntelMapRefresh.retryAt(malformed, 1000) !== 31000) throw Error('Invalid retry fallback');
+    }""")
     toggle = page.locator("#sidebar-toggle")
     if width > 1080:
         toggle.click()
