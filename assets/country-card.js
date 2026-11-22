@@ -140,3 +140,16 @@ function retryMessage(response) {
   const seconds = Number(response.headers.get('Retry-After'));
   return seconds > 0 ? `Try again in ${seconds} seconds.` : 'Try again shortly.';
 }
+
+/* A complete provider outage is not an empty successful search. */
+function countryRefreshResult(previous, latest) {
+  if (!latest || !Array.isArray(latest.stories) ||
+      !Array.isArray(latest.sources_checked) || !Array.isArray(latest.provider_errors)) {
+    throw new Error('Invalid country news response');
+  }
+  const unavailable = !latest.sources_checked.length && latest.provider_errors.length > 0;
+  if (unavailable && previous?.stories?.length) {
+    return {data: previous, failed: true, message: 'All providers unavailable on the latest check.'};
+  }
+  return {data: latest, failed: false, message: ''};
+}

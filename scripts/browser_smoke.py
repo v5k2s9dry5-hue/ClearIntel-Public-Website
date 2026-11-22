@@ -146,7 +146,7 @@ def check_site(browser, width):
     page.locator("#earth-zoom-in").click()
     page.keyboard.press("Escape")
     page.locator("#expanded-map").wait_for(state="hidden")
-    page.wait_for_function("() => document.querySelector(\'#map-expand\') === document.activeElement")
+    page.wait_for_function("() => document.querySelector('#map-expand') === document.activeElement")
     page.locator("#research").scroll_into_view_if_needed()
     page.locator(".field-head .help-button").click()
     tip = page.locator("#help-panel-1")
@@ -208,6 +208,15 @@ def check_site(browser, width):
     page.wait_for_url("**/countries/gb")
     page.locator("#country-brief .country-top-stories li").wait_for()
     assert page.get_by_role("heading", name="United Kingdom").is_visible()
+    # A complete outage retains prior headlines, but a successful empty search does not.
+    page.evaluate("""previous => {
+        const outage = {...previous, stories: [], sources_checked: [], provider_errors: ['gdelt: timeout']};
+        const retained = countryRefreshResult(previous, outage);
+        if (!retained.failed || retained.data !== previous) throw Error('Previous headline snapshot lost');
+        const empty = {...outage, sources_checked: ['fixture'], provider_errors: []};
+        const success = countryRefreshResult(previous, empty);
+        if (success.failed || success.data.stories.length) throw Error('Successful empty result was replaced');
+    }""", COUNTRY)
     mode = page.locator("#analyst-mode-toggle")
     mode.click()
     assert page.locator("#country-brief .analyst-metadata").first.is_visible()

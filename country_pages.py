@@ -61,5 +61,5 @@ def profile(base, code):
             '<h2>Recent headlines</h2><noscript>Enable JavaScript to load headlines or use the source links below.</noscript></section>'
             f'<p class="update-note">Headlines refresh every five minutes while this page is open and visible.</p>'
             f'<section><h2>Browse sources</h2><ul>{source_links}</ul></section>')
-    scripts = '<script src="/assets/analyst-mode.js" defer></script><script src="/assets/country-card.js?v=analyst-mode" defer></script><script src="/assets/country-profile.js" defer></script>'
+    scripts = '<script src="/assets/analyst-mode.js" defer></script><script src="/assets/country-card.js?v=refresh-resilience" defer></script><script src="/assets/country-profile.js?v=refresh-resilience" defer></script>'
     return page(base, '/countries/' + code.lower(), name + ' news and sources', description, body, scripts)
