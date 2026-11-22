@@ -82,7 +82,7 @@
   const zoomLevels = [1,3,7];
   const UK_ZOOM = zoomLevels.at(-1);
   let rot = -18, tilt = 19, playing = !reduced, dragPointer = null, px = 0, py = 0;
-  let zoom = 1, previousWorld = null, coastline = null;
+  let zoom = 1, previousWorld = null, coastline = null, coastlineLoading = null;
   let worldMap = null, detailedMap = null, detailLoading = false, detailFailed = false;
   let points = [], currentISS = null, lastDraw = 0, lastTick = 0;
   let rotationFrame = null, mapInView = !('IntersectionObserver' in window);
@@ -120,9 +120,9 @@
     if(fillLand&&allVisible){ctx.closePath();ctx.fill();}
     ctx.stroke();
   }
-  function insideCoastline(lon,lat){
-    if(!coastline)return false;
-    const [west,south,east,north]=coastline.bounds;
+  function insideCoastline(lon,lat,bounds=coastline?.bounds){
+    if(!bounds)return false;
+    const [west,south,east,north]=bounds;
     return lon>=west&&lon<=east&&lat>=south&&lat<=north;
   }
   function drawCoastline(cx,cy,r){
@@ -506,6 +506,7 @@
       rot=-4.5;tilt=54.7;
       setZoom(UK_ZOOM);
       setRotation(false);
+      loadUKCoastline();
     }
     draw();
   });
@@ -588,7 +589,7 @@
       if(countryBrief?.id!==event.id)countryBrief = {id:event.id};
       refreshCountryBrief();
     }
-    if(!insideCoastline(event.longitude,event.latitude))leaveUKView();
+    if(!insideCoastline(event.longitude,event.latitude,coastline?.bounds||[-13,47,15,63]))leaveUKView();
     rot=event.longitude;tilt=event.latitude;
     if(flatMap)resetMap.disabled=false;
     else setRotation(false);
@@ -858,19 +859,25 @@
   }).catch(()=>fetch('/assets/earth-land.json').then(response=>{
     if(!response.ok)throw Error('Map fallback unavailable');
     return response.json();
-  }).then(data=>{if(Array.isArray(data)){points=data;draw();}}).catch(()=>{}));
-  fetch('/assets/uk-coastline.json').then(response=>{
-    if(!response.ok)throw Error('Coastline unavailable');
-    return response.json();
-  }).then(data=>{
-    if(!Array.isArray(data.bounds)||data.bounds.length!==4||!Array.isArray(data.tracks))return;
-    coastline={bounds:data.bounds,tracks:data.tracks.map(coords=>{
-      const first=coords[0], last=coords.at(-1);
-      return {coords,closed:coords.length>=4&&first[0]===last[0]&&first[1]===last[1]};
-    })};
-    ukView.disabled=false;
-    draw();
-  }).catch(()=>{});
+  }).then(data=>{if(Array.isArray(data)){points=data;draw();}loadUKCoastline();}).catch(()=>{}));
+  // The UK-specific fallback is not required for the initial world overview.
+  // Keep the control usable with the overview while regional data is retrieved.
+  ukView.disabled=false;
+  function loadUKCoastline(){
+    if(coastline)return Promise.resolve();
+    if(coastlineLoading)return coastlineLoading;
+    coastlineLoading=ClearIntelMapRefresh.fetch('/assets/uk-coastline.json').then(response=>{
+      if(!response.ok)throw Error('Coastline unavailable');
+      const data=response.data;
+      if(!Array.isArray(data.bounds)||data.bounds.length!==4||!Array.isArray(data.tracks))throw Error('Invalid coastline data');
+      coastline={bounds:data.bounds,tracks:data.tracks.map(coords=>{
+        const first=coords[0],last=coords.at(-1);
+        return {coords,closed:coords.length>=4&&first[0]===last[0]&&first[1]===last[1]};
+      })};
+      draw();
+    }).catch(()=>{}).finally(()=>{coastlineLoading=null;});
+    return coastlineLoading;
+  }
   if('ResizeObserver' in window)new ResizeObserver(()=>{fit();draw();}).observe(canvas);
   else window.addEventListener('resize',()=>{fit();draw();});
   if('IntersectionObserver' in window){
