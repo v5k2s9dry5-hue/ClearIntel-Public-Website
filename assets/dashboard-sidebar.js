@@ -6,7 +6,8 @@
   function setCollapsed(collapsed) {
     dashboard.classList.toggle('sidebar-collapsed', collapsed);
     toggle.setAttribute('aria-expanded', String(!collapsed));
-    toggle.textContent = collapsed ? 'Show sidebar' : 'Hide sidebar';
+    const text = toggle.querySelector('.workspace-control-text');
+    if (text) text.textContent = collapsed ? 'Show sidebar' : 'Hide sidebar';
   }
   let collapsed = false;
   try { collapsed = localStorage.getItem(preference) === 'true'; } catch {}

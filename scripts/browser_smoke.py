@@ -112,6 +112,19 @@ def check_site(browser, width):
     assert page.locator('link[href*="/assets/obsidian.css"]').count() == 1
     assert page.get_by_role("heading", name="Intelligence at a glance.").is_visible()
     assert page.locator(".command-overview-card").count() == 3
+    assert page.locator(".dashboard-toolbar-tools").is_visible()
+    assert page.locator(".workspace-layer-picker select").is_visible()
+    mode_button = page.locator("#analyst-mode-toggle")
+    assert mode_button.is_visible()
+    assert mode_button.get_attribute("aria-pressed") == "false"
+    assert mode_button.locator(".workspace-control-indicator").inner_text() == "Off"
+    assert page.evaluate("() => document.querySelector('#analyst-mode-toggle').closest('.dashboard-heading-group') === null")
+    mode_button.click()
+    assert mode_button.get_attribute("aria-pressed") == "true"
+    assert mode_button.locator(".workspace-control-indicator").inner_text() == "On"
+    mode_button.click()
+    assert mode_button.get_attribute("aria-pressed") == "false"
+    assert mode_button.locator(".workspace-control-indicator").inner_text() == "Off"
     page.locator('[data-command-layer="countries"]').click()
     assert page.locator("#globe-layer").input_value() == "countries"
     assert page.locator("#map-layer-kind").inner_text() == "News coverage"
@@ -121,7 +134,9 @@ def check_site(browser, width):
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     toggle = page.locator("#sidebar-toggle")
     if width > 1080:
+        assert toggle.locator(".workspace-control-text").inner_text() == "Hide sidebar"
         toggle.click()
+        assert toggle.locator(".workspace-control-text").inner_text() == "Show sidebar"
         assert toggle.get_attribute("aria-expanded") == "false"
         assert not page.locator("#dashboard-sidebar").is_visible()
         page.reload(wait_until="domcontentloaded")
@@ -129,6 +144,10 @@ def check_site(browser, width):
         assert page.locator("#dashboard-sidebar").is_visible()
     else:
         assert not toggle.is_visible()
+    controls = page.locator(".dashboard-toolbar-tools").bounding_box()
+    assert controls and controls["x"] >= 0
+    assert controls["x"] + controls["width"] <= width + 1
+    assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     if mobile:
         def swipe(selector, dx, dy):
             target = page.locator(selector)
