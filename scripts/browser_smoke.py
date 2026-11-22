@@ -122,7 +122,7 @@ def check_site(browser, width):
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     guide.locator("summary").click()
     assert not guide.get_by_text("Choose a map layer").is_visible()
-    map_help = page.get_by_role("button", name="Explain map markers")
+    map_help = page.locator('button[data-ci-note="ci-map-note"]')
     map_help.click()
     assert map_help.get_attribute("aria-expanded") == "true"
     assert page.locator("#ci-map-note").is_visible()
