@@ -173,6 +173,18 @@ def check_site(browser, width):
     assert coverage.get_by_text("Fixture publisher — check completed").is_visible()
     coverage.locator("summary").click()
 
+    mode = page.locator("#analyst-mode-toggle")
+    assert mode.get_attribute("aria-pressed") == "false"
+    assert not page.locator("#search-country .analyst-metadata").first.is_visible()
+    mode.click()
+    assert mode.get_attribute("aria-pressed") == "true"
+    assert page.locator("#search-country .analyst-metadata").first.is_visible()
+    assert coverage.locator("ul").first.is_visible()
+    assert page.locator("#news-results").get_by_text("Requested UTC window:", exact=False).is_visible()
+    mode.click()
+    assert not page.locator("#search-country .analyst-metadata").first.is_visible()
+    assert not coverage.locator("ul").first.is_visible()
+
     with page.expect_download(timeout=30000) as download:
         page.locator("#news-results .report-export button").filter(has_text="Download PDF").click()
     assert download.value.suggested_filename.endswith(".pdf")
@@ -196,6 +208,15 @@ def check_site(browser, width):
     page.wait_for_url("**/countries/gb")
     page.locator("#country-brief .country-top-stories li").wait_for()
     assert page.get_by_role("heading", name="United Kingdom").is_visible()
+    mode = page.locator("#analyst-mode-toggle")
+    mode.click()
+    assert page.locator("#country-brief .analyst-metadata").first.is_visible()
+    page.reload(wait_until="domcontentloaded")
+    page.locator("#country-brief .country-top-stories li").wait_for()
+    assert mode.get_attribute("aria-pressed") == "true"
+    assert page.locator("#country-brief .country-coverage-details ul").first.is_visible()
+    mode.click()
+    assert not page.locator("#country-brief .analyst-metadata").first.is_visible()
     page.locator("#country-brief .country-coverage-details summary").click()
     assert page.locator("#country-brief").get_by_text("Gdelt — timeout").is_visible()
     # Exercise the retained snapshot and weekly fallback without calling live providers.

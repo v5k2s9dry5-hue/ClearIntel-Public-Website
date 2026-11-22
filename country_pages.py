@@ -11,7 +11,7 @@ PAGE = Template("""<!doctype html>
 <title>$title | ClearIntel</title><meta name="description" content="$description">
 <link rel="canonical" href="$canonical"><meta property="og:url" content="$canonical">
 <meta property="og:title" content="$title | ClearIntel"><meta property="og:description" content="$description">
-<link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/countries.css?v=coverage-details">
+<link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/countries.css?v=analyst-mode">
 $script</head><body>
 <header><a class="brand" href="/">ClearIntel</a><nav aria-label="Main navigation"><a href="/">Live map</a><a href="/countries">Country directory</a></nav></header>
 <main>$content</main></body></html>""")
@@ -56,9 +56,10 @@ def profile(base, code):
     source_links = ''.join(f'<li><a href="{escape(url)}">{escape(label)}</a></li>' for label, url in sources)
     description = f'Browse recent headlines for {name}, check when sources were last queried and open the original reports.'
     body = (f'<h1>{escape(name)}</h1><p>{escape(description)}</p>'
+            '<button type="button" id="analyst-mode-toggle" class="globe-control analyst-mode-toggle" aria-pressed="false" hidden>Analyst mode</button>'
             f'<section id="country-brief" data-code="{code}" data-place="{escape(name)}">'
             '<h2>Recent headlines</h2><noscript>Enable JavaScript to load headlines or use the source links below.</noscript></section>'
             f'<p class="update-note">Headlines refresh every five minutes while this page is open and visible.</p>'
             f'<section><h2>Browse sources</h2><ul>{source_links}</ul></section>')
-    scripts = '<script src="/assets/country-card.js?v=coverage-details" defer></script><script src="/assets/country-profile.js" defer></script>'
+    scripts = '<script src="/assets/analyst-mode.js" defer></script><script src="/assets/country-card.js?v=analyst-mode" defer></script><script src="/assets/country-profile.js" defer></script>'
     return page(base, '/countries/' + code.lower(), name + ' news and sources', description, body, scripts)
