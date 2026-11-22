@@ -4,6 +4,7 @@ from __future__ import annotations
 from asyncio import timeout
 from collections import OrderedDict, deque
 from ipaddress import ip_address
+from html import escape
 from pathlib import Path
 import os
 import json
@@ -15,7 +16,7 @@ from threading import Lock
 
 from fastapi import FastAPI, HTTPException, Request
 from starlette.requests import ClientDisconnect
-from fastapi.responses import FileResponse, PlainTextResponse, Response
+from fastapi.responses import HTMLResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field, ValidationError
@@ -26,6 +27,8 @@ from wildfires import router as wildfire_router
 
 ROOT = Path(__file__).resolve().parent
 PUBLIC_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
+PUBLIC_URL = PUBLIC_URL or "https://clearintel-public.onrender.com"
+HOME_TEMPLATE = (ROOT / "index.html").read_text(encoding="utf-8")
 app = FastAPI(title="ClearIntel public website", docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/assets", StaticFiles(directory=ROOT / "assets"), name="assets")
 app.include_router(earthquake_router)
@@ -66,7 +69,7 @@ async def secure_headers(request: Request, call_next):
 
 @app.get("/", include_in_schema=False)
 async def home():
-    return FileResponse(ROOT / "index.html", media_type="text/html")
+    return HTMLResponse(HOME_TEMPLATE.replace("{{PUBLIC_HOME}}", escape(PUBLIC_URL + "/")))
 
 
 @app.get("/health", include_in_schema=False)
@@ -236,13 +239,10 @@ async def iss_position():
 
 
 @app.get("/robots.txt", include_in_schema=False)
-async def robots(request: Request):
-    base = PUBLIC_URL or str(request.base_url).rstrip("/")
-    return PlainTextResponse(f"User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: {base}/sitemap.xml\n")
+async def robots():
+    return PlainTextResponse(f"User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: {PUBLIC_URL}/sitemap.xml\n")
 
 
 @app.get("/sitemap.xml", include_in_schema=False)
-async def sitemap(request: Request):
-    base = PUBLIC_URL or str(request.base_url).rstrip("/")
-    from html import escape
-    return Response(f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>{escape(base, quote=True)}/</loc></url></urlset>', media_type="application/xml")
+async def sitemap():
+    return Response(f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>{escape(PUBLIC_URL)}/</loc></url></urlset>', media_type="application/xml")

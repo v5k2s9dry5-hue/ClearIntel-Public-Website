@@ -21,6 +21,14 @@ class PublicSiteTests(unittest.TestCase):
         self.assertIn('ClearIntel',self.client.get('/').text)
         self.assertEqual(self.client.get('/health').json()['status'],'ok')
 
+    def test_canonical_home_matches_sitemap_and_robots(self):
+        with patch('main.PUBLIC_URL', 'https://research.example'):
+            html = self.client.get('/').text
+            self.assertIn('rel="canonical" itemprop="url" href="https://research.example/"', html)
+            self.assertIn('property="og:url" content="https://research.example/"', html)
+            self.assertIn('<loc>https://research.example/</loc>', self.client.get('/sitemap.xml').text)
+            self.assertIn('Sitemap: https://research.example/sitemap.xml', self.client.get('/robots.txt').text)
+
     def test_private_routes_not_exposed(self):
         for route in ['/report','/case','/run','/state','/config/api_keys.json','/docs']:
             self.assertEqual(self.client.get(route).status_code,404,route)
