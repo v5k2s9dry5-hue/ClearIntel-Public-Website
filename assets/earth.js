@@ -709,16 +709,26 @@
 
   async function refreshCountryBrief(){
     const entry=countryBrief;
-    if(!entry || entry.loading || entry.id!==selectedReport)return;
+    if(!entry || entry.loading || entry.id!==selectedReport || Date.now()<(entry.retryAt||0))return;
     entry.loading=true;
+    const controller=new AbortController();
+    const requestTimeout=setTimeout(()=>controller.abort(),30000);
     try{
-      const response=await fetch('/api/country-news/'+encodeURIComponent(entry.id),{cache:'no-store'});
+      const response=await fetch('/api/country-news/'+encodeURIComponent(entry.id),{cache:'no-store',signal:controller.signal});
+      if(response.status===429){
+        const retry=Number(response.headers.get('Retry-After'));
+        entry.retryAt=Date.now()+Math.max(30,Number.isFinite(retry)?retry:0)*1000;
+        entry.failed=true;
+        entry.message='Country headlines are rate limited. '+retryMessage(response);
+        return;
+      }
       if(!response.ok)throw Error('Country news unavailable');
-      entry.data=await response.json();
-      entry.change=window.ClearIntelCountryChanges?.(entry.id,entry.data);
-      entry.failed=false;
-    }catch(_){entry.failed=true;}
+      Object.assign(entry,countryRefreshResult(entry.data,await response.json()));
+      if(!entry.failed)entry.change=window.ClearIntelCountryChanges?.(entry.id,entry.data);
+      entry.retryAt=entry.failed?Date.now()+countryRefreshMs:0;
+    }catch(_){entry.failed=true;entry.message='Refresh unavailable';entry.retryAt=Date.now()+30000;}
     finally{
+      clearTimeout(requestTimeout);
       entry.loading=false;
       if(layer.value==='countries' && countryBrief===entry && selectedReport===entry.id){renderReports();draw();}
     }

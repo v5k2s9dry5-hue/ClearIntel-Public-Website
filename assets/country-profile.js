@@ -23,12 +23,14 @@
     try {
       const response = await fetch('/api/country-news/' + encodeURIComponent(country.id), {signal: controller.signal});
       if (response.status === 429) {
-        delay = Math.max(interval, Number(response.headers.get('Retry-After') || 0) * 1000);
+        const retry = Number(response.headers.get('Retry-After'));
+        if (Number.isFinite(retry) && retry > 0) delay = Math.max(interval, retry * 1000);
         renderCountryCard(panel, country, {data: lastData, failed: true, message: 'Country headlines are rate limited. ' + retryMessage(response)});
       } else {
         if (!response.ok) throw new Error();
-        lastData = await response.json();
-        renderCountryCard(panel, country, {data: lastData});
+        const result = countryRefreshResult(lastData, await response.json());
+        lastData = result.data;
+        renderCountryCard(panel, country, result);
       }
     } catch {
       renderCountryCard(panel, country, {data: lastData, failed: true});
