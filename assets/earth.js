@@ -536,13 +536,14 @@
   async function refreshISS() {
     if(issLoading||Date.now()<issRetryAt)return;
     issLoading=true;
+    const started=Date.now();
     try {
       const response=await ClearIntelMapRefresh.fetch('/api/iss');
       if(!response.ok){issRetryAt=ClearIntelMapRefresh.retryAt(response);throw Error('ISS feed unavailable');}
-      const obj=await response.json();
+      const obj=response.data;
       const date=new Date(obj.timestamp*1000);
       if(!Number.isFinite(obj.latitude)||!Number.isFinite(obj.longitude)||Number.isNaN(date.getTime()))throw Error('Invalid ISS data');
-      currentISS=obj;locate.disabled=false;issRetryAt=Date.now()+25000;
+      currentISS=obj;locate.disabled=false;issRetryAt=started+25000;
       issStatus.classList.add('live');issStatus.textContent='ISS position received · Source: Where the ISS at? · UTC observation';
       latText.textContent=obj.latitude.toFixed(2)+'°';lonText.textContent=obj.longitude.toFixed(2)+'°';
       timeText.textContent=date.toLocaleTimeString('en-GB',{timeZone:'UTC',hour:'2-digit',minute:'2-digit',second:'2-digit'})+' UTC';
@@ -710,16 +711,26 @@
 
   async function refreshCountryBrief(){
     const entry=countryBrief;
-    if(!entry || entry.loading || entry.id!==selectedReport)return;
+    if(!entry || entry.loading || entry.id!==selectedReport || Date.now()<(entry.retryAt||0))return;
     entry.loading=true;
+    const controller=new AbortController();
+    const requestTimeout=setTimeout(()=>controller.abort(),30000);
     try{
-      const response=await fetch('/api/country-news/'+encodeURIComponent(entry.id),{cache:'no-store'});
+      const response=await fetch('/api/country-news/'+encodeURIComponent(entry.id),{cache:'no-store',signal:controller.signal});
+      if(response.status===429){
+        const retry=Number(response.headers.get('Retry-After'));
+        entry.retryAt=Date.now()+Math.max(30,Number.isFinite(retry)?retry:0)*1000;
+        entry.failed=true;
+        entry.message='Country headlines are rate limited. '+retryMessage(response);
+        return;
+      }
       if(!response.ok)throw Error('Country news unavailable');
-      entry.data=await response.json();
-      entry.change=window.ClearIntelCountryChanges?.(entry.id,entry.data);
-      entry.failed=false;
-    }catch(_){entry.failed=true;}
+      Object.assign(entry,countryRefreshResult(entry.data,await response.json()));
+      if(!entry.failed)entry.change=window.ClearIntelCountryChanges?.(entry.id,entry.data);
+      entry.retryAt=entry.failed?Date.now()+countryRefreshMs:0;
+    }catch(_){entry.failed=true;entry.message='Refresh unavailable';entry.retryAt=Date.now()+30000;}
     finally{
+      clearTimeout(requestTimeout);
       entry.loading=false;
       if(layer.value==='countries' && countryBrief===entry && selectedReport===entry.id){renderReports();draw();}
     }
@@ -729,6 +740,7 @@
     const active=reportLayers[layer.value];
     if(!active||active.loading||Date.now()<(active.retryAt||0)||(!active.mode&&reportsPaused)||(active.mode&&active.feed))return;
     active.loading=true;
+    const started=Date.now();
     try{
       if(active.mode==='archive'&&!militaryArchive){
         militaryArchive=loadReportFeed(active.endpoint).catch(error=>{militaryArchive=null;throw error;});
@@ -743,7 +755,7 @@
           ? {events:latest.events.filter(event=>event.category===active.category)}
           : latest;
         active.failed=false;
-        active.retryAt=Date.now()+60000;
+        active.retryAt=started+55000;
       }
     }catch(error){if(active.mode||!reportsPaused){active.failed=true;active.retryAt=Math.max(Date.now()+30000,error.retryAt||0);}}
     finally{
@@ -755,7 +767,7 @@
   async function loadReportFeed(endpoint){
     const response=await ClearIntelMapRefresh.fetch(endpoint);
     if(!response.ok){const error=new Error('Report feed unavailable');error.retryAt=ClearIntelMapRefresh.retryAt(response);throw error;}
-    return response.json();
+    return response.data;
   }
 
   countrySelect.addEventListener('change',()=>{
@@ -842,8 +854,7 @@
   document.addEventListener('visibilitychange',()=>{
     if(document.hidden)return;
     if(layer.value==='iss')refreshISS();
-    else if(layer.value==='countries')refreshReports();
-    else if(!reportsPaused)refreshReports();
+    else if(!reportsPaused||reportLayers[layer.value]?.mode)refreshReports();
   });
   setInterval(()=>{if(!document.hidden&&layer.value==='iss')refreshISS();},30000);
   setInterval(()=>{

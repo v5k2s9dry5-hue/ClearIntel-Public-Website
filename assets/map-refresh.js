@@ -3,8 +3,11 @@ window.ClearIntelMapRefresh = {
   async fetch(endpoint) {
     const controller = new AbortController();
     const timeout = setTimeout(()=>controller.abort(),12000);
-    try { return await fetch(endpoint,{cache:'no-store',signal:controller.signal}); }
-    finally { clearTimeout(timeout); }
+    try {
+      const response = await fetch(endpoint,{cache:'no-store',signal:controller.signal});
+      return {ok:response.ok,status:response.status,headers:response.headers,
+        data:response.ok?await response.json():null};
+    } finally { clearTimeout(timeout); }
   },
   retryAt(response, now=Date.now()) {
     const raw = response.headers.get('Retry-After');

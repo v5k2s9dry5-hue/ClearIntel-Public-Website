@@ -228,8 +228,10 @@ async function showSearchCountry(query){
     if(!country||version!==countrySearchVersion)return;
     panel.hidden=false;
     renderCountryCard(panel,country,null);
+    const controller=new AbortController();
+    const countryTimeout=setTimeout(()=>controller.abort(),30000);
     try{
-      const response=await fetch('/api/country-news/'+encodeURIComponent(country.id));
+      const response=await fetch('/api/country-news/'+encodeURIComponent(country.id),{signal:controller.signal});
       if(!response.ok){
         const message=response.status===429?'Country headlines are rate limited. '+retryMessage(response):'Country headlines are temporarily unavailable.';
         if(version===countrySearchVersion)renderCountryCard(panel,country,{failed:true,message});
@@ -240,7 +242,7 @@ async function showSearchCountry(query){
         data,change:window.ClearIntelCountryChanges(country.id,data)});
     }catch{
       if(version===countrySearchVersion)renderCountryCard(panel,country,{failed:true});
-    }
+    }finally{clearTimeout(countryTimeout);}
   }catch{ /* General news search still runs when the country index is unavailable. */ }
 }
 
