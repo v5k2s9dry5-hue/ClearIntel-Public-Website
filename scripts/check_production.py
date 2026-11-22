@@ -18,6 +18,8 @@ class Page(HTMLParser):
         super().__init__()
         self.canonical = None
         self.links, self.ids = set(), set()
+        self.stylesheets = set()
+        self.scripts = set()
         self.noindex = False
         self.feed(body)
 
@@ -27,7 +29,11 @@ class Page(HTMLParser):
             self.ids.add(attrs["id"])
         if tag == "link" and attrs.get("rel") == "canonical":
             self.canonical = attrs.get("href")
-        if tag == "a" and attrs.get("href", "").startswith("/countries/"):
+        if tag == "link" and attrs.get("rel") == "stylesheet":
+            self.stylesheets.add(urlsplit(attrs.get("href") or "").path)
+        if tag == "script" and attrs.get("src"):
+            self.scripts.add(urlsplit(attrs["src"]).path)
+        if tag == "a" and (attrs.get("href") or "").startswith("/countries/"):
             self.links.add(attrs["href"])
         if tag == "meta" and attrs.get("name", "").lower() in ("robots", "googlebot"):
             self.noindex |= "noindex" in attrs.get("content", "").lower()
@@ -57,7 +63,8 @@ def check(base, requester=fetch):
         results.append((name, bool(condition)))
 
     for path in ("/health", "/", "/robots.txt", "/sitemap.xml", "/countries",
-                 "/countries/gb", "/countries/es", "/" + VERIFICATION):
+                 "/countries/gb", "/countries/es", "/" + VERIFICATION,
+                 "/assets/dashboard-visual.css", "/assets/dashboard-visual.js", "/assets/countries.css"):
         try:
             status, response_headers, body = requester(base + path)
             record(path + " HTTP 200", status == 200)
@@ -80,6 +87,19 @@ def check(base, requester=fetch):
     record("Dashboard navigation and source guide present",
            {"dashboard-query", "dashboard-source-guide", "dashboard-view-controls"}
            <= home.ids)
+    record("Redesigned dashboard markup",
+           {"map-layer-source", "map-layer-kind", "dashboard-map-heading"} <= home.ids and
+           "/assets/dashboard-visual.css" in home.stylesheets and
+           "/assets/dashboard-visual.js" in home.scripts)
+    record("Redesigned dashboard assets",
+           ".map-panel-heading" in bodies.get("/assets/dashboard-visual.css", "") and
+           ".result-view-controls" in bodies.get("/assets/dashboard-visual.css", "") and
+           "map-layer-source" in bodies.get("/assets/dashboard-visual.js", "") and
+           "text/css" in headers.get("/assets/dashboard-visual.css", {}).get("content-type", ""))
+    record("Country profile redesign",
+           ".country-profile-grid" in bodies.get("/assets/countries.css", "") and
+           ".country-related-reports" in bodies.get("/assets/countries.css", "") and
+           "/assets/countries.css" in Page(bodies.get("/countries/gb", "")).stylesheets)
     record("Robots advertises sitemap", ("Sitemap: " + base + "/sitemap.xml") in
            bodies.get("/robots.txt", "").splitlines())
     record("Google verification file", bodies.get("/" + VERIFICATION, "").strip() ==
@@ -117,7 +137,7 @@ def main():
         parser.error(str(error))
     for name, passed in results:
         print(("PASS" if passed else "FAIL") + "  " + name)
-    print("No live news, Google index or exact deployed commit verification performed.")
+    print("Checks deployed markup and assets, not live provider availability, Google indexing or exact deployed commit.")
     return 0 if all(passed for _, passed in results) else 1
 
 

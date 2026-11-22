@@ -36,6 +36,23 @@ class ProductionCheckTests(TestCase):
             raise OSError("offline")
         self.assertFalse(any(passed for _, passed in check(DEFAULT_BASE, offline)))
 
+    def test_old_dashboard_does_not_pass_redesign_verification(self):
+        with patch("main.PUBLIC_URL", DEFAULT_BASE), TestClient(app) as client:
+            def fetch(url):
+                path = urlsplit(url).path
+                response = client.get(path)
+                body = response.text
+                if path == "/":
+                    body = body.replace('id="map-layer-source"', 'id="legacy-map-source"')
+                if path == "/assets/dashboard-visual.css":
+                    body = "/* Old stylesheet */"
+                return response.status_code, response.headers, body
+
+            results = dict(check(DEFAULT_BASE, fetch))
+            self.assertFalse(results["Redesigned dashboard markup"])
+            self.assertFalse(results["Redesigned dashboard assets"])
+            self.assertTrue(results["Homepage canonical"])
+
     def test_invalid_origin_rejected(self):
         with self.assertRaises(ValueError):
             check("http://clearintel.example")
