@@ -74,6 +74,10 @@ def _edition_params(code):
     return urlencode({'hl': language, 'gl': code, 'ceid': f'{code}:{edition}'})
 
 
+def edition_url(code):
+    return EDITION_PATH + '?' + _edition_params(code) if code in EDITIONS else ''
+
+
 def _fetch_edition(code):
     url = EDITION_PATH.replace('/headlines/', '/rss/headlines/') + '?' + _edition_params(code)
     return [dict(article, edition_rank=rank, country_code=code)
@@ -386,6 +390,6 @@ def search_country_news(code, now=None, fetchers=None):
         'country': name, 'stories': stories, 'publisher_count': publisher_count,
         'city_mentions': city_mentions,
         'story': lead['reports'], 'basis': lead['basis'],
-        'edition_url': EDITION_PATH + '?' + _edition_params(code) if code in EDITIONS else '',
+        'edition_url': edition_url(code),
         'checked_at_utc': now.isoformat(), 'sources_checked': checked, 'provider_errors': errors,
     }

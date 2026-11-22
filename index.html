@@ -16,9 +16,11 @@
   <title>ClearIntel | OSINT Research & Public-Source Intelligence</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/styles.css?v=20261121-mobile-help">
-  <link rel="stylesheet" href="/assets/dashboard.css?v=20261121-city-markers">
+  <link rel="stylesheet" href="/assets/dashboard.css?v=20261122-expanded-map">
   <script src="/assets/research-pdf.js" defer></script>
-  <script src="/assets/app.js?v=20261122-search" defer></script>
+  <script src="/assets/country-card.js" defer></script>
+  <script src="/assets/app.js?v=20261122-profiles" defer></script>
+  <script src="/assets/map-expand.js" defer></script>
   <script src="/assets/timeline.js?v=event-timeline" defer></script>
   <script src="/assets/earth.js?v=20261121-city-pins" defer></script>
 </head>
@@ -30,16 +32,17 @@
         <span class="brand-mark header-monogram" aria-hidden="true"></span>
         <span>Clear<span class="brand-secondary">Intel</span><small>PUBLIC-SOURCE RESEARCH</small></span>
       </a>
-      <nav class="main-nav" aria-label="Primary navigation"><a href="#research">Research desk</a><a href="#services">Services</a><a href="#method">Method</a><a href="#contact" class="nav-contact">Make an enquiry <span aria-hidden="true">↗</span></a></nav>
+      <nav class="main-nav" aria-label="Primary navigation"><a href="#research">Research desk</a><a href="/countries">Countries</a><a href="#services">Services</a><a href="#method">Method</a><a href="#contact" class="nav-contact">Make an enquiry <span aria-hidden="true">↗</span></a></nav>
       <button id="menu-toggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav">Menu <span aria-hidden="true">☰</span></button>
     </div>
-    <nav id="mobile-nav" class="mobile-nav" hidden aria-label="Mobile navigation"><a href="#research">Research desk</a><a href="#services">Services</a><a href="#method">Method</a><a href="#contact">Make an enquiry</a></nav>
+    <nav id="mobile-nav" class="mobile-nav" hidden aria-label="Mobile navigation"><a href="#research">Research desk</a><a href="/countries">Countries</a><a href="#services">Services</a><a href="#method">Method</a><a href="#contact">Make an enquiry</a></nav>
   </header>
   <main id="main">
     <section id="top" class="dashboard" aria-labelledby="dashboard-heading">
       <nav class="dashboard-nav" aria-label="Dashboard navigation">
         <a class="dashboard-nav-current" href="#top" aria-current="location">Live map</a>
         <a href="#research">News research</a>
+        <a href="/countries">Country directory</a>
         <a href="#services">Services</a>
         <a href="#method">Method</a>
         <a href="#contact">Make an enquiry</a>
@@ -62,6 +65,7 @@
           <button type="button" id="dashboard-map-tab" aria-controls="dashboard-map" aria-pressed="true">Map</button>
           <button type="button" id="dashboard-feed-tab" aria-controls="dashboard-feed" aria-pressed="false">Feed</button>
         </div>
+        <dialog id="expanded-map" aria-label="Expanded map"></dialog>
         <div class="dashboard-panels">
           <section id="dashboard-map" class="dashboard-panel dashboard-map" aria-labelledby="dashboard-map-heading">
             <h2 id="dashboard-map-heading" class="visually-hidden">Live globe</h2>
@@ -78,6 +82,7 @@
                   <button type="button" id="projection-flat" class="globe-control" aria-pressed="true">Flat map</button>
                   <button type="button" id="projection-globe" class="globe-control" aria-pressed="false">Globe</button>
                 </div>
+                <button type="button" id="map-expand" class="globe-control" aria-haspopup="dialog" aria-controls="expanded-map" hidden>Expand map</button>
                 <button type="button" id="earth-reset-map" class="globe-control" hidden>World view</button>
                 <button type="button" id="earth-motion" class="globe-control" aria-pressed="false">Pause rotation</button>
                 <button type="button" id="earth-uk-view" class="globe-control" disabled>Zoom to UK</button>
