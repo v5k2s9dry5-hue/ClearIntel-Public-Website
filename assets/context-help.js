@@ -95,6 +95,11 @@
       if(target && target!==activeTarget) showTooltip(target);
     }
   });
+  document.addEventListener('pointermove',event=>{
+    if(event.pointerType!=='mouse' && event.pointerType!=='pen') return;
+    const target=explainFor(event.target);
+    if(target && (tooltip.hidden || activeTarget!==target)) showTooltip(target);
+  },{passive:true});
   document.addEventListener('pointerout',event=>{
     if(!activeTarget || !activeTarget.contains(event.target)) return;
     if(event.relatedTarget && activeTarget.contains(event.relatedTarget)) return;
@@ -108,7 +113,12 @@
   document.addEventListener('focusout',event=>{
     if(activeTarget && activeTarget.contains(event.target))hideTooltip();
   });
-  document.addEventListener('scroll',hideTooltip,true);
+  document.addEventListener('scroll',()=>{
+    if(!activeTarget || tooltip.hidden)return;
+    const bounds=activeTarget.getBoundingClientRect();
+    if(bounds.bottom<=0 || bounds.top>=window.innerHeight) hideTooltip();
+    else placeTooltip(activeTarget);
+  },true);
   window.addEventListener('resize',hideTooltip);
   document.addEventListener('keydown',event=>{if(event.key==='Escape')hideTooltip();});
   // Explicit tap/click info buttons reveal text in normal document flow.
