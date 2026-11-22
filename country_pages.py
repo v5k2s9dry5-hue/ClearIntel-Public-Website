@@ -11,7 +11,7 @@ PAGE = Template("""<!doctype html>
 <title>$title | ClearIntel</title><meta name="description" content="$description">
 <link rel="canonical" href="$canonical"><meta property="og:url" content="$canonical">
 <meta property="og:title" content="$title | ClearIntel"><meta property="og:description" content="$description">
-<link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/countries.css?v=evidence-disclosure">
+<link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/countries.css?v=evidence-disclosure"><link rel="stylesheet" href="/assets/obsidian.css">
 $script</head><body>
 <header><a class="brand" href="/">Clear<span>Intel</span></a><nav aria-label="Main navigation"><a href="/">Live map</a><a href="/countries">Country directory</a></nav></header>
 <main>$content</main></body></html>""")

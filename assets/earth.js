@@ -158,9 +158,9 @@
         || (west < -180&&track.east>=west+360)
         || (east > 180&&track.west<=east-360);
     }
-    ctx.strokeStyle='#729ec0';ctx.lineWidth=zoom>1?.85:.65;
+    ctx.strokeStyle='#6e99b3';ctx.lineWidth=zoom>1?.85:.65;
     for(const track of map.coastlines){if(inView(track))strokeTrack(track.coords,cx,cy,r);}
-    ctx.strokeStyle='#4d7395';ctx.lineWidth=zoom>1?.7:.5;
+    ctx.strokeStyle='#3f6581';ctx.lineWidth=zoom>1?.7:.5;
     for(const track of map.borders){if(inView(track))strokeTrack(track.coords,cx,cy,r);}
   }
   const longitudeDelta = (lon, center) => ((lon - center + 180) % 360 + 360) % 360 - 180;
@@ -172,9 +172,9 @@
 
   function drawFlatMap(width,height){
     const cx=width/2, cy=height/2, scale=flatScale(width);
-    ctx.fillStyle='#081928';
+    ctx.fillStyle='#050c15';
     ctx.fillRect(0,0,width,height);
-    ctx.strokeStyle='#1b3549';
+    ctx.strokeStyle='#173148';
     ctx.lineWidth=.7;
     ctx.beginPath();
     for(let lon=-180;lon<180;lon+=30){
@@ -188,11 +188,11 @@
     ctx.stroke();
     const map=zoom>1&&detailedMap?detailedMap:worldMap;
     if(map){
-      ctx.fillStyle='#17394e';
-      ctx.strokeStyle='#4f788e';
+      ctx.fillStyle='#10283b';
+      ctx.strokeStyle='#507c98';
       ctx.lineWidth=.8;
       for(const track of map.coastlines)drawFlatTrack(track,cx,cy,scale,true);
-      ctx.strokeStyle='#386178';
+      ctx.strokeStyle='#32566e';
       for(const track of map.borders)drawFlatTrack(track,cx,cy,scale,false);
     }else{
       ctx.fillStyle='#4f788e';
@@ -310,14 +310,14 @@
     if(flatMap){drawFlatMap(width,height);return;}
     const cx=width/2, cy=height/2-4, r=Math.min(width*0.435,height*0.455)*zoom;
     const halo=ctx.createRadialGradient(cx,cy,r*.8,cx,cy,r*1.4);
-    halo.addColorStop(0,'rgba(58,157,213,.27)');halo.addColorStop(.5,'rgba(37,108,170,.11)');halo.addColorStop(1,'rgba(31,72,130,0)');
+    halo.addColorStop(0,'rgba(73,169,225,.18)');halo.addColorStop(.5,'rgba(37,98,155,.08)');halo.addColorStop(1,'rgba(31,72,130,0)');
     ctx.fillStyle=halo;ctx.beginPath();ctx.arc(cx,cy,r*1.4,0,Math.PI*2);ctx.fill();
     const ocean=ctx.createRadialGradient(cx-r*.36,cy-r*.4,r*.04,cx,cy,r*1.15);
-    ocean.addColorStop(0,'#142f48');ocean.addColorStop(.65,'#0b2339');ocean.addColorStop(1,'#050f1e');
-    ctx.fillStyle=ocean;ctx.strokeStyle='#588cad';ctx.lineWidth=1.15;
+    ocean.addColorStop(0,'#10293d');ocean.addColorStop(.65,'#091b2d');ocean.addColorStop(1,'#030a13');
+    ctx.fillStyle=ocean;ctx.strokeStyle='#6799b6';ctx.lineWidth=1.15;
     ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);ctx.fill();ctx.stroke();
     ctx.save();ctx.beginPath();ctx.arc(cx,cy,r-.4,0,Math.PI*2);ctx.clip();
-    ctx.strokeStyle='rgba(129,176,223,.15)';ctx.lineWidth=.65;
+    ctx.strokeStyle='rgba(137,186,222,.13)';ctx.lineWidth=.65;
     for(const line of meridians)strokeTrack(line,cx,cy,r);
     for(const line of parallels)strokeTrack(line,cx,cy,r);
     const map=zoom>1&&detailedMap?detailedMap:worldMap;

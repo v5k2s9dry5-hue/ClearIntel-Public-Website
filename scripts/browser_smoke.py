@@ -85,10 +85,11 @@ def check_site(browser, width):
         reduced_motion="reduce",
     )
     page = context.new_page()
-    page.add_init_script("""() => {
-        Object.defineProperty(navigator, 'clipboard', {configurable:true,
-            value:{writeText:async value=>{window.lastCitation=value;}}});
-    }""")
+    # Runs in every document, including reloads. The previous test defined an
+    # uninvoked function and therefore never installed the clipboard stub.
+    page.add_init_script("""Object.defineProperty(navigator, 'clipboard', {
+        configurable:true, value:{writeText:async value=>{window.lastCitation=value;}}
+    });""")
     errors = []
     regional_requests = []
     page.on("request", lambda request: regional_requests.append(request.url) if request.url.endswith("/assets/uk-coastline.json") else None)
@@ -105,6 +106,18 @@ def check_site(browser, width):
     assert page.locator("#map-layer-source").inner_text() == "USGS · Earthquake observations"
     assert page.locator("#map-layer-kind").inner_text() == "Public feed"
     assert page.locator("#dashboard-map-heading").is_visible()
+    assert page.evaluate("getComputedStyle(document.body).backgroundColor") == "rgb(6, 9, 16)"
+    assert page.evaluate("getComputedStyle(document.querySelector('#dashboard-map')).backgroundColor") == "rgb(5, 14, 26)"
+    assert page.evaluate("getComputedStyle(document.querySelector('.command-overview-card')).backgroundImage.includes('gradient')")
+    assert page.locator('link[href*="/assets/obsidian.css"]').count() == 1
+    assert page.get_by_role("heading", name="Intelligence at a glance.").is_visible()
+    assert page.locator(".command-overview-card").count() == 3
+    page.locator('[data-command-layer="countries"]').click()
+    assert page.locator("#globe-layer").input_value() == "countries"
+    assert page.locator("#map-layer-kind").inner_text() == "News coverage"
+    assert page.locator('[data-command-layer="countries"]').get_attribute("aria-pressed") == "true"
+    page.locator('[data-command-layer="earthquakes"]').click()
+    assert page.locator("#globe-layer").input_value() == "earthquakes"
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     toggle = page.locator("#sidebar-toggle")
     if width > 1080:
@@ -251,6 +264,8 @@ def check_site(browser, width):
     page.wait_for_url("**/countries/gb")
     page.locator("#country-brief .country-top-stories li").wait_for()
     assert page.get_by_role("heading", name="United Kingdom").is_visible()
+    assert page.evaluate("getComputedStyle(document.body).backgroundColor") == "rgb(6, 9, 16)"
+    assert page.locator('link[href*="/assets/obsidian.css"]').count() == 1
     assert page.locator(".profile-source-panel").is_visible()
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     # A complete outage retains prior headlines, but a successful empty search does not.

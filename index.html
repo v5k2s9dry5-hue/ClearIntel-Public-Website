@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="google-site-verification" content="qsFf2FBPbyDgRvP3c0K9yNLZIeoyl7SvRXy7w_uK_r0" />
-  <meta name="theme-color" content="#08111f">
+  <meta name="theme-color" content="#060910">
   <meta name="description" content="ClearIntel provides structured open-source research, public-records investigation and source-linked intelligence reporting. Explore recent news coverage or request a research brief.">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <link rel="canonical" itemprop="url" href="{{PUBLIC_HOME}}">
@@ -18,7 +18,8 @@
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/styles.css?v=evidence-disclosure">
   <link rel="stylesheet" href="/assets/dashboard.css?v=20261122-analyst-mode">
-  <link rel="stylesheet" href="/assets/dashboard-visual.css?v=20261122-result-controls">
+  <link rel="stylesheet" href="/assets/dashboard-visual.css?v=20261122-result-controls"><link rel="stylesheet" href="/assets/command-center.css">
+  <link rel="stylesheet" href="/assets/obsidian.css">
   <script src="/assets/research-pdf.js" defer></script>
   <script src="/assets/analyst-mode.js" defer></script>
   <script src="/assets/country-card.js?v=evidence-disclosure" defer></script>
@@ -59,7 +60,7 @@
         <div class="dashboard-toolbar">
           <div class="dashboard-title">
             <button id="sidebar-toggle" type="button" class="globe-control" aria-controls="dashboard-sidebar" aria-expanded="true" hidden>Hide sidebar</button>
-            <div class="dashboard-heading-group"><span class="workspace-kicker">GLOBAL INTELLIGENCE WORKSPACE</span><h1 id="dashboard-heading">Live intelligence</h1></div>
+            <div class="dashboard-heading-group"><span class="workspace-kicker">CLEARINTEL / GLOBAL SITUATION ROOM</span><h1 id="dashboard-heading">Intelligence <span class="dashboard-headline-accent">at a glance.</span></h1><p class="dashboard-lede">Explore public observations, country headlines and source-linked historical reports from one global workspace.</p></div>
             <button type="button" id="analyst-mode-toggle" class="globe-control analyst-mode-toggle" aria-pressed="false" hidden>Analyst mode</button>
           </div>
           <label for="globe-layer">Layer
@@ -72,6 +73,23 @@
               <option value="maritime">Naval activity</option>
             </select>
           </label>
+        </div>
+        <div class="command-overview" aria-label="Explore intelligence categories">
+          <button type="button" class="command-overview-card" data-command-layer="earthquakes" aria-pressed="true">
+            <span class="command-overview-top"><span class="command-index">01 / OBSERVATIONS</span><span class="command-symbol" aria-hidden="true">◎</span></span>
+            <strong>Earth observations</strong><span class="command-overview-detail">USGS earthquakes, NASA wildfire observations and ISS positioning</span>
+            <span class="command-overview-foot">Explore public feeds <span aria-hidden="true">↗</span></span>
+          </button>
+          <button type="button" class="command-overview-card" data-command-layer="countries" aria-pressed="false">
+            <span class="command-overview-top"><span class="command-index">02 / NEWS COVERAGE</span><span class="command-symbol" aria-hidden="true">◈</span></span>
+            <strong>Country intelligence</strong><span class="command-overview-detail">National headlines with source links, timestamps and coverage notes</span>
+            <span class="command-overview-foot">Explore country news <span aria-hidden="true">↗</span></span>
+          </button>
+          <button type="button" class="command-overview-card" data-command-layer="aviation" aria-pressed="false">
+            <span class="command-overview-top"><span class="command-index">03 / RESEARCH ARCHIVE</span><span class="command-symbol" aria-hidden="true">⌗</span></span>
+            <strong>Military &amp; maritime</strong><span class="command-overview-detail">Source-linked, completed events — historical records, not live tracking</span>
+            <span class="command-overview-foot">Explore historical reports <span aria-hidden="true">↗</span></span>
+          </button>
         </div>
         <form id="dashboard-search" role="search" aria-label="Dashboard search" hidden>
           <label for="dashboard-query" class="visually-hidden">Search countries, map layers and news</label>
@@ -100,7 +118,7 @@
         <dialog id="expanded-map" aria-label="Expanded map"></dialog>
         <div class="dashboard-panels">
           <section id="dashboard-map" class="dashboard-panel dashboard-map" aria-labelledby="dashboard-map-heading">
-            <div class="map-panel-heading"><div><h2 id="dashboard-map-heading">Global map</h2><p id="map-layer-source">USGS · Earthquake observations</p></div><span id="map-layer-kind" class="map-layer-kind">Live feed</span></div>
+            <div class="map-panel-heading"><div><h2 id="dashboard-map-heading">GLOBAL ACTIVITY MAP</h2><p id="map-layer-source">USGS · Earthquake observations</p></div><span id="map-layer-kind" class="map-layer-kind">Live feed</span></div>
             <div class="globe-canvas-wrap">
               <canvas id="earth-canvas" role="img" aria-label="Interactive globe. You can also select events in the live feed."></canvas>
               <div id="map-instructions" class="globe-coord-label">Drag to rotate · Select a pin or count</div>
@@ -127,7 +145,7 @@
             </div>
           </section>
           <section id="dashboard-feed" class="dashboard-panel dashboard-feed" aria-labelledby="dashboard-feed-heading">
-            <h2 id="dashboard-feed-heading" tabindex="-1">Live feed</h2>
+            <div class="command-feed-label"><span class="command-feed-dot" aria-hidden="true"></span><span>PUBLIC-SOURCE INTELLIGENCE</span></div><h2 id="dashboard-feed-heading" tabindex="-1">Source feed</h2>
             <div id="earthquake-panel">
               <div id="report-controls" class="quake-controls">
                 <label for="quake-window">Time window
