@@ -15,6 +15,11 @@ function renderCountryCard(container,country,entry){
     const status=document.createElement('span');
     status.setAttribute('role','status');
     const data=entry?.data;
+    const wasOpen=Boolean(container.querySelector('.country-coverage-details')?.open);
+    const checked=Array.isArray(data?.sources_checked)?data.sources_checked:[];
+    const errors=Array.isArray(data?.provider_errors)?data.provider_errors:[];
+    const checkedAt=new Date(data?.checked_at_utc);
+    const validTime=Number.isFinite(checkedAt.getTime());
     const stories=data?.stories||(data?.story?.length?[{basis:data.basis,reports:data.story}]:[]);
     const labels={
       national:'National edition', developing:'Multiple outlets', publisher:'Publisher’s selection',
@@ -28,9 +33,12 @@ function renderCountryCard(container,country,entry){
     }else{
       const count=data.publisher_count;
       const coverage=Number.isInteger(count)?` · ${count} ${count===1?'publisher':'publishers'} found`:'';
-      status.textContent=`Checked ${utcTime.format(new Date(data.checked_at_utc))} UTC${coverage}`;
+      status.textContent=(validTime?`Checked ${utcTime.format(checkedAt)} UTC`:'Check time unavailable')+coverage;
     }
-    if(entry?.data?.provider_errors.length)status.textContent+=' · Partial source coverage';
+    if(data && !stories.length && validTime)status.textContent+=' · Checked '+utcTime.format(checkedAt)+' UTC';
+    if(errors.length)status.textContent+=' · '+(checked.length?'Partial source coverage':'Sources unavailable');
+    if(stories.length && stories.every(group=>group.basis==='weekly'))status.textContent+=' · Older coverage: past week';
+    if(entry?.failed && data)status.textContent+=' · Last available snapshot';
     if(entry?.data && entry.failed)status.textContent+=' · '+(entry.message || 'Refresh unavailable');
     if(entry?.change && (entry.change.newCount || entry.change.updatedCount)){
       const parts=[];
@@ -77,6 +85,30 @@ function renderCountryCard(container,country,entry){
       }
     }
     if(stories.length)links.append(list);
+    if(data){
+      const details=el('details','country-coverage-details');
+      details.open=wasOpen;
+      details.append(el('summary','','Source coverage details'));
+      details.append(el('p','',checked.length+' source checks completed; '+errors.length+' unavailable. A completed check may return no relevant headlines.'));
+      const providerLabel=value=>String(value).replace(/_/g,' ').replace(/^./,letter=>letter.toUpperCase());
+      if(checked.length){
+        const completed=el('ul');
+        for(const name of [...checked].sort())completed.append(el('li','',providerLabel(name)+' — check completed'));
+        details.append(completed);
+      }
+      if(errors.length){
+        const unavailable=el('ul');
+        for(const item of [...errors].sort()){
+          const split=String(item).indexOf(':');
+          const name=split<0?item:String(item).slice(0,split);
+          const reason=split<0?'unavailable':String(item).slice(split+1).trim();
+          unavailable.append(el('li','',providerLabel(name)+' — '+reason));
+        }
+        details.append(unavailable);
+      }
+      details.append(el('p','','Coverage is limited to queried sources. Publication, first-seen and event dates are not interchangeable.'));
+      links.append(details);
+    }
     if(data?.city_mentions?.length){
       const mentionCount=data.city_mentions.length;
       links.append(el('span','country-city-note',mentionCount+' city '+(mentionCount===1?'mention':'mentions')+

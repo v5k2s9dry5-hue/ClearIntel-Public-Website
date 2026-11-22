@@ -17,7 +17,7 @@ COUNTRY = {
     "checked_at_utc": STAMP,
     "publisher_count": 2,
     "sources_checked": ["Fixture publisher"],
-    "provider_errors": [],
+    "provider_errors": ["gdelt: timeout"],
     "edition_url": "https://news.google.com/",
     "basis": "national",
     "stories": [{
@@ -158,6 +158,13 @@ def check_site(browser, width):
     assert page.locator("#news-results .result-title").inner_text() == NEWS["results"][0]["title"]
     page.locator("#search-country .country-top-stories li").wait_for()
     assert page.locator("#search-country .country-city-note").is_visible()
+    assert page.locator("#search-country").get_by_text("Partial source coverage", exact=False).is_visible()
+    coverage = page.locator("#search-country .country-coverage-details")
+    assert not coverage.locator("ul").first.is_visible()
+    coverage.locator("summary").click()
+    assert coverage.get_by_text("Gdelt — timeout").is_visible()
+    assert coverage.get_by_text("Fixture publisher — check completed").is_visible()
+    coverage.locator("summary").click()
 
     with page.expect_download(timeout=30000) as download:
         page.locator("#news-results .report-export button").filter(has_text="Download PDF").click()
@@ -182,6 +189,17 @@ def check_site(browser, width):
     page.wait_for_url("**/countries/gb")
     page.locator("#country-brief .country-top-stories li").wait_for()
     assert page.get_by_role("heading", name="United Kingdom").is_visible()
+    page.locator("#country-brief .country-coverage-details summary").click()
+    assert page.locator("#country-brief").get_by_text("Gdelt — timeout").is_visible()
+    # Exercise the retained snapshot and weekly fallback without calling live providers.
+    page.evaluate("""data => {
+        data.stories[0].basis = 'weekly';
+        renderCountryCard(document.querySelector('#country-brief'),
+            {id: 'GB', place: 'United Kingdom'}, {data, failed: true});
+    }""", COUNTRY)
+    assert page.locator("#country-brief").get_by_text("Last available snapshot", exact=False).is_visible()
+    assert page.locator("#country-brief").get_by_text("Older coverage: past week", exact=False).is_visible()
+    assert page.locator("#country-brief").get_by_text("Gdelt — timeout").is_visible()
     page.get_by_role("link", name="Country directory").click()
     page.get_by_role("link", name="Netherlands", exact=True).wait_for()
     page.get_by_label("Find a country or territory").fill("UK")
