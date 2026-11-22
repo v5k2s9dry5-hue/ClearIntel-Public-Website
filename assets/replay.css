@@ -24,3 +24,19 @@
 .replay-article-info{display:block;color:#bacddf;font-size:11px;line-height:1.6}
 .replay-panel .replay-privacy{color:#aabfd0;font-size:11px;margin:14px 0 0}
 @media(max-width:540px){.replay-panel{padding:14px}.replay-actions button{flex:1;min-width:145px}#replay-detail{padding:10px}}
+/* Replay R1: compare actual observed sets, without asserting publication changes. */
+.replay-compare-controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:8px 0}
+.replay-compare-controls button{min-height:40px;padding:8px 12px;border:1px solid #5590a9;border-radius:7px;background:#152a3e;color:#def5ff;font-size:12px;font-weight:700}
+.replay-compare-controls button:disabled{opacity:.48;cursor:not-allowed}
+.replay-compare-controls button:hover:not(:disabled){background:#214058}
+.replay-panel .replay-compare-controls p{flex:1 1 230px;margin:0;color:#b4cedd;font-size:11px}
+.replay-compare:not([hidden]){display:grid;gap:10px;margin-top:12px;padding:14px;background:#091727;border:1px solid #2d5065;border-radius:8px;min-width:0}
+.replay-compare h4{margin:0;font-size:16px}
+.replay-compare .replay-compare-period{margin:0;color:#b9d5e5;font-size:12px}
+.replay-compare .replay-compare-summary{font-size:13px;font-weight:700;color:#d5f4ff;margin:2px 0}
+.replay-diff-group{border-top:1px solid #294759;padding-top:10px;min-width:0}
+.replay-diff-group h5{font-size:13px;margin:0;color:#cfe8f4}
+.replay-diff-group .replay-articles{max-height:180px;margin:4px 0 0}
+.replay-previous-title{display:block;color:#eacb9a;font-size:11px;overflow-wrap:anywhere}
+.replay-compare .replay-warning{margin:0;color:#ebcb98}
+.replay-panel .replay-no-change{color:#bde9d2;font-size:12px}

@@ -201,7 +201,7 @@
         </div>
         <section class="replay-panel" id="intelligence-replay" aria-labelledby="replay-heading">
           <div class="replay-heading">
-            <div><span class="replay-kicker">INTELLIGENCE REPLAY / R0</span><h3 id="replay-heading">Observed research snapshots</h3></div>
+            <div><span class="replay-kicker">INTELLIGENCE REPLAY / R0 + COMPARISON</span><h3 id="replay-heading">Observed research snapshots</h3></div>
             <span class="replay-local-tag">This browser only</span>
           </div>
           <p>Save the results of a completed public-news search to revisit what ClearIntel actually returned at that moment. Observation time is not an incident time. No history exists before you save it.</p>
@@ -214,6 +214,14 @@
             <label for="replay-select">Replay an observed snapshot</label>
             <select id="replay-select"></select>
             <div id="replay-detail"></div>
+            <div class="replay-compare-controls">
+              <button type="button" id="replay-compare-button" disabled>Compare with earlier snapshot</button>
+              <p id="replay-compare-hint">Save the same search again to compare observations.</p>
+            </div>
+            <div id="replay-compare" class="replay-compare" hidden>
+              <h4>Changes between saved observations</h4>
+              <div id="replay-compare-result" aria-live="polite"></div>
+            </div>
           </div>
           <p class="replay-privacy">Saved snapshots stay in your browser's local storage until you clear them or the browser removes site data. They are not synced with ClearIntel. Do not save sensitive personal information. This is recorded reporting, not independent incident verification.</p>
         </section>
