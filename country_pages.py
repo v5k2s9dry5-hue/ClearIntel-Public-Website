@@ -3,7 +3,7 @@ from html import escape
 from string import Template
 from urllib.parse import urlencode
 
-from country_news import COUNTRIES, NATIONAL_FEEDS, REGIONAL_FEEDS
+from country_news import COUNTRIES, NATIONAL_FEEDS, REGIONAL_FEEDS, edition_url
 
 PAGE = Template("""<!doctype html>
 <html lang="en-GB"><head>
@@ -46,6 +46,12 @@ def profile(base, code):
     if code in NATIONAL_FEEDS:
         sources.insert(0, NATIONAL_FEEDS[code])
     search_url = 'https://news.google.com/search?' + urlencode({'q': name, 'hl': 'en-GB'})
+    sources = [(label + ' (RSS)', url) for label, url in sources]
+    if code == 'NL':
+        sources.append(('NOS news feeds', 'https://nos.nl/feeds'))
+    national_edition = edition_url(code)
+    if national_edition:
+        sources.append((f'Google News national edition for {name}', national_edition))
     sources.append((f'Search Google News for {name}', search_url))
     source_links = ''.join(f'<li><a href="{escape(url)}">{escape(label)}</a></li>' for label, url in sources)
     description = f'Browse recent headlines for {name}, check when sources were last queried and open the original reports.'
