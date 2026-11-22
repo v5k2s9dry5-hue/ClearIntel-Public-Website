@@ -267,6 +267,33 @@ function renderResults(payload,search){
     const link=el('a','result-title',article.title);link.href=article.url;link.target='_blank';link.rel='noopener noreferrer nofollow';
     const incidentTime=search.incidentOnly&&article.incident_time_utc==null?' · Incident time unknown':'';
     card.append(eyebrow,link,el('div','result-provider',article.provider+incidentTime));
+    const citationRow=el('div','citation-row');
+    const copy=el('button','globe-control citation-copy','Copy source citation');
+    copy.type='button';
+    copy.setAttribute('aria-label','Copy citation for '+article.title);
+    const copyStatus=el('span','citation-status');
+    copyStatus.setAttribute('role','status');
+    copy.addEventListener('click',async()=>{
+      const date=new Date(article.feed_time_utc);
+      const when=Number.isFinite(date.getTime())?date.toISOString():'Unknown';
+      const citation=[
+        article.title,
+        'Publisher: '+(article.source||'Unknown'),
+        'Feed timestamp: '+when,
+        'Source: '+(article.url||'Unavailable'),
+        'Public reporting lead; not independently verified.'
+      ].join('\n');
+      if(!navigator.clipboard?.writeText){copyStatus.textContent='Clipboard unavailable in this browser.';return;}
+      copy.disabled=true;
+      try{
+        await navigator.clipboard.writeText(citation);
+        copyStatus.textContent='Citation copied.';
+      }catch(_){
+        copyStatus.textContent='Copy unavailable. Open the source to copy its link.';
+      }finally{copy.disabled=false;}
+    });
+    citationRow.append(copy,copyStatus);
+    card.append(citationRow);
     const date=new Date(article.feed_time_utc);
     card.append(el('span','analyst-only analyst-metadata',
       'Exact feed timestamp: '+(Number.isFinite(date.getTime())?date.toISOString():'unknown')+' · Headline is a research lead'));
