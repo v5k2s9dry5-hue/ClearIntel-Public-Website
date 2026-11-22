@@ -132,11 +132,15 @@ def check_site(browser, width):
     assert not page.locator("#ci-map-note").is_visible()
     assert page.locator("#ci-feed-note").is_hidden()
     feed_help = page.get_by_role("button", name="Explain source feed and timestamps")
+    if mobile:
+        page.locator("#dashboard-feed-tab").click()
     feed_help.click()
     assert page.locator("#ci-feed-note").is_visible()
     assert map_help.get_attribute("aria-expanded") == "false"
     feed_help.click()
     assert not page.locator("#ci-feed-note").is_visible()
+    if mobile:
+        page.locator("#dashboard-map-tab").click()
     if not mobile:
         mode_hover = page.locator("#analyst-mode-toggle")
         mode_hover.hover()
