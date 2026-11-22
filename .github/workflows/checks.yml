@@ -28,6 +28,8 @@ jobs:
           node --check assets/analyst-mode.js
           node --check assets/country-card.js
           node --check assets/app.js
+          node --check assets/dashboard-visual.js
+          node --check assets/map-refresh.js
           node --check assets/earth.js
           node --check assets/timeline.js
           node --check assets/research-pdf.js
