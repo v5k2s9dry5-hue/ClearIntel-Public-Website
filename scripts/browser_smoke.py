@@ -126,7 +126,7 @@ def check_site(browser, width):
     map_help.click()
     assert map_help.get_attribute("aria-expanded") == "true"
     assert page.locator("#ci-map-note").is_visible()
-    assert page.get_by_text("not a confirmed incident location", exact=False).is_visible()
+    assert "not a confirmed incident location" in page.locator("#ci-map-note").inner_text()
     map_help.click()
     assert map_help.get_attribute("aria-expanded") == "false"
     assert not page.locator("#ci-map-note").is_visible()
