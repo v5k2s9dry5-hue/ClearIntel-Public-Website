@@ -16,7 +16,7 @@ from threading import Lock
 
 from fastapi import FastAPI, HTTPException, Request
 from starlette.requests import ClientDisconnect
-from fastapi.responses import HTMLResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field, ValidationError
@@ -71,6 +71,11 @@ async def secure_headers(request: Request, call_next):
 @app.get("/", include_in_schema=False)
 async def home():
     return HTMLResponse(HOME_TEMPLATE.replace("{{PUBLIC_HOME}}", escape(PUBLIC_URL + "/")))
+
+
+@app.get("/google823498a85ac9e7c0.html", include_in_schema=False)
+async def google_verification():
+    return FileResponse(ROOT / "google823498a85ac9e7c0.html", media_type="text/html")
 
 
 @app.get("/countries", response_class=HTMLResponse, include_in_schema=False)
