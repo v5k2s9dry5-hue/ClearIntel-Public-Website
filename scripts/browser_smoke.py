@@ -290,6 +290,8 @@ def check_site(browser, width):
     assert page.locator("#news-results .report-include input").first.is_checked()
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     page.locator("#search-country .country-top-stories li").wait_for()
+    assert page.get_by_text("SEPARATE COUNTRY BRIEF", exact=False).is_visible()
+    assert page.locator("#search-country").get_attribute("aria-label") == "Separate country headline briefing"
     assert page.locator("#search-country .country-city-note").is_visible()
     assert page.locator("#search-country").get_by_text("Partial source coverage", exact=False).is_visible()
     coverage = page.locator("#search-country .country-coverage-details")
@@ -320,6 +322,7 @@ def check_site(browser, width):
     page.locator("#news-submit").click()
     page.get_by_text("Try again in 19 seconds.").wait_for()
     assert page.get_by_text("Filtered search is rate limited").is_visible()
+    assert page.get_by_text("independent feed and does not mean this search succeeded", exact=False).is_visible()
     page.locator("#search-country .country-top-stories li").wait_for()
 
     page.locator("#globe-layer").select_option("countries")

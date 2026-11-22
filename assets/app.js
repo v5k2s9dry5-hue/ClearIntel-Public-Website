@@ -219,7 +219,9 @@ let countrySearchVersion=0;
 async function showSearchCountry(query){
   const version=++countrySearchVersion;
   const panel=$('search-country');
+  const label=$('country-headline-context');
   panel.hidden=true;
+  label.hidden=true;
   try{
     const places=await loadCountries();
     const aliases={uk:'GB',usa:'US','united states of america':'US',britain:'GB','españa':'ES'};
@@ -227,6 +229,10 @@ async function showSearchCountry(query){
     const country=places.find(item=>item.id===(aliases[term]||query.toUpperCase())||item.place.toLowerCase()===term);
     if(!country||version!==countrySearchVersion)return;
     panel.hidden=false;
+    label.hidden=false;
+    label.textContent='SEPARATE COUNTRY BRIEF · '+country.place+
+      ' — source-linked country headline coverage, checked separately from your filtered search. '+
+      'This brief can show results when the filtered search is unavailable or rate limited.';
     renderCountryCard(panel,country,null);
     const controller=new AbortController();
     const countryTimeout=setTimeout(()=>controller.abort(),30000);
@@ -367,13 +373,19 @@ $('news-form').addEventListener('submit',async e=>{
     const response=await fetch('/api/news',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,window:timeWindow,incident_only:incidentOnly}),signal:controller.signal});
     let payload;try{payload=await response.json();}catch{payload={};}
     if(response.status===429){
-      fillStatus('Filtered search is rate limited',retryMessage(response),'error');
+      fillStatus('Filtered search is rate limited',
+        'This filtered search did not return new results. '+retryMessage(response)+
+        ' Any country briefing above is an independent feed and does not mean this search succeeded.','error');
       return;
     }
     if(!response.ok)throw new Error(typeof payload.detail==='string'?payload.detail:'News search could not be completed.');
     const search={query,window:timeWindow,incidentOnly};
     renderResults(payload,search);
     document.dispatchEvent(new CustomEvent('clearintel:news-ready',{detail:{payload,search}}));
-  }catch(err){fillStatus('Filtered search unavailable',err.name==='AbortError'?'The sources did not respond within the time limit. Try again.':err.message,'error');}
+  }catch(err){
+    fillStatus('Filtered search unavailable',
+      (err.name==='AbortError'?'The sources did not respond within the time limit. Try again.':err.message)+
+      ' Any country briefing above is separate; it is not a result from this failed search.','error');
+  }
   finally{clearTimeout(timeout);submit.disabled=false;}
 });
