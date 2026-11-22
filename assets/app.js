@@ -282,7 +282,7 @@ function renderResults(payload,search){
         'Feed timestamp: '+when,
         'Source: '+(article.url||'Unavailable'),
         'Public reporting lead; not independently verified.'
-      ].join('\\n');
+      ].join('\n');
       if(!navigator.clipboard?.writeText){copyStatus.textContent='Clipboard unavailable in this browser.';return;}
       copy.disabled=true;
       try{
