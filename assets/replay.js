@@ -10,7 +10,12 @@
   const history = $('replay-history');
   const select = $('replay-select');
   const detail = $('replay-detail');
-  if (!save || !clear || !status || !history || !select || !detail) return;
+  const compareButton = $('replay-compare-button');
+  const compareHint = $('replay-compare-hint');
+  const comparePanel = $('replay-compare');
+  const compareResult = $('replay-compare-result');
+  if (!save || !clear || !status || !history || !select || !detail ||
+      !compareButton || !compareHint || !comparePanel || !compareResult) return;
 
   let latest = null;
   let snapshots = [];
@@ -51,9 +56,102 @@
     }
   }
 
+  // These are differences between actual, manually saved, potentially
+  // incomplete search results. Not verified changes in real-world events.
+  function searchMatches(a,b) {
+    const query = s => String(s.query || '').trim().toLowerCase();
+    return query(a) === query(b) &&
+      (a.window === '7d' ? '7d' : '24h') === (b.window === '7d' ? '7d' : '24h') &&
+      Boolean(a.incident_only) === Boolean(b.incident_only);
+  }
+  function previousFor(snapshot) {
+    const index=snapshots.indexOf(snapshot);
+    return index<0 ? null : snapshots.slice(index+1).find(s=>searchMatches(s,snapshot)) || null;
+  }
+  function sourceKey(article) {
+    const href=sourceLink(article.url);
+    return href ? 'link:'+href : 'unlinked:'+short(article.source,100).toLowerCase()+':'+short(article.title,240).toLowerCase();
+  }
+  function uniqueArticles(snapshot) {
+    const found=new Map();
+    for(const article of snapshot.articles.slice(0,MAX_RESULTS)) {
+      if (!article || typeof article!=='object') continue;
+      const key=sourceKey(article);
+      if(!found.has(key))found.set(key,article);
+    }
+    return found;
+  }
+  function calculateChanges(older,newer) {
+    const before=uniqueArticles(older),after=uniqueArticles(newer);
+    const added=[],removed=[],changed=[],unchanged=[];
+    for(const [key,article] of after){
+      if(!before.has(key)){added.push(article);continue;}
+      const prior=before.get(key);
+      if(short(prior.title,240)!==short(article.title,240) || short(prior.source,100)!==short(article.source,100))
+        changed.push({prior,article});
+      else unchanged.push(article);
+    }
+    for(const [key,article] of before)if(!after.has(key))removed.push(article);
+    return {added,removed,changed,unchanged};
+  }
+  function linkedEntry(article) {
+    const li=node('li');
+    const href=sourceLink(article.url);
+    const label=href?node('a','',short(article.title||'Untitled',240)):node('strong','',short(article.title||'Untitled',240));
+    if(href){label.href=href;label.target='_blank';label.rel='noopener noreferrer nofollow';}
+    li.append(label,node('span','replay-article-info','Publisher: '+short(article.source||'Unknown',100)+
+      ' · Feed time: '+utc(article.feed_time_utc)));
+    return li;
+  }
+  function drawComparison(older,newer) {
+    compareResult.replaceChildren();
+    const changes=calculateChanges(older,newer);
+    compareResult.append(
+      node('p','replay-compare-period','Earlier observation: '+utc(older.observed_at_utc)+
+        ' · Later observation: '+utc(newer.observed_at_utc)),
+      node('p','replay-compare-summary',changes.added.length+' newly present · '+
+        changes.removed.length+' no longer present · '+changes.changed.length+
+        ' changed headline/publisher · '+changes.unchanged.length+' unchanged'),
+      node('p','replay-warning','These are differences between two saved, potentially incomplete search results. They do not prove an article was published or deleted, an incident occurred, or reports were independently verified. Changes to URLs and syndication may look like separate stories.')
+    );
+    for(const [name,entries,kind] of [
+      ['Newly present in later snapshot',changes.added,'added'],
+      ['No longer present in later snapshot',changes.removed,'removed']]){
+      const group=node('section','replay-diff-group replay-diff-'+kind);
+      group.append(node('h5','',name+' ('+entries.length+')'));
+      if(entries.length){const list=node('ol','replay-articles');for(const article of entries)list.append(linkedEntry(article));group.append(list);}
+      compareResult.append(group);
+    }
+    const group=node('section','replay-diff-group replay-diff-changed');
+    group.append(node('h5','','Headline or publisher changed at same source URL ('+changes.changed.length+')'));
+    if(changes.changed.length){
+      const list=node('ol','replay-articles');
+      for(const {prior,article} of changes.changed){
+        const li=linkedEntry(article);
+        li.append(node('span','replay-previous-title','Earlier saved headline: '+short(prior.title,240)+
+          ' · publisher: '+short(prior.source,100)));
+        list.append(li);
+      }
+      group.append(list);
+    }
+    compareResult.append(group);
+    if(!changes.added.length&&!changes.removed.length&&!changes.changed.length)
+      compareResult.append(node('p','replay-no-change','No headline or publisher differences found in these saved results.'));
+  }
+  function updateComparison(snapshot){
+    comparePanel.hidden=true;
+    compareResult.replaceChildren();
+    const older=snapshot&&previousFor(snapshot);
+    compareButton.disabled=!older;
+    compareHint.textContent=older?
+      'Compare this snapshot with an earlier observation of the same search and filters.':
+      'Save this exact search again to compare; no earlier matching snapshot is available.';
+  }
+
   function drawSnapshot() {
     detail.replaceChildren();
     const snapshot = snapshots.find(s => s.id === select.value);
+    updateComparison(snapshot);
     if (!snapshot) return;
     const heading = node('h4', '', 'Snapshot: ' + short(snapshot.query, 140));
     const observed = node('p', 'replay-observed', 'Observed by this browser: ' + utc(snapshot.observed_at_utc));
@@ -97,7 +195,10 @@
     if (snapshots.length) {
       select.value = snapshots.some(s => s.id === selectedId) ? selectedId : snapshots[0].id;
       drawSnapshot();
-    } else detail.replaceChildren();
+    } else {
+      detail.replaceChildren();
+      updateComparison(null);
+    }
   }
 
   function makeSnapshot() {
@@ -161,6 +262,13 @@
     }
   });
   select.addEventListener('change', drawSnapshot);
+  compareButton.addEventListener('click',()=>{
+    const selected=snapshots.find(s=>s.id===select.value);
+    const older=selected&&previousFor(selected);
+    if(!older)return;
+    drawComparison(older,selected);
+    comparePanel.hidden=false;
+  });
   load();
   render();
 })();

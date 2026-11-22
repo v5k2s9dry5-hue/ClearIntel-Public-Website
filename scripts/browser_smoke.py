@@ -223,8 +223,27 @@ def check_site(browser, width):
     assert "observed_at_utc" in replay[0]
     assert page.locator("#replay-history").is_visible()
     assert page.locator("#replay-detail").get_by_text("Observed by this browser:", exact=False).is_visible()
+    # A second, deliberately changed observed result set, not fabricated history.
+    page.evaluate("""() => document.dispatchEvent(new CustomEvent('clearintel:news-ready', {
+      detail:{search:{query:'UK',window:'24h',incidentOnly:false},
+      payload:{results:[{title:'New UK research report',source:'Second publisher',
+        provider:'Fixture',url:'https://example.org/new-story',
+        feed_time_utc:'2026-11-21T13:00:00Z',time_basis:'Publication time'}],
+      sources_checked:['Fixture provider'],provider_errors:[]}}
+    }))""")
     page.get_by_role("button", name="Save current snapshot").click()
     assert page.locator("#replay-select option").count() == 2
+    page.get_by_role("button", name="Compare with earlier snapshot").click()
+    assert page.locator("#replay-compare").is_visible()
+    assert "1 newly present" in page.locator(".replay-compare-summary").inner_text()
+    assert "1 no longer present" in page.locator(".replay-compare-summary").inner_text()
+    assert page.locator(".replay-diff-added").get_by_text("New UK research report").is_visible()
+    assert page.locator(".replay-diff-removed").get_by_text("UK transport news update").is_visible()
+    assert page.get_by_text("These are differences between two saved", exact=False).is_visible()
+    # A selected older snapshot cannot invent history before it was recorded.
+    page.locator("#replay-select").select_option(index=1)
+    assert page.get_by_role("button", name="Compare with earlier snapshot").is_disabled()
+    page.locator("#replay-select").select_option(index=0)
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("button", name="Clear saved history").click()
     assert page.evaluate("() => localStorage.getItem('clearintel.replay.snapshots.v1')") is None
