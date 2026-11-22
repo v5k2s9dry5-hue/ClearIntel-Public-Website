@@ -18,11 +18,13 @@
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/styles.css?v=20261122-analyst-mode">
   <link rel="stylesheet" href="/assets/dashboard.css?v=20261122-analyst-mode">
+  <link rel="stylesheet" href="/assets/dashboard-visual.css?v=20261122-visual">
   <script src="/assets/research-pdf.js" defer></script>
   <script src="/assets/analyst-mode.js" defer></script>
   <script src="/assets/country-card.js?v=refresh-resilience" defer></script>
   <script src="/assets/app.js?v=20261122-refresh-resilience" defer></script>
   <script src="/assets/dashboard-sidebar.js" defer></script>
+  <script src="/assets/dashboard-visual.js" defer></script>
   <script src="/assets/dashboard-search.js" defer></script>
   <script src="/assets/map-expand.js" defer></script>
   <script src="/assets/timeline.js?v=event-timeline" defer></script>
@@ -45,18 +47,19 @@
   <main id="main">
     <section id="top" class="dashboard" aria-labelledby="dashboard-heading">
       <nav id="dashboard-sidebar" class="dashboard-nav" aria-label="Dashboard navigation">
-        <a class="dashboard-nav-current" href="#top" aria-current="location">Live map</a>
-        <a href="#research">News research</a>
-        <a href="/countries">Country directory</a>
-        <a href="#services">Services</a>
-        <a href="#method">Method</a>
-        <a href="#contact">Make an enquiry</a>
+        <div class="nav-section-label" aria-hidden="true">WORKSPACE</div>
+        <a class="dashboard-nav-current" href="#top" aria-current="location"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg><span>Live map</span></a>
+        <a href="#research"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><span>News research</span></a>
+        <a href="/countries"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h13v18H5zM8 8h7M8 12h7M8 16h5"/></svg><span>Country directory</span></a>
+        <a href="#services"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V3h8v4M3 12h18"/></svg><span>Services</span></a>
+        <a href="#method"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 7v5c0 5 4 8 9 10 5-2 9-5 9-10V7zM8 12l3 3 5-6"/></svg><span>Method</span></a>
+        <a href="#contact"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span>Make an enquiry</span></a>
       </nav>
       <div class="dashboard-workspace">
         <div class="dashboard-toolbar">
           <div class="dashboard-title">
             <button id="sidebar-toggle" type="button" class="globe-control" aria-controls="dashboard-sidebar" aria-expanded="true" hidden>Hide sidebar</button>
-            <h1 id="dashboard-heading">Live intelligence</h1>
+            <div class="dashboard-heading-group"><span class="workspace-kicker">GLOBAL INTELLIGENCE WORKSPACE</span><h1 id="dashboard-heading">Live intelligence</h1></div>
             <button type="button" id="analyst-mode-toggle" class="globe-control analyst-mode-toggle" aria-pressed="false" hidden>Analyst mode</button>
           </div>
           <label for="globe-layer">Layer
@@ -89,15 +92,15 @@
           </dl>
         </details>
         <div id="dashboard-view-controls" class="dashboard-view-controls" role="group" aria-label="Dashboard shortcuts" hidden>
-          <button type="button" id="dashboard-map-tab" aria-controls="dashboard-map" aria-pressed="true">Map</button>
-          <button type="button" id="dashboard-feed-tab" aria-controls="dashboard-feed" aria-pressed="false">Feed</button>
-          <button type="button" id="dashboard-search-tab">Search</button>
-          <a href="/countries">Countries</a>
+          <button type="button" id="dashboard-map-tab" aria-controls="dashboard-map" aria-pressed="true"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg><span>Map</span></button>
+          <button type="button" id="dashboard-feed-tab" aria-controls="dashboard-feed" aria-pressed="false"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h14M5 12h14M5 18h9"/></svg><span>Feed</span></button>
+          <button type="button" id="dashboard-search-tab"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><span>Search</span></button>
+          <a href="/countries"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h13v18H5zM8 8h7M8 12h7M8 16h5"/></svg><span>Countries</span></a>
         </div>
         <dialog id="expanded-map" aria-label="Expanded map"></dialog>
         <div class="dashboard-panels">
           <section id="dashboard-map" class="dashboard-panel dashboard-map" aria-labelledby="dashboard-map-heading">
-            <h2 id="dashboard-map-heading" class="visually-hidden">Live globe</h2>
+            <div class="map-panel-heading"><div><h2 id="dashboard-map-heading">Global map</h2><p id="map-layer-source">USGS · Earthquake observations</p></div><span id="map-layer-kind" class="map-layer-kind">Live feed</span></div>
             <div class="globe-canvas-wrap">
               <canvas id="earth-canvas" role="img" aria-label="Interactive globe. You can also select events in the live feed."></canvas>
               <div id="map-instructions" class="globe-coord-label">Drag to rotate · Select a pin or count</div>

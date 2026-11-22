@@ -96,6 +96,10 @@ def check_site(browser, width):
         const malformed = new Response(null, {status: 503, headers: {'Retry-After': 'invalid'}});
         if (ClearIntelMapRefresh.retryAt(malformed, 1000) !== 31000) throw Error('Invalid retry fallback');
     }""")
+    assert page.locator("#map-layer-source").inner_text() == "USGS · Earthquake observations"
+    assert page.locator("#map-layer-kind").inner_text() == "Public feed"
+    assert page.locator("#dashboard-map-heading").is_visible()
+    assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     toggle = page.locator("#sidebar-toggle")
     if width > 1080:
         toggle.click()
@@ -138,7 +142,9 @@ def check_site(browser, width):
     query.press("Enter")
     page.locator("#dashboard-matches").get_by_role("button", name="Naval activity · Historical map layer").click()
     assert page.locator("#ukmto-bulletins").get_by_role("link", name="Official advisories").is_visible()
+    assert page.locator("#map-layer-kind").inner_text() == "Historical archive"
     page.locator("#globe-layer").select_option("earthquakes")
+    assert page.locator("#map-layer-kind").inner_text() == "Public feed"
     assert not page.locator("#ukmto-bulletins").is_visible()
     query.fill("rail services")
     query.press("Enter")
