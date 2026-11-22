@@ -38,7 +38,7 @@ CLIENT_SEARCHES_PER_HOUR = 20
 SITE_SEARCHES_PER_MINUTE = 60
 MAX_ACTIVE_PROVIDER_SEARCHES = 4
 _rate_lock = Lock()
-_rate: dict[str, deque[float]] = {}
+_rate: dict[tuple[str, str], deque[float]] = {}
 _site_searches: deque[float] = deque()
 _search_cache: OrderedDict[tuple[str, str, bool] | tuple[str], tuple[float, dict]] = OrderedDict()
 _active_searches = 0
@@ -109,7 +109,7 @@ def _client_key(request: Request) -> str | None:
     return str(address) if address.is_global else None
 
 
-def _admit_search(peer: str | None, key: tuple[str, str, bool] | tuple[str]) -> dict | None:
+def _admit_search(peer: tuple[str, str] | None, key: tuple[str, str, bool] | tuple[str]) -> dict | None:
     global _active_searches, _next_rate_cleanup
     with _rate_lock:
         now = monotonic()
@@ -172,7 +172,9 @@ async def country_news(code: str, request: Request):
 
 async def _cached_news(request, key, cache_seconds, search, *args, **kwargs):
     global _active_searches
-    cached = _admit_search(_client_key(request), key)
+    address = _client_key(request)
+    route = request.scope["route"].path
+    cached = _admit_search((address, route) if address else None, key)
     if cached is not None:
         return cached
     try:

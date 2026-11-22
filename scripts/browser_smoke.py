@@ -113,6 +113,13 @@ def check_site(browser, width):
         page.locator("#news-results .report-export button").filter(has_text="Download PDF").click()
     assert download.value.suggested_filename.endswith(".pdf")
 
+    page.route("**/api/news", lambda route: route.fulfill(
+        status=429, headers={"Retry-After": "19"}, content_type="application/json", body="{}"))
+    page.locator("#news-submit").click()
+    page.get_by_text("Try again in 19 seconds.").wait_for()
+    assert page.get_by_text("Filtered search is rate limited").is_visible()
+    page.locator("#search-country .country-top-stories li").wait_for()
+
     page.locator("#globe-layer").select_option("countries")
     if mobile:
         page.locator("#dashboard-feed-tab").click()
