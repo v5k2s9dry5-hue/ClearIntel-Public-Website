@@ -31,7 +31,7 @@ function renderCountryCard(container,country,entry){
       status.textContent=`Checked ${utcTime.format(new Date(data.checked_at_utc))} UTC${coverage}`;
     }
     if(entry?.data?.provider_errors.length)status.textContent+=' · Partial source coverage';
-    if(entry?.data && entry.failed)status.textContent+=' · Refresh unavailable';
+    if(entry?.data && entry.failed)status.textContent+=' · '+(entry.message || 'Refresh unavailable');
     if(entry?.change && (entry.change.newCount || entry.change.updatedCount)){
       const parts=[];
       if(entry.change.newCount)parts.push(entry.change.newCount+' new in feed');

@@ -26,14 +26,18 @@ def directory(base):
     groups = {}
     for code, name in sorted(COUNTRIES.items(), key=lambda item: item[1].casefold()):
         groups.setdefault(name[0].upper(), []).append(
-            f'<li><a href="/countries/{code.lower()}">{escape(name)}</a></li>')
+            f'<li data-code="{code}"><a href="/countries/{code.lower()}">{escape(name)}</a></li>')
     jumps = ' '.join(f'<a href="#group-{letter}">{letter}</a>' for letter in groups)
     sections = ''.join(f'<section><h2 id="group-{letter}">{letter}</h2><ul class="directory">'
                        f'{"".join(links)}</ul></section>' for letter, links in groups.items())
     description = 'Browse recent reporting and news sources by country or territory.'
     body = (f'<h1>Country directory</h1><p>{description}</p>'
+            '<div id="directory-filter" hidden><label for="country-filter">Find a country or territory</label>'
+            '<input type="search" id="country-filter" placeholder="Name or code, e.g. Netherlands or UK">'
+            '<span id="filter-count" role="status"></span></div>'
             f'<nav aria-label="Jump to letter" class="letters">{jumps}</nav>{sections}')
-    return page(base, '/countries', 'Country directory', description, body)
+    return page(base, '/countries', 'Country directory', description, body,
+                '<script src="/assets/country-filter.js" defer></script>')
 
 
 def profile(base, code):
@@ -48,6 +52,7 @@ def profile(base, code):
     body = (f'<h1>{escape(name)}</h1><p>{escape(description)}</p>'
             f'<section id="country-brief" data-code="{code}" data-place="{escape(name)}">'
             '<h2>Recent headlines</h2><noscript>Enable JavaScript to load headlines or use the source links below.</noscript></section>'
+            f'<p class="update-note">Headlines refresh every five minutes while this page is open and visible.</p>'
             f'<section><h2>Browse sources</h2><ul>{source_links}</ul></section>')
     scripts = '<script src="/assets/country-card.js" defer></script><script src="/assets/country-profile.js" defer></script>'
     return page(base, '/countries/' + code.lower(), name + ' news and sources', description, body, scripts)
