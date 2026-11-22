@@ -21,12 +21,14 @@
   <link rel="stylesheet" href="/assets/dashboard-visual.css?v=20261122-result-controls"><link rel="stylesheet" href="/assets/command-center.css">
   <link rel="stylesheet" href="/assets/obsidian.css">
   <link rel="stylesheet" href="/assets/workspace-controls.css">
+  <link rel="stylesheet" href="/assets/context-help.css">
   <link rel="stylesheet" href="/assets/replay.css">
   <script src="/assets/research-pdf.js" defer></script>
   <script src="/assets/analyst-mode.js" defer></script>
   <script src="/assets/country-card.js?v=evidence-disclosure" defer></script>
   <script src="/assets/app.js?v=20261122-result-controls" defer></script>
   <script src="/assets/replay.js" defer></script>
+  <script src="/assets/context-help.js" defer></script>
   <script src="/assets/dashboard-sidebar.js" defer></script>
   <script src="/assets/dashboard-visual.js" defer></script>
   <script src="/assets/dashboard-search.js" defer></script>
@@ -46,7 +48,7 @@
       <nav class="main-nav" aria-label="Primary navigation"><a href="#research">Research desk</a><a href="/countries">Countries</a><a href="#services">Services</a><a href="#method">Method</a><a href="#contact" class="nav-contact">Make an enquiry <span aria-hidden="true">↗</span></a></nav>
       <button id="menu-toggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav">Menu <span aria-hidden="true">☰</span></button>
     </div>
-    <nav id="mobile-nav" class="mobile-nav" hidden aria-label="Mobile navigation"><a href="#research">Research desk</a><a href="/countries">Countries</a><a href="#services">Services</a><a href="#method">Method</a><a href="#contact">Make an enquiry</a></nav>
+    <nav id="mobile-nav" class="mobile-nav" hidden aria-label="Mobile navigation"><a href="#research">Research desk</a><a href="/countries">Countries</a><a href="#services">Services</a><a href="#method">Method</a><a href="#contact">Make an enquiry</a><a href="#ci-start-guide">How to use ClearIntel</a></nav>
   </header>
   <main id="main">
     <section id="top" class="dashboard" aria-labelledby="dashboard-heading">
@@ -74,6 +76,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="#08111b"/><circle cx="15" cy="12" r="2" fill="#08111b"/><circle cx="11" cy="17" r="2" fill="#08111b"/></svg>
                 <span class="workspace-control-text">Analyst mode</span><span class="workspace-control-indicator" aria-hidden="true">Off</span>
               </button>
+              <button type="button" class="ci-help-dot" aria-label="Explain workspace controls" data-ci-note="ci-workspace-note" aria-expanded="false" aria-controls="ci-workspace-note">?</button>
             </div>
             <label for="globe-layer" class="workspace-layer-picker">Layer
               <select id="globe-layer">
@@ -87,6 +90,18 @@
             </label>
           </div>
         </div>
+        <p id="ci-workspace-note" class="ci-inline-help" hidden>Analyst mode shows extra source details and keeps evidence sections expanded. Use Hide sidebar to gain map space on a desktop. Layer chooses which public data or archived reports appear on the map; the military and naval layers are historical, not live tracking.</p>
+        <details id="ci-start-guide" class="ci-start-guide">
+          <summary><span class="ci-guide-symbol" aria-hidden="true">?</span><span><strong>New to ClearIntel? Start here.</strong><small>A simple guide to the map, news, sources and Replay</small></span><span class="ci-guide-action" aria-hidden="true">Show guide</span></summary>
+          <div class="ci-guide-steps">
+            <div><span class="ci-guide-number">01</span><strong>Choose a map layer</strong><p>Select earthquakes, wildfires, ISS or country headlines. Aviation and naval reports show selected past events, not live movements.</p></div>
+            <div><span class="ci-guide-number">02</span><strong>Explore the map</strong><p>Drag or swipe to move the map, zoom with the controls, and select markers to read the linked reports. On mobile, use Map and Feed tabs.</p></div>
+            <div><span class="ci-guide-number">03</span><strong>Search for reporting</strong><p>Go to Public news research, enter a topic and select a date window. A country briefing is a separate feed; publication dates do not prove an incident happened then.</p></div>
+            <div><span class="ci-guide-number">04</span><strong>Save and compare evidence</strong><p>Replay saves search snapshots only when you choose Save. You can compare observations, and delete them. They stay on this browser.</p></div>
+          </div>
+          <p class="ci-guide-caution">ClearIntel collects public-source research leads. Headline matches, map mentions and timestamps are not independently verified incidents. Check original sources before drawing conclusions.</p>
+          <div class="ci-guide-links"><a href="#dashboard-map">Explore the map</a><a href="#research">Try news research</a><a href="#intelligence-replay">Open Replay</a></div>
+        </details>
         <div class="command-overview" aria-label="Explore intelligence categories">
           <button type="button" class="command-overview-card" data-command-layer="earthquakes" aria-pressed="true">
             <span class="command-overview-top"><span class="command-index">01 / OBSERVATIONS</span><span class="command-symbol" aria-hidden="true">◎</span></span>
@@ -131,7 +146,8 @@
         <dialog id="expanded-map" aria-label="Expanded map"></dialog>
         <div class="dashboard-panels">
           <section id="dashboard-map" class="dashboard-panel dashboard-map" aria-labelledby="dashboard-map-heading">
-            <div class="map-panel-heading"><div><h2 id="dashboard-map-heading">GLOBAL ACTIVITY MAP</h2><p id="map-layer-source">USGS · Earthquake observations</p></div><span id="map-layer-kind" class="map-layer-kind">Live feed</span></div>
+            <div class="map-panel-heading"><div><h2 id="dashboard-map-heading">GLOBAL ACTIVITY MAP</h2><p id="map-layer-source">USGS · Earthquake observations</p></div><div class="ci-heading-actions"><span id="map-layer-kind" class="map-layer-kind">Live feed</span><button type="button" class="ci-help-dot" aria-label="Explain map markers" data-ci-note="ci-map-note" aria-expanded="false" aria-controls="ci-map-note">?</button></div></div>
+            <p id="ci-map-note" class="ci-inline-help" hidden>Markers represent records from the chosen source. Country-news city pins indicate a place mentioned in a headline, not a confirmed incident location. Drag to rotate, select a marker or count, and use the Source feed for linked reporting. Live feed means periodic source checks, not independently verified events.</p>
             <div class="globe-canvas-wrap">
               <canvas id="earth-canvas" role="img" aria-label="Interactive globe. You can also select events in the live feed."></canvas>
               <div id="map-instructions" class="globe-coord-label">Drag to rotate · Select a pin or count</div>
@@ -158,7 +174,8 @@
             </div>
           </section>
           <section id="dashboard-feed" class="dashboard-panel dashboard-feed" aria-labelledby="dashboard-feed-heading">
-            <div class="command-feed-label"><span class="command-feed-dot" aria-hidden="true"></span><span>PUBLIC-SOURCE INTELLIGENCE</span></div><h2 id="dashboard-feed-heading" tabindex="-1">Source feed</h2>
+            <div class="command-feed-label"><span class="command-feed-dot" aria-hidden="true"></span><span>PUBLIC-SOURCE INTELLIGENCE</span></div><div class="ci-title-help"><h2 id="dashboard-feed-heading" tabindex="-1">Source feed</h2><button type="button" class="ci-help-dot" aria-label="Explain source feed and timestamps" data-ci-note="ci-feed-note" aria-expanded="false" aria-controls="ci-feed-note">?</button></div>
+            <p id="ci-feed-note" class="ci-inline-help" hidden>Choose a timeframe, then select a report to see its original source and time. The timeline filters observations. Pausing updates stops automatic checks on supported layers, and provider outages can leave older results. Report and publication times are not always incident times.</p>
             <div id="earthquake-panel">
               <div id="report-controls" class="quake-controls">
                 <label for="quake-window">Time window
@@ -198,7 +215,8 @@
       </div>
     </section>
     <section id="research" class="section container research-section">
-      <div class="section-heading"><div><h2>Public news research</h2><p>Search recent reporting and open the original sources.</p></div></div>
+      <div class="section-heading"><div><h2>Public news research</h2><p>Search recent reporting and open the original sources.</p></div><button type="button" class="ci-help-dot" aria-label="Explain public news search" data-ci-note="ci-research-note" aria-expanded="false" aria-controls="ci-research-note">?</button></div>
+      <p id="ci-research-note" class="ci-inline-help" hidden>Search for a country, subject or developing story and choose the last 24 hours or 7 days. Results are published headlines with source links, not confirmed events. A country brief and a filtered topic search run separately; either may be unavailable or rate-limited.</p>
       <div class="research-panel">
         <form id="news-form" class="news-form">
           <div class="field-head"><label for="news-query">What are you researching?</label><div class="help-wrapper"><button type="button" class="help-button" aria-label="Help with news searches" aria-expanded="false" data-help="Search for a location or topic, for example ‘Iran bombing today’. ClearIntel shows published headlines within the time window. Headlines are not independently verified incidents.">?</button></div></div>
@@ -214,8 +232,9 @@
         <section class="replay-panel" id="intelligence-replay" aria-labelledby="replay-heading">
           <div class="replay-heading">
             <div><span class="replay-kicker">INTELLIGENCE REPLAY / R0 + COMPARISON</span><h3 id="replay-heading">Observed research snapshots</h3></div>
-            <span class="replay-local-tag">This browser only</span>
+            <div class="ci-heading-actions"><span class="replay-local-tag">This browser only</span><button type="button" class="ci-help-dot" aria-label="Explain Intelligence Replay" data-ci-note="ci-replay-note" aria-expanded="false" aria-controls="ci-replay-note">?</button></div>
           </div>
+          <p id="ci-replay-note" class="ci-inline-help" hidden>Replay is a history you create yourself. First run a public news search, then choose Save current snapshot. Save the same search again later to compare what ClearIntel observed. It cannot rewind to dates when no snapshot was saved; browser-local data can be cleared anytime.</p>
           <p>Save the results of a completed public-news search to revisit what ClearIntel actually returned at that moment. Observation time is not an incident time. No history exists before you save it.</p>
           <div class="replay-actions">
             <button type="button" id="replay-save" disabled>Save current snapshot</button>
