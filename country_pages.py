@@ -1,0 +1,53 @@
+"""Server-rendered country directory and source guides."""
+from html import escape
+from string import Template
+from urllib.parse import urlencode
+
+from country_news import COUNTRIES, NATIONAL_FEEDS, REGIONAL_FEEDS
+
+PAGE = Template("""<!doctype html>
+<html lang="en-GB"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>$title | ClearIntel</title><meta name="description" content="$description">
+<link rel="canonical" href="$canonical"><meta property="og:url" content="$canonical">
+<meta property="og:title" content="$title | ClearIntel"><meta property="og:description" content="$description">
+<link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/countries.css">
+$script</head><body>
+<header><a class="brand" href="/">ClearIntel</a><nav aria-label="Main navigation"><a href="/">Live map</a><a href="/countries">Country directory</a></nav></header>
+<main>$content</main></body></html>""")
+
+
+def page(base, path, title, description, content, scripts=''):
+    return PAGE.substitute(title=escape(title), description=escape(description),
+                           canonical=escape(base + path), content=content, script=scripts)
+
+
+def directory(base):
+    groups = {}
+    for code, name in sorted(COUNTRIES.items(), key=lambda item: item[1].casefold()):
+        groups.setdefault(name[0].upper(), []).append(
+            f'<li><a href="/countries/{code.lower()}">{escape(name)}</a></li>')
+    jumps = ' '.join(f'<a href="#group-{letter}">{letter}</a>' for letter in groups)
+    sections = ''.join(f'<section><h2 id="group-{letter}">{letter}</h2><ul class="directory">'
+                       f'{"".join(links)}</ul></section>' for letter, links in groups.items())
+    description = 'Browse recent reporting and news sources by country or territory.'
+    body = (f'<h1>Country directory</h1><p>{description}</p>'
+            f'<nav aria-label="Jump to letter" class="letters">{jumps}</nav>{sections}')
+    return page(base, '/countries', 'Country directory', description, body)
+
+
+def profile(base, code):
+    name = COUNTRIES[code]
+    sources = list(REGIONAL_FEEDS.get(code, ()))
+    if code in NATIONAL_FEEDS:
+        sources.insert(0, NATIONAL_FEEDS[code])
+    search_url = 'https://news.google.com/search?' + urlencode({'q': name, 'hl': 'en-GB'})
+    sources.append((f'Search Google News for {name}', search_url))
+    source_links = ''.join(f'<li><a href="{escape(url)}">{escape(label)}</a></li>' for label, url in sources)
+    description = f'Browse recent headlines for {name}, check when sources were last queried and open the original reports.'
+    body = (f'<h1>{escape(name)}</h1><p>{escape(description)}</p>'
+            f'<section id="country-brief" data-code="{code}" data-place="{escape(name)}">'
+            '<h2>Recent headlines</h2><noscript>Enable JavaScript to load headlines or use the source links below.</noscript></section>'
+            f'<section><h2>Browse sources</h2><ul>{source_links}</ul></section>')
+    scripts = '<script src="/assets/country-card.js" defer></script><script src="/assets/country-profile.js" defer></script>'
+    return page(base, '/countries/' + code.lower(), name + ' news and sources', description, body, scripts)

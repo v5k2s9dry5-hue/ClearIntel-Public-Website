@@ -5,6 +5,7 @@ from threading import Event
 from fastapi.testclient import TestClient
 from unittest.mock import patch
 from main import app
+from country_news import COUNTRIES
 
 SEARCH_RESPONSE = {'results': [], 'sources_checked': ['test'], 'provider_errors': []}
 
@@ -28,6 +29,17 @@ class PublicSiteTests(unittest.TestCase):
             self.assertIn('property="og:url" content="https://research.example/"', html)
             self.assertIn('<loc>https://research.example/</loc>', self.client.get('/sitemap.xml').text)
             self.assertIn('Sitemap: https://research.example/sitemap.xml', self.client.get('/robots.txt').text)
+
+    def test_country_directory_and_sitemap_cover_every_profile(self):
+        directory = self.client.get('/countries').text
+        sitemap = self.client.get('/sitemap.xml').text
+        for code in COUNTRIES:
+            path = '/countries/' + code.lower()
+            self.assertIn(f'href="{path}"', directory)
+            self.assertIn(f'{path}</loc>', sitemap)
+        self.assertIn('BBC Scotland', self.client.get('/countries/gb').text)
+        self.assertIn('El Mundo', self.client.get('/countries/es').text)
+        self.assertEqual(self.client.get('/countries/missing').status_code, 404)
 
     def test_private_routes_not_exposed(self):
         for route in ['/report','/case','/run','/state','/config/api_keys.json','/docs']:

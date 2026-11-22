@@ -21,6 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field, ValidationError
 
+import country_pages
 from country_news import COUNTRIES, search_country_news, search_research as search_news
 from earthquakes import router as earthquake_router
 from wildfires import router as wildfire_router
@@ -70,6 +71,18 @@ async def secure_headers(request: Request, call_next):
 @app.get("/", include_in_schema=False)
 async def home():
     return HTMLResponse(HOME_TEMPLATE.replace("{{PUBLIC_HOME}}", escape(PUBLIC_URL + "/")))
+
+
+@app.get("/countries", response_class=HTMLResponse, include_in_schema=False)
+async def country_directory():
+    return country_pages.directory(PUBLIC_URL)
+
+
+@app.get("/countries/{code}", response_class=HTMLResponse, include_in_schema=False)
+async def country_profile(code: str):
+    if code != code.lower() or code.upper() not in COUNTRIES or not code.isascii():
+        raise HTTPException(404, "Unknown country or territory.")
+    return country_pages.profile(PUBLIC_URL, code.upper())
 
 
 @app.get("/health", include_in_schema=False)
@@ -245,4 +258,6 @@ async def robots():
 
 @app.get("/sitemap.xml", include_in_schema=False)
 async def sitemap():
-    return Response(f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>{escape(PUBLIC_URL)}/</loc></url></urlset>', media_type="application/xml")
+    paths = ["/", "/countries", *("/countries/" + code.lower() for code in sorted(COUNTRIES))]
+    locations = "".join(f"<url><loc>{escape(PUBLIC_URL + path)}</loc></url>" for path in paths)
+    return Response(f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{locations}</urlset>', media_type="application/xml")
