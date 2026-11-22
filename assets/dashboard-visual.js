@@ -20,6 +20,17 @@
     // Category identity, not severity or confirmation; set via data attribute (CSP safe).
     map.dataset.category=layer.value;
   }
-  layer.addEventListener('change',update);
-  update();
+  const shortcuts=[...document.querySelectorAll('.command-overview-card[data-command-layer]')];
+  function syncShortcuts(){
+    const active=layer.value;
+    for(const shortcut of shortcuts)shortcut.setAttribute('aria-pressed', String(shortcut.dataset.commandLayer===active));
+  }
+  for(const shortcut of shortcuts)shortcut.addEventListener('click',()=>{
+    layer.value=shortcut.dataset.commandLayer;
+    layer.dispatchEvent(new Event('change',{bubbles:true}));
+    if(matchMedia('(max-width:860px)').matches)document.getElementById('dashboard-map-tab')?.click();
+    map.scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+  layer.addEventListener('change',()=>{update();syncShortcuts();});
+  update();syncShortcuts();
 })();
