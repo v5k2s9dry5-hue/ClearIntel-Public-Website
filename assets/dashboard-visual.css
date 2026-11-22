@@ -1,0 +1,94 @@
+/* ClearIntel workspace visual system. No third-party fonts or graphics. */
+:root {
+  --bg:#080e19; --ink:#edf5ff; --muted:#a4b7cc; --mint:#65d9ef;
+  --panel:#101b2b; --panel2:#142237; --line:#27384c;
+  --dashboard-surface:#101b2b; --dashboard-border:#283b51; --dashboard-accent:#65d9ef;
+  --layer-accent:#5de5f4;
+}
+body { font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif; font-size:15px; }
+.site-header { background:#0d1523; border-bottom:1px solid #27384c; backdrop-filter:none; }
+.nav-bar { width:min(calc(100% - 48px),1560px); }
+.dashboard { width:min(calc(100% - 40px),1560px); grid-template-columns:184px minmax(0,1fr); gap:18px; padding-block:22px 34px; }
+.dashboard-nav { padding:12px 9px; gap:4px; background:#0d1726; border-radius:10px; }
+.nav-section-label { padding:6px 10px 12px; color:#8da6bd; font-size:10px; font-weight:700; letter-spacing:.12em; }
+.dashboard-nav a { display:flex; align-items:center; gap:10px; min-height:43px; padding:9px 10px; font-size:13px; line-height:1.35; border:1px solid transparent; }
+.nav-icon { width:19px; height:19px; flex:none; }
+.dashboard-nav a:hover { background:#16263b; color:#eaf5ff; }
+.dashboard-nav .dashboard-nav-current { background:#142d40; border-color:#2e536a; color:#84e3f4; }
+.dashboard-toolbar { margin-bottom:16px; align-items:center; }
+.dashboard-heading-group { min-width:0; }
+.workspace-kicker { display:block; font-size:10px; font-weight:700; letter-spacing:.13em; color:#8eafc7; margin-bottom:4px; }
+.dashboard-toolbar h1 { font-size:clamp(24px,2.5vw,34px); letter-spacing:-.035em; }
+.dashboard-title { gap:10px; }
+.dashboard .globe-control { border-radius:7px; min-height:38px; background:#142339; border-color:#344d67; color:#dfeefd; transition:background .14s,border-color .14s; }
+.dashboard .globe-control:hover:not(:disabled) { background:#1b3550; border-color:#6090ac; }
+#dashboard-search:not([hidden]) { margin-bottom:12px; }
+#dashboard-query { min-height:44px; background:#0d1726; border-color:#344960; }
+#dashboard-query::placeholder { color:#8da5bc; }
+#dashboard-search button { min-width:88px; color:#0b1d2b; background:#65d9ef; border-color:#65d9ef; font-weight:700; }
+#dashboard-search button:hover { background:#a2e8f5; color:#0b1d2b; }
+.dashboard-source-guide { background:#0d1726; border-radius:8px; padding:9px 12px; }
+.dashboard-panels { grid-template-columns:minmax(0,1fr) minmax(306px,34%); gap:14px; align-items:start; }
+.dashboard-panel { border-radius:11px; box-shadow:0 8px 24px #0003; }
+.map-panel-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:12px 15px; border-bottom:1px solid var(--dashboard-border); background:#111d2f; }
+.map-panel-heading h2 { margin:0; font-size:15px; letter-spacing:.005em; line-height:1.4; }
+.map-panel-heading p { margin:3px 0 0; color:#a4bad0; font-size:12px; }
+.map-layer-kind { display:inline-flex; align-items:center; gap:7px; color:#d5e6f5; background:#0d1726; border:1px solid #354d64; padding:5px 8px; border-radius:6px; font-size:11px; font-weight:600; }
+.map-layer-kind::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--layer-accent); }
+.dashboard[data-layer="wildfires"] { --layer-accent:#ffae68; }
+.dashboard[data-layer="countries"] { --layer-accent:#a7ef8a; }
+.dashboard[data-layer="aviation"] { --layer-accent:#f3ce70; }
+.dashboard[data-layer="maritime"] { --layer-accent:#b3a7ff; }
+.dashboard[data-layer="iss"] { --layer-accent:#88c9ff; }
+#expanded-map .map-panel-heading { flex:none; }
+.dashboard-map .globe-canvas-wrap { height:clamp(390px,46vw,560px); background:radial-gradient(ellipse at 50% 48%,#152d49,#081321 74%); }
+.dashboard-map-footer { padding:10px 12px; background:#101b2b; }
+.dashboard-feed { padding:15px; }
+.dashboard-feed h2 { margin:0 0 14px; padding-bottom:10px; border-bottom:1px solid #2a3b51; font-size:17px; letter-spacing:-.02em; }
+.dashboard-feed .orbital-status { background:#0c1625; border-radius:7px; padding:10px; font-size:12px; line-height:1.5; }
+.dashboard .quake-detail:not([hidden]) { padding:12px; gap:6px; background:#112338; border-color:#3b526a; font-size:13px; }
+.dashboard .quake-detail > strong { font-size:15px; line-height:1.35; }
+.dashboard .quake-list { gap:7px; max-height:420px; }
+.dashboard .quake-list button { background:#0e192a; border-color:#2b3d53; border-radius:8px; padding:12px 10px; line-height:1.45; }
+.dashboard .quake-list button::before { background:var(--layer-accent); align-self:start; margin-top:6px; }
+.dashboard .quake-list button[aria-pressed="true"] { background:#182e45; border-color:#79bed4; }
+.dashboard .report-time { color:#a9bfd4; padding-top:3px; font-variant-numeric:tabular-nums; }
+.dashboard .country-top-stories { gap:12px; }
+.dashboard .country-top-stories li { padding-bottom:9px; border-bottom:1px solid #30445b; }
+.dashboard .country-top-stories li:last-child { border-bottom:0; }
+.dashboard .country-top-stories a { line-height:1.45; }
+.research-panel,.service-card,.grading-panel,.enquiry-panel { background:#101b2b; border-color:#2d4057; box-shadow:none; }
+.research-panel .result-card { background:#0d1929; border-color:#30465c; }
+.research-panel .result-title { color:#eaf5ff; }
+.research-panel .result-meta,.research-panel .result-provider,.research-panel .results-foot { color:#a7bdd2; }
+.research-panel .search-symbol,.research-panel .result-kicker { color:#80d7e9; }
+.research-panel .search-input { background:#0c1726; border-color:#3b5269; }
+.research-panel .search-input input::placeholder { color:#8199b0; }
+.research-panel .help-button { background:#172e40; border-color:#57788c; color:#c7edfa; }
+.research-panel .help-button:hover,.research-panel .help-button[aria-expanded="true"] { background:#315c76; color:white; }
+.research-panel .input-note,.research-disclaimer { color:#a3b8cc; }
+@media(min-width:1081px) { .dashboard.sidebar-collapsed { grid-template-columns:minmax(0,1fr); } .dashboard-nav { position:sticky; top:84px; } }
+@media(max-width:1080px) { .dashboard { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:860px) {
+  .dashboard { width:calc(100% - 24px); gap:0; padding-block:15px 20px; }
+  .dashboard-toolbar { gap:10px; margin-bottom:12px; }
+  .dashboard-title { gap:8px; }
+  .workspace-kicker { font-size:9px; }
+  .dashboard-panels { grid-template-columns:minmax(0,1fr); }
+  .dashboard-map .globe-canvas-wrap { height:clamp(280px,46svh,480px); }
+  .dashboard-map-footer { padding:9px 10px; }
+  .map-panel-heading { padding:10px 12px; }
+  .dashboard-feed { padding:13px; }
+  .dashboard .quake-list { max-height:none; }
+  .dashboard-view-controls:not([hidden]) { padding-top:5px; background:#101b2b; border-top:1px solid #344b62; }
+  .dashboard-view-controls button,.dashboard-view-controls a { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:3px; color:#a9bed3; font-size:11px; text-decoration:none; padding:5px 2px; min-height:48px; }
+  .dashboard-view-controls [aria-pressed="true"] { color:#94e5f5; background:#17344d; }
+}
+@media(prefers-reduced-motion:reduce) { .dashboard .globe-control { transition:none; } }
+
+/* Retain the category colour when the map is moved into the full-screen dialog. */
+.dashboard-map[data-category="wildfires"] { --layer-accent:#ffae68; }
+.dashboard-map[data-category="countries"] { --layer-accent:#a7ef8a; }
+.dashboard-map[data-category="aviation"] { --layer-accent:#f3ce70; }
+.dashboard-map[data-category="maritime"] { --layer-accent:#b3a7ff; }
+.dashboard-map[data-category="iss"] { --layer-accent:#88c9ff; }
