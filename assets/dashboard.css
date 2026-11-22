@@ -286,3 +286,7 @@ body:has(#expanded-map[open]) { overflow: hidden; }
   body:has(.dashboard-view-controls:not([hidden])) { padding-bottom:calc(62px + env(safe-area-inset-bottom)); }
   html { scroll-padding-bottom:calc(62px + env(safe-area-inset-bottom)); }
 }
+
+@media(max-width:860px){
+  .dashboard-map-footer, .dashboard-feed { touch-action:pan-y pinch-zoom; }
+}
