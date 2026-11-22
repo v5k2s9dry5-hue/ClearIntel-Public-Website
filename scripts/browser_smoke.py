@@ -211,6 +211,24 @@ def check_site(browser, width):
     assert "https://example.org/transport-update" in page.evaluate("() => window.lastCitation")
     assert "not independently verified" in page.evaluate("() => window.lastCitation")
     assert page.locator("#news-results .citation-status").inner_text() == "Citation copied."
+    # Replay must never retain a query or its news results before explicit action.
+    assert page.evaluate("() => localStorage.getItem('clearintel.replay.snapshots.v1')") is None
+    page.get_by_role("button", name="Save current snapshot").click()
+    page.get_by_text("Snapshot saved to this browser", exact=False).wait_for()
+    replay = page.evaluate("() => JSON.parse(localStorage.getItem('clearintel.replay.snapshots.v1'))")
+    assert len(replay) == 1
+    assert replay[0]["query"] == "UK"
+    assert replay[0]["articles"][0]["source"] == "Fixture publisher"
+    assert replay[0]["articles"][0]["url"] == "https://example.org/transport-update"
+    assert "observed_at_utc" in replay[0]
+    assert page.locator("#replay-history").is_visible()
+    assert page.locator("#replay-detail").get_by_text("Observed by this browser:", exact=False).is_visible()
+    page.get_by_role("button", name="Save current snapshot").click()
+    assert page.locator("#replay-select option").count() == 2
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.get_by_role("button", name="Clear saved history").click()
+    assert page.evaluate("() => localStorage.getItem('clearintel.replay.snapshots.v1')") is None
+    assert not page.locator("#replay-history").is_visible()
     page.locator("#result-publisher").select_option("Fixture publisher")
     page.locator("#result-order").select_option("oldest")
     assert page.locator(".result-view-count").inner_text() == "Showing 1 of 1 headlines"

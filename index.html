@@ -20,10 +20,12 @@
   <link rel="stylesheet" href="/assets/dashboard.css?v=20261122-analyst-mode">
   <link rel="stylesheet" href="/assets/dashboard-visual.css?v=20261122-result-controls"><link rel="stylesheet" href="/assets/command-center.css">
   <link rel="stylesheet" href="/assets/obsidian.css">
+  <link rel="stylesheet" href="/assets/replay.css">
   <script src="/assets/research-pdf.js" defer></script>
   <script src="/assets/analyst-mode.js" defer></script>
   <script src="/assets/country-card.js?v=evidence-disclosure" defer></script>
   <script src="/assets/app.js?v=20261122-result-controls" defer></script>
+  <script src="/assets/replay.js" defer></script>
   <script src="/assets/dashboard-sidebar.js" defer></script>
   <script src="/assets/dashboard-visual.js" defer></script>
   <script src="/assets/dashboard-search.js" defer></script>
@@ -197,6 +199,24 @@
         <div id="news-results" class="results" aria-live="polite">
           <div class="empty-state"><div class="empty-mark">⌕</div><strong>Ready to investigate a news topic</strong><p>Enter a location or subject above to search recent coverage. Results will appear here automatically.</p></div>
         </div>
+        <section class="replay-panel" id="intelligence-replay" aria-labelledby="replay-heading">
+          <div class="replay-heading">
+            <div><span class="replay-kicker">INTELLIGENCE REPLAY / R0</span><h3 id="replay-heading">Observed research snapshots</h3></div>
+            <span class="replay-local-tag">This browser only</span>
+          </div>
+          <p>Save the results of a completed public-news search to revisit what ClearIntel actually returned at that moment. Observation time is not an incident time. No history exists before you save it.</p>
+          <div class="replay-actions">
+            <button type="button" id="replay-save" disabled>Save current snapshot</button>
+            <button type="button" id="replay-clear" disabled>Clear saved history</button>
+          </div>
+          <p id="replay-status" class="replay-status" role="status">Run a public news search to enable saving. Nothing is stored automatically.</p>
+          <div id="replay-history" class="replay-history" hidden>
+            <label for="replay-select">Replay an observed snapshot</label>
+            <select id="replay-select"></select>
+            <div id="replay-detail"></div>
+          </div>
+          <p class="replay-privacy">Saved snapshots stay in your browser's local storage until you clear them or the browser removes site data. They are not synced with ClearIntel. Do not save sensitive personal information. This is recorded reporting, not independent incident verification.</p>
+        </section>
       </div>
       <p class="research-disclaimer"><span aria-hidden="true">ⓘ</span> News coverage is a lead, not a confirmed event log. Open the original articles, assess publication and event dates separately, and corroborate important claims.</p>
     </section>

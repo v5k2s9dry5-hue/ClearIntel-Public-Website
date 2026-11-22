@@ -358,6 +358,7 @@ $('news-form').addEventListener('submit',async e=>{
   const incidentOnly=$('incident-only').checked;
   const timeWindow=$('news-window').value;
   const submit=$('news-submit');submit.disabled=true;
+  document.dispatchEvent(new Event('clearintel:search-start'));
   fillStatus('Checking recent news feeds…','Looking for published headlines that actually match the time window and subject.');
   $('news-results').scrollIntoView({behavior:'smooth',block:'nearest'});
   let timeout;
@@ -370,7 +371,9 @@ $('news-form').addEventListener('submit',async e=>{
       return;
     }
     if(!response.ok)throw new Error(typeof payload.detail==='string'?payload.detail:'News search could not be completed.');
-    renderResults(payload,{query,window:timeWindow,incidentOnly});
+    const search={query,window:timeWindow,incidentOnly};
+    renderResults(payload,search);
+    document.dispatchEvent(new CustomEvent('clearintel:news-ready',{detail:{payload,search}}));
   }catch(err){fillStatus('Filtered search unavailable',err.name==='AbortError'?'The sources did not respond within the time limit. Try again.':err.message,'error');}
   finally{clearTimeout(timeout);submit.disabled=false;}
 });
