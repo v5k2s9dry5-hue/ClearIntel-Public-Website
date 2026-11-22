@@ -1,0 +1,166 @@
+(() => {
+  'use strict';
+  const KEY = 'clearintel.replay.snapshots.v1';
+  const MAX_SNAPSHOTS = 20;
+  const MAX_RESULTS = 20;
+  const $ = id => document.getElementById(id);
+  const save = $('replay-save');
+  const clear = $('replay-clear');
+  const status = $('replay-status');
+  const history = $('replay-history');
+  const select = $('replay-select');
+  const detail = $('replay-detail');
+  if (!save || !clear || !status || !history || !select || !detail) return;
+
+  let latest = null;
+  let snapshots = [];
+  let storageReadable = true;
+
+  const short = (value, max) => String(value ?? '').slice(0, max);
+  const utc = value => {
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) ?
+      date.toLocaleString('en-GB', {timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short'}) + ' UTC' :
+      'Unknown';
+  };
+  const sourceLink = value => {
+    try {
+      const url = new URL(value);
+      if (url.protocol === 'https:' && !url.username && !url.password) return url.href;
+    } catch (_) { /* Invalid stored URLs are never linked. */ }
+    return null;
+  };
+  const node = (tag, className, value) => {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    if (value !== undefined) el.textContent = value;
+    return el;
+  };
+
+  function load() {
+    try {
+      const value = localStorage.getItem(KEY);
+      const data = value ? JSON.parse(value) : [];
+      if (!Array.isArray(data)) throw new Error('Invalid snapshot format');
+      snapshots = data.filter(s => s && typeof s.id === 'string' &&
+        typeof s.observed_at_utc === 'string' && Array.isArray(s.articles)).slice(0, MAX_SNAPSHOTS);
+    } catch (_) {
+      storageReadable = false;
+      snapshots = [];
+      status.textContent = 'Existing browser snapshot storage is unavailable. Nothing is uploaded.';
+    }
+  }
+
+  function drawSnapshot() {
+    detail.replaceChildren();
+    const snapshot = snapshots.find(s => s.id === select.value);
+    if (!snapshot) return;
+    const heading = node('h4', '', 'Snapshot: ' + short(snapshot.query, 140));
+    const observed = node('p', 'replay-observed', 'Observed by this browser: ' + utc(snapshot.observed_at_utc));
+    const windowLabel = node('p', 'replay-window', 'Requested window: ' +
+      (snapshot.window === '7d' ? '7 days' : '24 hours') + ' · ' +
+      snapshot.total_results + ' headlines returned · ' + snapshot.articles.length + ' saved');
+    const caution = node('p', 'replay-warning', 'This is what the selected search returned when saved. It is not a reconstructed history, complete news archive, or verified incident record.');
+    detail.append(heading, observed, windowLabel, caution);
+    if (!snapshot.articles.length) {
+      detail.append(node('p', 'replay-empty', 'No matching headlines were returned by the checked sources in this snapshot. This does not establish that no event occurred.'));
+      return;
+    }
+    const items = node('ol', 'replay-articles');
+    for (const article of snapshot.articles.slice(0, MAX_RESULTS)) {
+      const li = node('li');
+      const href = sourceLink(article.url);
+      const title = href ? node('a', '', short(article.title, 240)) : node('strong', '', short(article.title, 240));
+      if (href) {
+        title.href = href;
+        title.target = '_blank';
+        title.rel = 'noopener noreferrer nofollow';
+      }
+      li.append(title, node('span', 'replay-article-info',
+        'Publisher: ' + short(article.source || 'Unknown', 100) +
+        ' · ' + short(article.time_basis || 'Feed time', 40) + ': ' + utc(article.feed_time_utc)));
+      if (article.incident_time_utc) li.append(node('span', 'replay-article-info', 'Reported incident time: ' + utc(article.incident_time_utc)));
+      items.append(li);
+    }
+    detail.append(items);
+  }
+
+  function render(selectedId) {
+    history.hidden = snapshots.length === 0;
+    clear.disabled = snapshots.length === 0 || !storageReadable;
+    select.replaceChildren();
+    snapshots.forEach((s, index) => {
+      const option = new Option(utc(s.observed_at_utc) + ' · ' + short(s.query, 60) +
+        ' · ' + (Array.isArray(s.articles) ? s.articles.length : 0) + ' headlines', s.id);
+      select.add(option);
+    });
+    if (snapshots.length) {
+      select.value = snapshots.some(s => s.id === selectedId) ? selectedId : snapshots[0].id;
+      drawSnapshot();
+    } else detail.replaceChildren();
+  }
+
+  function makeSnapshot() {
+    const {payload, search} = latest;
+    const all = Array.isArray(payload.results) ? payload.results : [];
+    return {
+      id: new Date().toISOString() + ':' + Math.random().toString(36).slice(2, 8),
+      version: 1,
+      observed_at_utc: new Date().toISOString(),
+      query: short(search.query, 140),
+      window: search.window === '7d' ? '7d' : '24h',
+      incident_only: Boolean(search.incidentOnly),
+      total_results: all.length,
+      sources_checked: (Array.isArray(payload.sources_checked) ? payload.sources_checked : []).slice(0, 20).map(s => short(s, 100)),
+      provider_errors: (Array.isArray(payload.provider_errors) ? payload.provider_errors : []).slice(0, 12).map(s => short(s, 180)),
+      articles: all.slice(0, MAX_RESULTS).map(article => ({
+        title: short(article.title, 240), source: short(article.source, 100),
+        provider: short(article.provider, 80), url: short(sourceLink(article.url) || '', 700),
+        feed_time_utc: short(article.feed_time_utc, 50),
+        time_basis: short(article.time_basis || 'Feed time', 40),
+        incident_time_utc: article.incident_time_utc ? short(article.incident_time_utc, 50) : null
+      }))
+    };
+  }
+
+  document.addEventListener('clearintel:search-start', () => {
+    latest = null;
+    save.disabled = true;
+    status.textContent = 'Searching. No new snapshot has been saved.';
+  });
+  document.addEventListener('clearintel:news-ready', event => {
+    latest = event.detail;
+    save.disabled = false;
+    status.textContent = 'Search complete. Save a snapshot manually if you want to remember these source results.';
+  });
+
+  save.addEventListener('click', () => {
+    if (!latest) return;
+    const snapshot = makeSnapshot();
+    const updated = [snapshot, ...snapshots].slice(0, MAX_SNAPSHOTS);
+    try {
+      localStorage.setItem(KEY, JSON.stringify(updated));
+      storageReadable = true;
+      snapshots = updated;
+      render(snapshot.id);
+      status.textContent = 'Snapshot saved to this browser (' + snapshots.length + '/' + MAX_SNAPSHOTS + '). No server upload.';
+    } catch (_) {
+      status.textContent = 'Browser storage unavailable or full. Nothing was saved. No server upload.';
+    }
+  });
+  clear.addEventListener('click', () => {
+    if (!snapshots.length || !confirm('Clear all ClearIntel Replay snapshots saved in this browser?')) return;
+    try {
+      localStorage.removeItem(KEY);
+      storageReadable = true;
+      snapshots = [];
+      render();
+      status.textContent = 'All saved Replay snapshots cleared from this browser.';
+    } catch (_) {
+      status.textContent = 'Browser storage could not be cleared. Check your browser site settings.';
+    }
+  });
+  select.addEventListener('change', drawSnapshot);
+  load();
+  render();
+})();

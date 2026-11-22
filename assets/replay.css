@@ -1,0 +1,26 @@
+/* Replay R0: manually saved, browser-local public-news snapshots. */
+.replay-panel{margin:16px 0 0;padding:20px;border:1px solid #35536b;border-radius:12px;background:linear-gradient(155deg,#102033,#0a1524);color:#edf7ff}
+.replay-heading{display:flex;gap:12px;justify-content:space-between;align-items:start;flex-wrap:wrap}
+.replay-kicker{color:#93e0f0;font-size:10px;font-weight:800;letter-spacing:.13em}
+.replay-heading h3{font-size:clamp(19px,2vw,25px);line-height:1.3;letter-spacing:-.025em;margin:5px 0}
+.replay-local-tag{color:#cae8f2;border:1px solid #3c657c;border-radius:20px;font-size:11px;padding:5px 9px}
+.replay-panel p{color:#b7cedf;font-size:13px;line-height:1.6;margin:8px 0 14px}
+.replay-actions{display:flex;gap:10px;flex-wrap:wrap}
+.replay-actions button{min-height:42px;border-radius:7px;border:1px solid #4e859d;padding:9px 13px;color:#061520;background:#9ce9f6;font-weight:750;font-size:12px}
+.replay-actions button+button{background:#13253a;border-color:#38556d;color:#d6eaf4}
+.replay-actions button:disabled{opacity:.45;cursor:not-allowed}
+.replay-panel .replay-status{color:#aee3f0;font-size:12px;margin:10px 0}
+.replay-history:not([hidden]){display:grid;gap:10px;padding-top:14px;border-top:1px solid #2e495c;margin-top:12px}
+.replay-history label{font-size:12px;font-weight:750;color:#b9d3e4}
+.replay-history select{width:100%;max-width:100%;min-height:44px;border:1px solid #3a5e76;border-radius:6px;padding:8px 10px;background:#091b2b;color:#e9f6ff}
+#replay-detail{background:#091727;border-radius:8px;border:1px solid #29485c;padding:13px}
+#replay-detail h4{margin:0 0 5px;font-size:16px}
+#replay-detail .replay-observed,#replay-detail .replay-window{font-size:12px;margin:4px 0;color:#bad3e2}
+#replay-detail .replay-warning{font-size:12px;color:#edcc9d;border-left:2px solid #d7ab6d;padding:6px 9px;margin:10px 0;background:#261f19}
+.replay-articles{margin:9px 0 0;padding-inline-start:22px;max-height:300px;overflow-y:auto}
+.replay-articles li{padding:10px 0;border-bottom:1px solid #2b4458}
+.replay-articles li:last-child{border-bottom:0}
+.replay-articles a{color:#aae9f7;font-size:13px;font-weight:700;overflow-wrap:anywhere}
+.replay-article-info{display:block;color:#bacddf;font-size:11px;line-height:1.6}
+.replay-panel .replay-privacy{color:#aabfd0;font-size:11px;margin:14px 0 0}
+@media(max-width:540px){.replay-panel{padding:14px}.replay-actions button{flex:1;min-width:145px}#replay-detail{padding:10px}}
