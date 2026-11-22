@@ -1,4 +1,6 @@
 import unittest
+import re
+from hashlib import sha256
 from collections import OrderedDict, deque
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event
@@ -21,6 +23,22 @@ class PublicSiteTests(unittest.TestCase):
         self.assertEqual(self.client.get('/').status_code,200)
         self.assertIn('ClearIntel',self.client.get('/').text)
         self.assertEqual(self.client.get('/health').json()['status'],'ok')
+
+    def test_page_assets_are_content_versioned_and_cacheable(self):
+        for path in ("/", "/countries", "/countries/gb"):
+            page = self.client.get(path)
+            self.assertEqual(page.headers["cache-control"], "no-cache")
+            assets = re.findall(r'(?:src|href)="(/assets/[^"?]+)\?v=([a-f0-9]{16})"', page.text)
+            self.assertTrue(assets, path)
+            for asset, version in assets:
+                response = self.client.get(asset + "?v=" + version)
+                self.assertEqual(response.status_code, 200, asset)
+                self.assertEqual(sha256(response.content).hexdigest()[:16], version)
+                self.assertEqual(response.headers["cache-control"], "public, max-age=86400")
+                old = self.client.get(asset + "?v=obsolete")
+                self.assertEqual(old.headers["cache-control"], "public, max-age=300, must-revalidate")
+        self.assertEqual(self.client.get("/health").headers["cache-control"], "no-store")
+        self.assertEqual(self.client.get("/assets/missing.js").headers["cache-control"], "no-store")
 
     def test_canonical_home_matches_sitemap_and_robots(self):
         with patch('main.PUBLIC_URL', 'https://research.example'):

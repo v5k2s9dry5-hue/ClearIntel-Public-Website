@@ -22,6 +22,7 @@ from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field, ValidationError
 
 import country_pages
+from asset_versions import version_page, cache_policy
 from country_news import COUNTRIES, search_country_news, search_research as search_news
 from earthquakes import router as earthquake_router
 from wildfires import router as wildfire_router
@@ -29,7 +30,7 @@ from wildfires import router as wildfire_router
 ROOT = Path(__file__).resolve().parent
 PUBLIC_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
 PUBLIC_URL = PUBLIC_URL or "https://clearintel-public.onrender.com"
-HOME_TEMPLATE = (ROOT / "index.html").read_text(encoding="utf-8")
+HOME_TEMPLATE = version_page((ROOT / "index.html").read_text(encoding="utf-8"))
 app = FastAPI(title="ClearIntel public website", docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/assets", StaticFiles(directory=ROOT / "assets"), name="assets")
 app.include_router(earthquake_router)
@@ -64,7 +65,8 @@ async def secure_headers(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'self' mailto:; base-uri 'none'; object-src 'none'; frame-ancestors 'none'"
-    response.headers["Cache-Control"] = "no-store" if request.url.path.startswith('/api/') else "public, max-age=300"
+    response.headers["Cache-Control"] = cache_policy(
+        request.url.path, request.query_params.get("v"), response.status_code)
     return response
 
 
@@ -80,14 +82,14 @@ async def google_verification():
 
 @app.get("/countries", response_class=HTMLResponse, include_in_schema=False)
 async def country_directory():
-    return country_pages.directory(PUBLIC_URL)
+    return version_page(country_pages.directory(PUBLIC_URL))
 
 
 @app.get("/countries/{code}", response_class=HTMLResponse, include_in_schema=False)
 async def country_profile(code: str):
     if code != code.lower() or code.upper() not in COUNTRIES or not code.isascii():
         raise HTTPException(404, "Unknown country or territory.")
-    return country_pages.profile(PUBLIC_URL, code.upper())
+    return version_page(country_pages.profile(PUBLIC_URL, code.upper()))
 
 
 @app.get("/health", include_in_schema=False)
