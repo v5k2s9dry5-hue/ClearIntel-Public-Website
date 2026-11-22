@@ -20,6 +20,53 @@ COUNTRIES = {
 }
 ALIASES = {
     'AE': ('UAE', 'Emirati'),
+    'AR': ('Argentine', 'Argentinian'),
+    'AU': ('Australian',),
+    'BD': ('Bangladeshi',),
+    'BE': ('Belgian',),
+    'BG': ('Bulgarian',),
+    'BR': ('Brazilian',),
+    'CA': ('Canadian',),
+    'CH': ('Swiss',),
+    'CL': ('Chilean',),
+    'CN': ('China', 'Chinese'),
+    'CO': ('Colombian',),
+    'DK': ('Danish',),
+    'DZ': ('Algerian',),
+    'EG': ('Egyptian',),
+    'FI': ('Finnish',),
+    'GR': ('Greek',),
+    'HU': ('Hungarian',),
+    'ID': ('Indonesian',),
+    'IL': ('Israeli',),
+    'IQ': ('Iraqi',),
+    'IR': ('Iranian',),
+    'IS': ('Icelandic',),
+    'IT': ('Italian',),
+    'LK': ('Sri Lankan',),
+    'MA': ('Moroccan',),
+    'MX': ('Mexican',),
+    'MY': ('Malaysian',),
+    'NG': ('Nigerian',),
+    'NL': ('Dutch', 'Nederland', 'Nederlandse'),
+    'NO': ('Norwegian',),
+    'NP': ('Nepali', 'Nepalese'),
+    'NZ': ('New Zealanders',),
+    'OM': ('Omani',),
+    'PE': ('Peruvian',),
+    'PH': ('Filipino', 'Philippine'),
+    'PK': ('Pakistani',),
+    'PL': ('Polish', 'Polska'),
+    'PT': ('Portuguese',),
+    'QA': ('Qatari',),
+    'RO': ('Romanian',),
+    'SA': ('Saudi',),
+    'SE': ('Swedish',),
+    'TH': ('Thai',),
+    'TN': ('Tunisian',),
+    'TW': ('Taiwanese',),
+    'VN': ('Vietnamese',),
+    'ZA': ('South African',),
     'CD': ('DRC', 'Democratic Republic of the Congo'),
     'CI': ("Ivory Coast", "Côte d'Ivoire"),
     'CZ': ('Czech Republic', 'Czech'),
@@ -39,6 +86,10 @@ ALIASES = {
     'US': ('US', 'USA', 'U.S.', 'United States of America'),
 }
 AMBIGUOUS = {
+    # The adjective Polish is also an English verb; require a capital P.
+    'PL': re.compile(r'(?<!\w)(?:Poland|Polska|Polish)(?!\w)'),
+    # China is also used in phrases about Taiwan and in names of seas.
+    # A headline mentioning the country is still a lead, not an event location.
     'GE': re.compile(r'\b(?:Tbilisi|Georgia(?:n)? (?:government|parliament|prime minister))\b', re.I),
     'TR': re.compile(r'\b(?:Türkiye|Turkish|Ankara|Istanbul|Turkey\W+(?:says|announces|president))\b', re.I),
 }
@@ -199,7 +250,15 @@ def _fetch_country_reports(code, name, names, now):
     topic = ' OR '.join(f'"{term}"' for term in names)
 
     def fetch_national_edition(*_args):
-        return _fetch_edition(code)
+        # An empty or invalid edition may still have searchable coverage.
+        # Do not retry HTTP failures or bypass the existing host cooldown.
+        try:
+            found = _fetch_edition(code)
+        except ValueError:
+            found = []
+        if found:
+            return found
+        return fetch_google(name, 2, False, topic=f'({topic})')
 
     def fetch_current_events(*_args):
         return editorial_events(int(monotonic() // 300))

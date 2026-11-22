@@ -183,6 +183,54 @@ class CountryNewsTests(TestCase):
         self.assertIn('news/england/rss.xml', REGIONAL_FEEDS['GB'][0][1])
         self.assertIn('elmundo/rss/espana.xml', REGIONAL_FEEDS['ES'][0][1])
 
+    def test_international_country_adjectives_and_word_boundaries(self):
+        cases = {
+            'NL': 'Dutch parliament approves transport budget',
+            'CA': 'Canadian lawmakers debate housing policy',
+            'CN': 'Chinese government announces new trade rules',
+            'SE': 'Swedish election campaign begins',
+            'PH': 'Philippine authorities release storm update',
+            'PL': 'Polish parliament debates new budget',
+        }
+        for code, title in cases.items():
+            with self.subTest(code=code):
+                result = search_country_news(code, NOW, (fixture_provider(
+                    article(title, 'local.example', 1),
+                    article('Unrelated transport news', 'other.example', 1)),))
+                self.assertEqual(result['story'][0]['title'], title)
+        unrelated = article('How to polish your car', 'other.example', 1)
+        self.assertEqual(search_country_news('PL', NOW, (fixture_provider(unrelated),))['stories'], [])
+
+    def test_empty_national_edition_falls_back_to_named_search(self):
+        from country_news import _fetch_country_reports, ALIASES
+        with (patch('country_news._fetch_edition', return_value=[]),
+              patch('country_news.fetch_google', return_value=[
+                  article('Dutch parliament votes on budget', 'local.example', 1)
+              ]) as google,
+              patch('country_news._collect') as collect):
+            def run_regional(query, days, incident_only, providers, **kwargs):
+                return providers[0](query, days, incident_only), ['edition'], []
+            collect.side_effect = run_regional
+            rows, _, _ = _fetch_country_reports('NL', 'Netherlands',
+                                                ('Netherlands', *ALIASES['NL']), NOW)
+            self.assertEqual(len(rows), 1)
+            self.assertIn('"Dutch"', google.call_args.kwargs['topic'])
+            self.assertNotIn('edition_rank', rows[0])
+
+    def test_country_edition_http_error_is_not_retried(self):
+        from urllib.error import HTTPError
+        from country_news import _fetch_country_reports
+        with (patch('country_news._fetch_edition', side_effect=HTTPError(
+                  'https://news.google.com/', 429, 'rate limited', None, None)),
+              patch('country_news.fetch_google') as google,
+              patch('country_news._collect') as collect):
+            def run_regional(query, days, incident_only, providers, **kwargs):
+                return providers[0](query, days, incident_only)
+            collect.side_effect = run_regional
+            with self.assertRaises(HTTPError):
+                _fetch_country_reports('NL', 'Netherlands', ('Netherlands', 'Dutch'), NOW)
+            google.assert_not_called()
+
     def test_regional_publisher_coverage_does_not_claim_national_ranking(self):
         from country_news import _publisher_reports
         feed = b'''<rss><channel><item><title>Cardiff transport upgrade</title>
