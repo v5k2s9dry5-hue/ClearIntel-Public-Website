@@ -101,6 +101,14 @@ def check_site(browser, width):
     assert page.locator("#map-layer-source").inner_text() == "USGS · Earthquake observations"
     assert page.locator("#map-layer-kind").inner_text() == "Public feed"
     assert page.locator("#dashboard-map-heading").is_visible()
+    assert page.get_by_role("heading", name="Intelligence at a glance.").is_visible()
+    assert page.locator(".command-overview-card").count() == 3
+    page.locator('[data-command-layer="countries"]').click()
+    assert page.locator("#globe-layer").input_value() == "countries"
+    assert page.locator("#map-layer-kind").inner_text() == "News coverage"
+    assert page.locator('[data-command-layer="countries"]').get_attribute("aria-pressed") == "true"
+    page.locator('[data-command-layer="earthquakes"]').click()
+    assert page.locator("#globe-layer").input_value() == "earthquakes"
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     toggle = page.locator("#sidebar-toggle")
     if width > 1080:

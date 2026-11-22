@@ -1,0 +1,87 @@
+/* ClearIntel command-center layout. Visually distinct workspace, no external assets.
+   Colours identify reporting categories, never confidence or severity. */
+body{background:#080f1b}
+.site-header{background:#07111f;border-bottom:1px solid #294056;box-shadow:0 6px 26px rgba(0,0,0,.22)}
+.site-header .nav-bar{width:min(calc(100% - 48px),1680px);height:75px}
+.site-header .main-nav a{font-size:12px;letter-spacing:.015em}
+.site-header .nav-contact{background:#123047;border-color:#44718a;color:#a2edf7}
+.dashboard{
+  position:relative;width:100%;max-width:none;margin:0;
+  padding:34px max(24px,calc((100vw - 1680px)/2)) 54px;
+  grid-template-columns:205px minmax(0,1fr);gap:24px;
+  background:radial-gradient(ellipse 60% 40% at 66% 18%,rgba(24,79,118,.22),transparent 76%),linear-gradient(135deg,#081320 0%,#08111e 58%,#0b1a29 100%);
+  border-bottom:1px solid #29465e;
+}
+.dashboard::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.09;background-image:linear-gradient(#6ba5c4 1px,transparent 1px),linear-gradient(90deg,#6ba5c4 1px,transparent 1px);background-size:52px 52px;mask-image:linear-gradient(to bottom,black,transparent 80%)}
+.dashboard>*{position:relative;z-index:1}
+.dashboard-nav{position:sticky;top:96px;align-self:start;min-height:560px;padding:22px 12px;background:linear-gradient(#101f30,#0c1725);border:1px solid #304a62;border-radius:12px;box-shadow:0 18px 60px #0004}
+.dashboard-nav::after{content:"CLEARINTEL  /  PUBLIC SOURCES";display:block;margin:34px 10px 0;padding-top:14px;border-top:1px solid #2b465c;color:#6b91a9;font-size:9px;letter-spacing:.1em}
+.dashboard-nav a{min-height:50px;font-size:13px;border-radius:7px}
+.dashboard-nav .dashboard-nav-current{background:linear-gradient(90deg,#194c67,#12314a);border-color:#477e9a;color:#e3fbff;box-shadow:inset 3px 0 0 #70e8f7}
+.dashboard-workspace{min-width:0}
+.dashboard-toolbar{align-items:flex-start;margin:0 0 24px;gap:20px;padding:10px 0 18px;border-bottom:1px solid #30485d}
+.dashboard-heading-group{max-width:710px}
+.dashboard-toolbar .workspace-kicker{color:#77dcea;font-size:11px;font-weight:800;letter-spacing:.19em}
+.dashboard-toolbar h1{margin:9px 0 10px;font-size:clamp(34px,4.2vw,66px);font-weight:770;letter-spacing:-.055em;line-height:1.04;color:#f1f9ff;text-wrap:balance}
+.dashboard-headline-accent{display:block;color:#73dcef}
+.dashboard-lede{max-width:620px;margin:0;color:#abc6da;font-size:14px;line-height:1.65}
+.dashboard-toolbar>label{align-self:flex-start;display:flex;flex-direction:column;align-items:stretch;gap:7px;padding:12px 14px;border:1px solid #395670;background:#12253a;border-radius:10px;min-width:185px;color:#91c0d6;text-transform:uppercase;letter-spacing:.1em;font-size:10px;font-weight:750}
+.dashboard-toolbar>label select{min-height:42px;background:#091929;color:#e6f5fb;font-size:13px;font-weight:650;text-transform:none;letter-spacing:normal}
+.command-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 18px}
+.command-overview-card{min-width:0;min-height:168px;display:flex;flex-direction:column;align-items:stretch;text-align:left;padding:17px 18px 15px;border:1px solid #36546a;border-top:2px solid #3d7994;border-radius:10px;background:linear-gradient(145deg,#172d42,#0d1c2d);color:#ebf7ff;box-shadow:0 9px 24px #0003;transition:background .14s,border-color .14s,transform .14s}
+.command-overview-card:hover{background:linear-gradient(145deg,#1b3953,#12283d);border-color:#63b8d2}
+.command-overview-card:focus-visible{outline:2px solid #8ce9f6;outline-offset:3px}
+.command-overview-card[aria-pressed="true"]{border-color:#63dff0;border-top-color:#82edfa;background:linear-gradient(145deg,#184760,#102b42);box-shadow:inset 0 0 0 1px #346b83,0 14px 30px #0004}
+.command-overview-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px;color:#89bad0}
+.command-index{font-size:9px;font-weight:790;letter-spacing:.16em}
+.command-symbol{font-size:27px;color:#77dbe9;line-height:1}
+.command-overview-card strong{font-size:18px;line-height:1.3;letter-spacing:-.025em}
+.command-overview-detail{display:block;flex:1;margin:7px 0 13px;color:#abc2d6;font-size:12px;line-height:1.5}
+.command-overview-foot{font-size:11px;font-weight:730;color:#8fe9f5}
+.command-overview-foot span{margin-left:4px}
+.dashboard-panels{grid-template-columns:minmax(0,1fr) minmax(320px,31%);gap:16px;align-items:stretch}
+.dashboard-panel{border:1px solid #33516b;border-radius:13px;background:#0d1b2d;box-shadow:0 14px 48px #0004}
+.dashboard-map{background:#061626}
+.map-panel-heading{background:#0d2235;padding:16px 20px;min-height:76px}
+.map-panel-heading h2{font-size:13px;font-weight:800;letter-spacing:.13em}
+.map-panel-heading p{font-size:12px;margin-top:4px}
+.map-layer-kind{border-radius:20px;padding:7px 11px;background:#132f40;border-color:#426c83}
+.dashboard-map .globe-canvas-wrap{aspect-ratio:auto;max-height:none;height:clamp(490px,54vw,710px);background:radial-gradient(ellipse at 50% 48%,#14334d,#06111f 68%)}
+.dashboard-map .globe-coord-label{bottom:18px;left:18px;padding:6px 10px;background:#081726b8;border:1px solid #3b6377;border-radius:6px}
+.dashboard-map-footer{padding:13px 15px;background:#0b1c2f}
+.dashboard-feed{padding:20px 18px;max-height:820px;overflow-y:auto;scrollbar-color:#3c657e #102033}
+.dashboard .command-feed-label{display:flex;gap:9px;align-items:center;color:#77cddc;font-size:10px;font-weight:780;letter-spacing:.13em}
+.command-feed-dot{display:block;width:8px;height:8px;border-radius:50%;background:#70dced;box-shadow:0 0 0 4px #70dced1d}
+.dashboard-feed h2{font-size:27px;line-height:1.2;letter-spacing:-.04em;margin:10px 0 17px;padding-bottom:16px}
+.dashboard .orbital-status{padding:14px;border-left:3px solid #60bcd4;border-radius:6px;line-height:1.55}
+.dashboard .quake-list{max-height:none;gap:10px}
+.dashboard .quake-list button{border-radius:9px;padding:13px;border-left:2px solid #39718b;background:#102439}
+.dashboard-source-guide{margin:12px 0 15px;border:1px solid #34536e;background:#0a1c2d}
+.dashboard #dashboard-search:not([hidden]){margin-top:10px}
+.research-section,.services-section,.method-section,.contact-section{scroll-margin-top:85px}
+.research-section .section-heading h2,.services-section .section-heading h2{font-size:clamp(29px,3.1vw,45px);letter-spacing:-.04em}
+.research-panel{border-radius:13px;border-color:#36516b;background:#0c1c2d;box-shadow:0 15px 46px #0003}
+@media(min-width:1081px){.dashboard.sidebar-collapsed{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:1180px){.dashboard{grid-template-columns:175px minmax(0,1fr);gap:16px;padding-inline:18px}.dashboard-panels{grid-template-columns:minmax(0,1fr) minmax(285px,34%)}.command-overview-card{padding:14px}.dashboard-toolbar h1{font-size:clamp(32px,4vw,52px)}}
+@media(max-width:1080px){.dashboard{display:block;padding-inline:16px}.dashboard-nav{display:none}}
+@media(max-width:860px){
+ .site-header .nav-bar{width:calc(100% - 28px);height:66px}
+ .dashboard{padding:18px 12px 28px}
+ .dashboard-toolbar{display:flex;flex-direction:column;align-items:stretch;gap:14px;padding:8px 3px 18px}
+ .dashboard-toolbar h1{font-size:clamp(33px,8vw,52px)}
+ .dashboard-headline-accent{display:inline}
+ .dashboard-lede{font-size:13px}
+ .dashboard-toolbar>label{align-self:stretch;min-width:0;flex-direction:row;align-items:center;justify-content:space-between}
+ .dashboard-toolbar>label select{width:min(58%,240px)}
+ .command-overview{grid-template-columns:repeat(3,minmax(210px,1fr));overflow-x:auto;padding:2px 2px 12px;scroll-snap-type:x mandatory;overscroll-behavior-x:contain}
+ .command-overview-card{min-height:155px;scroll-snap-align:start}
+ .dashboard-panels{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
+ .dashboard-map .globe-canvas-wrap{height:clamp(320px,47svh,500px)}
+ .dashboard-feed{max-height:none;overflow:visible;padding:16px}
+ .dashboard-feed h2{font-size:23px}
+ .map-panel-heading{padding:12px 14px;min-height:66px}
+ .dashboard-panel{border-radius:10px}
+ .dashboard-view-controls:not([hidden]){border-radius:9px;margin-bottom:14px}
+}
+@media(max-width:530px){.dashboard-toolbar h1{font-size:35px}.command-overview{grid-template-columns:repeat(3,minmax(218px,76vw))}.dashboard-toolbar .workspace-kicker{font-size:9px}.dashboard .globe-control{font-size:12px}}
+@media(prefers-reduced-motion:reduce){.command-overview-card{transition:none}}
