@@ -90,6 +90,16 @@ def check_site(browser, width):
     page.route("**/api/country-news/GB", lambda route: route_json(route, COUNTRY))
     page.route("**/api/news", lambda route: route_json(route, NEWS))
     page.goto(ROOT, wait_until="domcontentloaded")
+    toggle = page.locator("#sidebar-toggle")
+    if width > 1080:
+        toggle.click()
+        assert toggle.get_attribute("aria-expanded") == "false"
+        assert not page.locator("#dashboard-sidebar").is_visible()
+        page.reload(wait_until="domcontentloaded")
+        page.get_by_role("button", name="Show sidebar").click()
+        assert page.locator("#dashboard-sidebar").is_visible()
+    else:
+        assert not toggle.is_visible()
     page.locator("#map-expand").click()
     assert page.get_by_role("dialog", name="Expanded map").is_visible()
     page.locator("#earth-zoom-in").click()
