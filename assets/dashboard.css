@@ -266,3 +266,12 @@
 #expanded-map .globe-canvas-wrap { flex: 1; min-height: 0; height: auto; }
 #expanded-map .dashboard-map-footer { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
 body:has(#expanded-map[open]) { overflow: hidden; }
+
+.dashboard-title { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+@media (min-width: 1081px) {
+  .dashboard.sidebar-collapsed { grid-template-columns: minmax(0, 1fr); }
+  .sidebar-collapsed .dashboard-nav { display: none; }
+}
+@media (max-width: 1080px) {
+  #sidebar-toggle { display: none; }
+}
