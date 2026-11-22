@@ -11,7 +11,7 @@ PAGE = Template("""<!doctype html>
 <title>$title | ClearIntel</title><meta name="description" content="$description">
 <link rel="canonical" href="$canonical"><meta property="og:url" content="$canonical">
 <meta property="og:title" content="$title | ClearIntel"><meta property="og:description" content="$description">
-<link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/countries.css">
+<link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/countries.css?v=coverage-details">
 $script</head><body>
 <header><a class="brand" href="/">ClearIntel</a><nav aria-label="Main navigation"><a href="/">Live map</a><a href="/countries">Country directory</a></nav></header>
 <main>$content</main></body></html>""")
@@ -60,5 +60,5 @@ def profile(base, code):
             '<h2>Recent headlines</h2><noscript>Enable JavaScript to load headlines or use the source links below.</noscript></section>'
             f'<p class="update-note">Headlines refresh every five minutes while this page is open and visible.</p>'
             f'<section><h2>Browse sources</h2><ul>{source_links}</ul></section>')
-    scripts = '<script src="/assets/country-card.js" defer></script><script src="/assets/country-profile.js" defer></script>'
+    scripts = '<script src="/assets/country-card.js?v=coverage-details" defer></script><script src="/assets/country-profile.js" defer></script>'
     return page(base, '/countries/' + code.lower(), name + ' news and sources', description, body, scripts)

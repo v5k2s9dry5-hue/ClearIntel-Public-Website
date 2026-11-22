@@ -118,3 +118,9 @@
   .field-head>.help-wrapper,.filter-row>.help-wrapper{display:inline-flex;position:relative}
   .help-popover{position:fixed;transform:none;width:min(280px,calc(100vw - 24px));max-width:calc(100vw - 24px);box-shadow:0 14px 40px rgba(0,0,0,.5)}
 }
+
+.country-coverage-details{border:1px solid #3a566f;border-radius:7px;padding:.55rem .65rem;color:inherit;font-size:.85rem;overflow-wrap:anywhere}
+.country-coverage-details summary{cursor:pointer;font-weight:600}
+.country-coverage-details p,.country-coverage-details ul{margin:.5rem 0}
+.country-coverage-details ul{padding-inline-start:1.2rem}
+.country-coverage-details li{margin:.2rem 0}
