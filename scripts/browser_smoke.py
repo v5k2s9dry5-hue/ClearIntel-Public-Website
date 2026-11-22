@@ -253,6 +253,34 @@ def check_site(browser, width):
     page.get_by_role("button", name="Clear saved history").click()
     assert page.evaluate("() => localStorage.getItem('clearintel.replay.snapshots.v1')") is None
     assert not page.locator("#replay-history").is_visible()
+    # Matching wording is about text similarity, not independent confirmations.
+    page.evaluate("""() => document.dispatchEvent(new CustomEvent('clearintel:news-ready', {
+      detail:{search:{query:'UK',window:'24h',incidentOnly:false},
+      payload:{results:[
+        {title:'Manchester council announces railway service improvements',
+         source:'Provider One',provider:'Fixture',
+         url:'https://example.org/council-one',feed_time_utc:'2026-11-21T13:00:00Z'},
+        {title:'Manchester council announces railway service improvements!',
+         source:'Provider Two',provider:'Fixture',
+         url:'https://example.org/council-two',feed_time_utc:'2026-11-21T14:00:00Z'},
+        {title:'Manchester council announces road maintenance closures',
+         source:'Provider Three',provider:'Fixture',
+         url:'https://example.org/road-closure',feed_time_utc:'2026-11-21T14:00:00Z'}
+      ],sources_checked:['Fixture provider'],provider_errors:[]}}
+    }))""")
+    page.get_by_role("button", name="Save current snapshot").click()
+    assert page.locator(".replay-wording-total").inner_text().startswith("1 group")
+    assert page.locator(".replay-wording-detail").count() == 1
+    assert "2 source links" in page.locator(".replay-wording-detail summary").inner_text()
+    assert "2 listed publishers" in page.locator(".replay-wording-detail summary").inner_text()
+    assert page.locator(".replay-wording-detail a").count() == 0 or not page.locator(".replay-wording-detail a").first.is_visible()
+    page.locator(".replay-wording-detail summary").click()
+    assert page.locator(".replay-wording-detail a").count() == 2
+    assert page.locator(".replay-wording-detail a").first.is_visible()
+    assert page.get_by_text("does not demonstrate independent reporting", exact=False).is_visible()
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.get_by_role("button", name="Clear saved history").click()
+    assert not page.locator("#replay-history").is_visible()
     page.locator("#result-publisher").select_option("Fixture publisher")
     page.locator("#result-order").select_option("oldest")
     assert page.locator(".result-view-count").inner_text() == "Showing 1 of 1 headlines"

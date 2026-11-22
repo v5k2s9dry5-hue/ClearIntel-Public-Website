@@ -112,7 +112,7 @@
       node('p','replay-compare-summary',changes.added.length+' newly present · '+
         changes.removed.length+' no longer present · '+changes.changed.length+
         ' changed headline/publisher · '+changes.unchanged.length+' unchanged'),
-      node('p','replay-warning','These are differences between two saved, potentially incomplete search results. They do not prove an article was published or deleted, an incident occurred, or reports were independently verified. Changes to URLs and syndication may look like separate stories.')
+      node('p','replay-warning','These are differences between two saved, potentially incomplete search results. They do not prove an article was published or deleted, an incident occurred, or reports were independently verified. Changes to URLs and repeated headline wording may look like separate stories.')
     );
     const priorSources=Array.isArray(older.sources_checked) ? older.sources_checked : [];
     const newSources=Array.isArray(newer.sources_checked) ? newer.sources_checked : [];
@@ -171,6 +171,53 @@
       'Save this exact search again to compare; no earlier matching snapshot is available.';
   }
 
+
+  // Conservative signal only: case, punctuation and spacing-insensitive exact
+  // wording. No factual, event, syndication or source-independence inference.
+  function normalizedHeadline(value){
+    return short(value,240).normalize('NFKC').toLocaleLowerCase('en-GB')
+      .replace(/[\p{P}\p{S}]+/gu,' ')
+      .replace(/\s+/g,' ').trim();
+  }
+  function repeatedHeadlineGroups(snapshot){
+    const groups=new Map();
+    for(const article of uniqueArticles(snapshot).values()){
+      const headline=normalizedHeadline(article.title);
+      // Very short or generic titles are too ambiguous to group usefully.
+      if(headline.length<30 || headline.split(' ').length<5)continue;
+      if(!groups.has(headline))groups.set(headline,[]);
+      groups.get(headline).push(article);
+    }
+    return [...groups.values()].filter(group=>group.length>=2);
+  }
+  function drawRepeatedWording(snapshot){
+    const groups=repeatedHeadlineGroups(snapshot);
+    const section=node('section','replay-wording-groups');
+    section.append(node('h5','','Matching headline wording'));
+    section.append(node('p','replay-wording-caution',
+      'Matches only ignore case, punctuation and spacing. Identical wording across different links does not demonstrate independent reporting, shared ownership or syndication; open the original articles.'));
+    if(!groups.length){
+      section.append(node('p','replay-wording-empty',
+        'No repeated long-form headline wording found in this saved result set. This does not establish independent sourcing.'));
+      return section;
+    }
+    section.append(node('p','replay-wording-total',
+      groups.length+' group'+(groups.length===1?'':'s')+' with matching wording among saved source links.'));
+    for(const group of groups){
+      const details=node('details','replay-wording-detail');
+      const sourceLinks=new Set(group.map(a=>sourceLink(a.url)).filter(Boolean));
+      const publishers=new Set(group.map(a=>String(a.source||'Unknown').trim().toLowerCase()));
+      details.append(node('summary','',
+        group.length+' saved headlines · '+sourceLinks.size+' source links · '+
+        publishers.size+' listed publishers — '+short(group[0].title,120)));
+      const list=node('ol','replay-articles');
+      for(const article of group)list.append(linkedEntry(article));
+      details.append(list);
+      section.append(details);
+    }
+    return section;
+  }
+
   function drawSnapshot() {
     detail.replaceChildren();
     const snapshot = snapshots.find(s => s.id === select.value);
@@ -213,7 +260,7 @@
       if (article.incident_time_utc) li.append(node('span', 'replay-article-info', 'Reported incident time: ' + utc(article.incident_time_utc)));
       items.append(li);
     }
-    detail.append(items);
+    detail.append(items,drawRepeatedWording(snapshot));
   }
 
   function render(selectedId) {

@@ -45,3 +45,15 @@
 .replay-panel .replay-coverage{font-size:12px;color:#d1e9f5;margin:5px 0}
 .replay-panel .replay-coverage-warning{font-size:12px;color:#f0cf99;border-left:3px solid #dfb778;padding:7px 9px;background:#271f1a;border-radius:3px;margin:8px 0}
 .replay-panel .replay-coverage-details{font-size:11px;color:#b9d6e5;overflow-wrap:anywhere;margin:0}
+
+/* Visually group only identical normalized wording, never count confirmations. */
+.replay-wording-groups{margin-top:16px;padding-top:12px;border-top:1px solid #2b495e}
+.replay-wording-groups h5{font-size:14px;margin:0 0 6px;color:#d5edfa}
+.replay-panel .replay-wording-caution{font-size:11px;color:#f0d19f;line-height:1.55;margin:5px 0 8px}
+.replay-panel .replay-wording-total{font-size:12px;color:#bee5f2;font-weight:700;margin:7px 0}
+.replay-panel .replay-wording-empty{font-size:12px;color:#b8d1de}
+.replay-wording-detail{border:1px solid #35536a;background:#0d1c2c;border-radius:7px;margin-top:8px;overflow-wrap:anywhere}
+.replay-wording-detail summary{cursor:pointer;list-style:revert;padding:11px 13px;color:#d1f1fb;font-size:12px;font-weight:700;line-height:1.5}
+.replay-wording-detail[open] summary{border-bottom:1px solid #2d4b5d}
+.replay-wording-detail .replay-articles{padding-right:12px;max-height:230px}
+.replay-wording-detail .replay-articles li{margin-right:5px}
