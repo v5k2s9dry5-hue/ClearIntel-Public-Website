@@ -85,6 +85,7 @@
   let zoom = 1, previousWorld = null, coastline = null;
   let worldMap = null, detailedMap = null, detailLoading = false, detailFailed = false;
   let points = [], currentISS = null, lastDraw = 0, lastTick = 0;
+  let rotationFrame = null, mapInView = !('IntersectionObserver' in window);
   let reportsPaused = false;
   let visibleReports = [], pins = [], selectedReport = null, clusterIds = null;
   let timelineStart = null;
@@ -99,13 +100,16 @@
   };
   function fit() {
     const ratio=Math.min(window.devicePixelRatio||1,2);
-    canvas.width=Math.max(1,Math.floor(canvas.clientWidth*ratio));
-    canvas.height=Math.max(1,Math.floor(canvas.clientHeight*ratio));
+    const width=Math.max(1,Math.floor(canvas.clientWidth*ratio));
+    const height=Math.max(1,Math.floor(canvas.clientHeight*ratio));
+    if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
     ctx.setTransform(ratio,0,0,ratio,0,0);
   }
-  function drawGrid(lonLine) {
-    return Array.from({length:181},(_,i)=>[lonLine,-90+i]);
-  }
+  // Fixed geometry is reused rather than allocating thousands of coordinate pairs per frame.
+  const meridians=Array.from({length:13},(_,line)=>
+    Array.from({length:181},(_,i)=>[-180+line*30,-90+i]));
+  const parallels=Array.from({length:11},(_,line)=>
+    Array.from({length:361},(_,i)=>[-180+i,-75+line*15]));
   function strokeTrack(coords,cx,cy,r,fillLand=false) {
     ctx.beginPath(); let drawing=false, allVisible=true;
     for(const [lon,lat] of coords) {
@@ -314,8 +318,8 @@
     ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);ctx.fill();ctx.stroke();
     ctx.save();ctx.beginPath();ctx.arc(cx,cy,r-.4,0,Math.PI*2);ctx.clip();
     ctx.strokeStyle='rgba(129,176,223,.15)';ctx.lineWidth=.65;
-    for(let lon=-180;lon<=180;lon+=30)strokeTrack(drawGrid(lon),cx,cy,r);
-    for(let lat=-75;lat<=75;lat+=15)strokeTrack(Array.from({length:361},(_,i)=>[-180+i,lat]),cx,cy,r);
+    for(const line of meridians)strokeTrack(line,cx,cy,r);
+    for(const line of parallels)strokeTrack(line,cx,cy,r);
     const map=zoom>1&&detailedMap?detailedMap:worldMap;
     if(map){
       drawWorldMap(map,cx,cy,r);
@@ -352,20 +356,31 @@
     ctx.fillStyle='#9ebbd6';ctx.font='9px system-ui';
     ctx.fillText(zoom>1?'REGIONAL VIEW':'WORLD VIEW',12,18);
   }
+  function shouldRotate(){
+    return playing&&!flatMap&&dragPointer===null&&!document.hidden&&mapInView&&canvas.clientWidth>0&&canvas.clientHeight>0;
+  }
+  function syncRotation(){
+    if(!shouldRotate()){
+      if(rotationFrame!==null)cancelAnimationFrame(rotationFrame);
+      rotationFrame=null;lastTick=0;return;
+    }
+    if(rotationFrame===null)rotationFrame=requestAnimationFrame(frame);
+  }
   function frame(now){
+    rotationFrame=null;
+    if(!shouldRotate()){lastTick=0;return;}
     if(!lastTick)lastTick=now;
     const delta=Math.min(now-lastTick,80);lastTick=now;
-    if(playing&&!flatMap&&dragPointer===null){
-      rot=(rot+delta*.0033/zoom)%360;
-      if(now-lastDraw>35){draw();lastDraw=now;}
-    }
-    requestAnimationFrame(frame);
+    rot=(rot+delta*.0033/zoom)%360;
+    if(now-lastDraw>35){draw();lastDraw=now;}
+    syncRotation();
   }
   function showDashboardView(view){
     dashboard.dataset.mobileView=view;
     mapTab.setAttribute('aria-pressed',String(view==='map'));
     feedTab.setAttribute('aria-pressed',String(view==='feed'));
     if(view==='map'){fit();draw();}
+    syncRotation();
   }
   if(viewControls){
     mapTab.addEventListener('click',()=>{showDashboardView('map');canvas.scrollIntoView({block:'center'});});
@@ -398,6 +413,7 @@
     if(!e.isPrimary||e.button!==0||dragPointer!==null)return;
     dragPointer=e.pointerId;dragDistance=0;px=e.clientX;py=e.clientY;
     canvas.setPointerCapture(e.pointerId);
+    syncRotation();
   });
   canvas.addEventListener('pointermove',e=>{
     if(e.pointerId!==dragPointer)return;
@@ -413,7 +429,7 @@
   });
   canvas.addEventListener('pointerup',e=>{
     if(e.pointerId!==dragPointer)return;
-    dragPointer=null;
+    dragPointer=null;syncRotation();
     if(dragDistance+Math.hypot(e.clientX-px,e.clientY-py)>6||!reportLayers[layer.value])return;
     const box=canvas.getBoundingClientRect();
     const x=(e.clientX-box.left)*canvas.clientWidth/box.width;
@@ -438,13 +454,14 @@
       if(viewControls&&mobileDashboard.matches)reportDetail.focus();
     }
   });
-  function cancelDrag(e){if(e.pointerId===dragPointer)dragPointer=null;}
+  function cancelDrag(e){if(e.pointerId===dragPointer){dragPointer=null;syncRotation();}}
   canvas.addEventListener('pointercancel',cancelDrag);
   canvas.addEventListener('lostpointercapture',cancelDrag);
   function setRotation(active){
     playing=active;
     motion.textContent=playing?'Pause rotation':'Resume rotation';
     motion.setAttribute('aria-pressed',String(!playing));
+    syncRotation();
   }
   setRotation(playing);
   motion.addEventListener('click',()=>setRotation(!playing));
@@ -510,6 +527,7 @@
 
   function updateProjection(){
     flatMap=archiveActive&&preferFlat;
+    syncRotation();
     projectionControls.hidden=!archiveActive;
     flatButton.setAttribute('aria-pressed',String(flatMap));
     globeButton.setAttribute('aria-pressed',String(!flatMap));
@@ -855,9 +873,19 @@
   }).catch(()=>{});
   if('ResizeObserver' in window)new ResizeObserver(()=>{fit();draw();}).observe(canvas);
   else window.addEventListener('resize',()=>{fit();draw();});
-  fit();draw();requestAnimationFrame(frame);
+  if('IntersectionObserver' in window){
+    const observer=new IntersectionObserver(entries=>{
+      mapInView=entries.some(entry=>entry.isIntersecting);
+      if(mapInView)draw();
+      syncRotation();
+    });
+    observer.observe(canvas);
+  }
+  fit();draw();
   changeLayer();
+  syncRotation();
   document.addEventListener('visibilitychange',()=>{
+    syncRotation();
     if(document.hidden)return;
     if(layer.value==='iss')refreshISS();
     else if(!reportsPaused||reportLayers[layer.value]?.mode)refreshReports();

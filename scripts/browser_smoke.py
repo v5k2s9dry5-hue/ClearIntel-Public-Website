@@ -122,6 +122,12 @@ def check_site(browser, width):
         assert page.locator("#dashboard-feed").is_visible()
         swipe("#dashboard-feed-heading", 95, 4)
         assert page.locator("#dashboard-map").is_visible()
+    rotation = page.locator("#earth-motion")
+    assert rotation.get_attribute("aria-pressed") == "true"  # reduced-motion context
+    rotation.click()
+    assert rotation.get_attribute("aria-pressed") == "false"
+    rotation.click()
+    assert rotation.get_attribute("aria-pressed") == "true"
     guide = page.locator("#dashboard-source-guide")
     assert not guide.locator("dl").is_visible()
     guide.locator("summary").click()
