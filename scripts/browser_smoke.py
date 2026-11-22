@@ -86,6 +86,8 @@ def check_site(browser, width):
     )
     page = context.new_page()
     errors = []
+    regional_requests = []
+    page.on("request", lambda request: regional_requests.append(request.url) if request.url.endswith("/assets/uk-coastline.json") else None)
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.route("**/api/country-news/GB", lambda route: route_json(route, COUNTRY))
     page.route("**/api/news", lambda route: route_json(route, NEWS))
@@ -159,6 +161,11 @@ def check_site(browser, width):
     assert page.locator("#news-query").input_value() == "rail services"
     if mobile:
         page.locator("#dashboard-map-tab").click()
+    assert not regional_requests, "UK coastline downloaded before regional view was requested"
+    page.locator("#earth-uk-view").click()
+    page.wait_for_function("() => performance.getEntriesByType('resource').some(e => e.name.endsWith('/assets/uk-coastline.json'))")
+    assert len(regional_requests) == 1
+    page.locator("#earth-uk-view").click()
     page.locator("#map-expand").click()
     assert page.get_by_role("dialog", name="Expanded map").is_visible()
     page.locator("#earth-zoom-in").click()
