@@ -2,6 +2,10 @@
 
 Responsive public website with a limited, live *news-headline lookup* and a research enquiry workflow. It is NOT the private ClearIntel OSINT investigation engine. Do not upload your internal source files, API keys, local database, case information or `clearintel_gui.py` to the public repository.
 
+## Development roadmap
+
+See [the active 22 November 2026 roadmap](docs/ROADMAP_2026-11-22.md), including the approved Intelligence Replay feature and its free-first, privacy-preserving milestones.
+
 ## Test locally
 
 ```bash
