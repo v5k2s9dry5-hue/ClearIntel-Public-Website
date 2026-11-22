@@ -4,7 +4,7 @@
   // storage. Hover/focus hints never capture taps on the underlying controls.
   const definitions = [
     ['#sidebar-toggle','Show or hide desktop navigation. It changes workspace width but not your map or results.'],
-    ['#analyst-mode-toggle','Switch between simple mode and detailed analyst view. Analyst mode reveals source timestamps and additional evidence metadata; it does not verify reports.'],
+    ['#analyst-mode-toggle','Switch between simple mode and a detailed view with extra source details, timestamps and evidence metadata. Analyst mode does not independently verify reports.'],
     ['#globe-layer','Choose what the global map displays. Earthquakes, wildfires, ISS and country news use public-source updates; military and naval layers are historical archives.'],
     ['.command-overview-card[data-command-layer="earthquakes"]','Open earthquake observations, with other earth and orbital feeds selectable under Layer.'],
     ['.command-overview-card[data-command-layer="countries"]','Show national headline reporting by country. City markers represent mentions in headlines, not confirmed incident locations.'],
