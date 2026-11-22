@@ -11,9 +11,9 @@ PAGE = Template("""<!doctype html>
 <title>$title | ClearIntel</title><meta name="description" content="$description">
 <link rel="canonical" href="$canonical"><meta property="og:url" content="$canonical">
 <meta property="og:title" content="$title | ClearIntel"><meta property="og:description" content="$description">
-<link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/countries.css?v=analyst-mode">
+<link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/countries.css?v=visual-profile">
 $script</head><body>
-<header><a class="brand" href="/">ClearIntel</a><nav aria-label="Main navigation"><a href="/">Live map</a><a href="/countries">Country directory</a></nav></header>
+<header><a class="brand" href="/">Clear<span>Intel</span></a><nav aria-label="Main navigation"><a href="/">Live map</a><a href="/countries">Country directory</a></nav></header>
 <main>$content</main></body></html>""")
 
 
@@ -26,12 +26,12 @@ def directory(base):
     groups = {}
     for code, name in sorted(COUNTRIES.items(), key=lambda item: item[1].casefold()):
         groups.setdefault(name[0].upper(), []).append(
-            f'<li data-code="{code}"><a href="/countries/{code.lower()}">{escape(name)}</a></li>')
+            f'<li data-code="{code}"><a href="/countries/{code.lower()}"><span class="directory-code" aria-hidden="true">{code}</span><span>{escape(name)}</span></a></li>')
     jumps = ' '.join(f'<a href="#group-{letter}">{letter}</a>' for letter in groups)
     sections = ''.join(f'<section><h2 id="group-{letter}">{letter}</h2><ul class="directory">'
                        f'{"".join(links)}</ul></section>' for letter, links in groups.items())
     description = 'Browse recent reporting and news sources by country or territory.'
-    body = (f'<h1>Country directory</h1><p>{description}</p>'
+    body = (f'<div class="page-kicker">GLOBAL NEWS WORKSPACE</div><h1>Country directory</h1><p>{description}</p>'
             '<div id="directory-filter" hidden><label for="country-filter">Find a country or territory</label>'
             '<input type="search" id="country-filter" placeholder="Name or code, e.g. Netherlands or UK">'
             '<span id="filter-count" role="status"></span></div>'
@@ -55,11 +55,11 @@ def profile(base, code):
     sources.append((f'Search Google News for {name}', search_url))
     source_links = ''.join(f'<li><a href="{escape(url)}">{escape(label)}</a></li>' for label, url in sources)
     description = f'Browse recent headlines for {name}, check when sources were last queried and open the original reports.'
-    body = (f'<h1>{escape(name)}</h1><p>{escape(description)}</p>'
+    body = (f'<div class="page-kicker">COUNTRY INTELLIGENCE · {code}</div><h1>{escape(name)}</h1><p>{escape(description)}</p>'
             '<button type="button" id="analyst-mode-toggle" class="globe-control analyst-mode-toggle" aria-pressed="false" hidden>Analyst mode</button>'
-            f'<section id="country-brief" data-code="{code}" data-place="{escape(name)}">'
+            f'<div class="country-profile-grid"><div><section id="country-brief" data-code="{code}" data-place="{escape(name)}">'
             '<h2>Recent headlines</h2><noscript>Enable JavaScript to load headlines or use the source links below.</noscript></section>'
             f'<p class="update-note">Headlines refresh every five minutes while this page is open and visible.</p>'
-            f'<section><h2>Browse sources</h2><ul>{source_links}</ul></section>')
+            f'</div><section class="profile-source-panel"><h2>Browse sources</h2><p>Publisher and news-index links. Coverage varies by country.</p><ul>{source_links}</ul></section></div>')
     scripts = '<script src="/assets/analyst-mode.js" defer></script><script src="/assets/country-card.js?v=refresh-resilience" defer></script><script src="/assets/country-profile.js?v=refresh-resilience" defer></script>'
     return page(base, '/countries/' + code.lower(), name + ' news and sources', description, body, scripts)
