@@ -67,3 +67,15 @@ class WildfireTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 503)
                 self.assertEqual(response.headers['retry-after'], '30')
             fetch.assert_called_once()
+
+    def test_provider_retry_after_is_honoured(self):
+        from urllib.error import HTTPError
+        error = HTTPError('https://example.invalid/feed', 429, 'rate limited',
+                          {'Retry-After': '180'}, None)
+        with (patch('wildfires.monotonic', return_value=100),
+              patch('wildfires._fetch_feed', side_effect=error) as fetch):
+            for _ in range(2):
+                response = self.client.get('/api/wildfires')
+                self.assertEqual(response.status_code, 503)
+                self.assertEqual(response.headers['retry-after'], '180')
+            fetch.assert_called_once()

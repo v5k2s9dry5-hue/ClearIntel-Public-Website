@@ -146,7 +146,7 @@ def check_site(browser, width):
     page.locator("#earth-zoom-in").click()
     page.keyboard.press("Escape")
     page.locator("#expanded-map").wait_for(state="hidden")
-    assert page.locator("#map-expand").evaluate("(button) => button === document.activeElement")
+    page.wait_for_function("() => document.querySelector(\'#map-expand\') === document.activeElement")
     page.locator("#research").scroll_into_view_if_needed()
     page.locator(".field-head .help-button").click()
     tip = page.locator("#help-panel-1")
