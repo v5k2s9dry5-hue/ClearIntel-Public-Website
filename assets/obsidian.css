@@ -118,3 +118,7 @@ body:not(:has(.dashboard)) .country-related-reports{background:#0a1828;border-co
 body:not(:has(.dashboard)) p{color:#b5c9db}
 body:not(:has(.dashboard)) a{color:#8cdef2}
 body:not(:has(.dashboard)) a:hover{color:#d1f4ff}
+
+/* Distinguish a country-specific brief from the separate filtered search. */
+.country-headline-context:not([hidden]){display:block;padding:10px 13px;margin:14px 0 7px;border:1px solid #34607a;border-left:3px solid #86dced;border-radius:7px;background:#0d2132;color:#cde6f3;font-size:12px;line-height:1.5;letter-spacing:.01em}
+#search-country:not([hidden]){margin-top:4px}
