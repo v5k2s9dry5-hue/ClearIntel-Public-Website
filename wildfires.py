@@ -1,6 +1,8 @@
 """Recent wildfire observations from NASA's Earth Observatory Natural Event Tracker."""
 
 from asyncio import Lock
+from math import ceil
+from feed_retry import retry_delay
 from datetime import datetime
 import json
 import re
@@ -107,14 +109,14 @@ async def wildfire_feed():
         async with _refresh_lock:
             try:
                 _snapshot = await run_in_threadpool(_fetch_feed)
-            except (OSError, ValueError):
+            except (OSError, ValueError) as error:
                 _unavailable = True
-                _retry_at = monotonic() + 30
+                _retry_at = monotonic() + retry_delay(error)
             else:
                 _unavailable = False
                 _retry_at = monotonic() + 120
     if _snapshot is None:
-        raise HTTPException(503, 'NASA EONET wildfire feed is unavailable.', headers={'Retry-After': '30'})
+        raise HTTPException(503, 'NASA EONET wildfire feed is unavailable.', headers={'Retry-After': str(max(1, ceil(_retry_at - monotonic()))) if _retry_at else '2'})
     now = int(time() * 1000)
     events = [event for event in _snapshot['events'] if event['observed_at_ms'] >= now - WEEK_MS]
     return {**_snapshot, 'events': events,

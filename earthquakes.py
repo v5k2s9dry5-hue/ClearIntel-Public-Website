@@ -1,6 +1,8 @@
 """Cached USGS earthquake observations for the public globe."""
 
 from asyncio import Lock
+from math import ceil
+from feed_retry import retry_delay
 import json
 from math import isfinite
 import re
@@ -92,14 +94,14 @@ async def earthquake_feed():
                 if _snapshot and latest['generated_at_ms'] < _snapshot['generated_at_ms']:
                     raise ValueError('Feed timestamp went backwards')
                 _snapshot = latest
-            except (OSError, ValueError):
+            except (OSError, ValueError) as error:
                 _unavailable = True
-                _retry_at = monotonic() + 30
+                _retry_at = monotonic() + retry_delay(error)
             else:
                 _unavailable = False
                 _retry_at = monotonic() + 60
     if _snapshot is None:
-        raise HTTPException(503, 'USGS earthquake feed is unavailable.', headers={'Retry-After': '30'})
+        raise HTTPException(503, 'USGS earthquake feed is unavailable.', headers={'Retry-After': str(max(1, ceil(_retry_at - monotonic()))) if _retry_at else '2'})
     now_ms = int(time() * 1000)
     events = [event for event in _snapshot['events'] if event['occurred_at_ms'] >= now_ms - 7 * DAY_MS]
     return {**_snapshot, 'events': events,
