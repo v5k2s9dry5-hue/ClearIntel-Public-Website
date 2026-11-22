@@ -260,6 +260,7 @@ function renderResults(payload,search){
   if(exportUi)area.append(exportUi.controls);
   if(!payload.results.length){area.append(el('div','empty-results','Try a broader term or 7-day window. No headline match does not establish that nothing happened.'));}
   const list=el('div','result-list');
+  const entries=[];
   for(const article of payload.results){
     const card=el('article','result-card');
     const eyebrow=el('div','result-meta',article.source+' · '+(article.time_basis||'Feed time')+' · '+new Date(article.feed_time_utc).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'})+' UTC');
@@ -270,7 +271,49 @@ function renderResults(payload,search){
     card.append(el('span','analyst-only analyst-metadata',
       'Exact feed timestamp: '+(Number.isFinite(date.getTime())?date.toISOString():'unknown')+' · Headline is a research lead'));
     if(exportUi)card.append(exportUi.choiceFor(article));
+    entries.push({card,article});
     list.append(card);
+  }
+  if(entries.length){
+    const controls=el('div','result-view-controls');
+    const sourceField=el('label','result-view-field','Publisher');
+    const publisher=el('select','');
+    publisher.id='result-publisher';sourceField.htmlFor=publisher.id;
+    publisher.add(new Option('All publishers',''));
+    for(const name of [...new Set(entries.map(entry=>entry.article.source).filter(Boolean))].sort((a,b)=>a.localeCompare(b))){
+      publisher.add(new Option(name,name));
+    }
+    sourceField.append(publisher);
+    const sortField=el('label','result-view-field','Order');
+    const sort=el('select','');sort.id='result-order';sortField.htmlFor=sort.id;
+    sort.add(new Option('Original order','original'));
+    sort.add(new Option('Newest feed time','newest'));
+    sort.add(new Option('Oldest feed time','oldest'));
+    sortField.append(sort);
+    const count=el('p','result-view-count');count.setAttribute('role','status');
+    const reset=el('button','globe-control','Reset view');reset.type='button';
+    const guidance=el('p','result-view-guidance','View controls use results already retrieved. PDF includes checked findings, even when filtered out of view.');
+    function updateView(){
+      let ordered=[...entries];
+      if(sort.value!=='original')ordered.sort((a,b)=>{
+        const first=Date.parse(a.article.feed_time_utc),second=Date.parse(b.article.feed_time_utc);
+        if(!Number.isFinite(first)||!Number.isFinite(second))return Number.isFinite(first)?-1:Number.isFinite(second)?1:0;
+        return sort.value==='newest'?second-first:first-second;
+      });
+      let shown=0;
+      for(const entry of ordered){
+        const visible=!publisher.value||entry.article.source===publisher.value;
+        entry.card.hidden=!visible;
+        if(visible)shown++;
+        list.append(entry.card);
+      }
+      count.textContent='Showing '+shown+' of '+entries.length+' headlines';
+      reset.disabled=!publisher.value&&sort.value==='original';
+    }
+    publisher.addEventListener('change',updateView);sort.addEventListener('change',updateView);
+    reset.addEventListener('click',()=>{publisher.value='';sort.value='original';updateView();publisher.focus();});
+    controls.append(sourceField,sortField,reset,count,guidance);
+    area.append(controls);updateView();
   }
   area.append(list);
   if(exportUi)exportUi.refreshSelection();

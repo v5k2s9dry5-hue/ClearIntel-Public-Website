@@ -15,8 +15,11 @@ function renderCountryCard(container,country,entry){
     const status=document.createElement('span');
     status.setAttribute('role','status');
     const data=entry?.data;
-    const openedStories=new Set([...container.querySelectorAll('.country-related-reports[open]')]
-      .filter(item=>item.dataset.country===country.id).map(item=>item.dataset.story));
+    const previousStories=new Map([...container.querySelectorAll('.country-related-reports')]
+      .filter(item=>item.dataset.country===country.id).map(item=>[item.dataset.story,item.open]));
+    const focusedStory=document.activeElement?.closest('.country-related-reports');
+    const focusedSummary=focusedStory?.contains(document.activeElement)&&document.activeElement.tagName==='SUMMARY'&&container.contains(focusedStory)&&focusedStory.dataset.country===country.id?focusedStory.dataset.story:null;
+    let restoreSummary=null;
     const previousDetails=container.querySelector('.country-coverage-details');
     const wasOpen=previousDetails ? previousDetails.open : document.body.dataset.analysisMode==='analyst';
     const checked=Array.isArray(data?.sources_checked)?data.sources_checked:[];
@@ -93,8 +96,10 @@ function renderCountryCard(container,country,entry){
         const evidence=el('details','country-related-reports');
         evidence.dataset.country=country.id;
         evidence.dataset.story=article.url;
-        evidence.open=openedStories.has(article.url)||document.body.dataset.analysisMode==='analyst';
-        evidence.append(el('summary','',additional.length+' additional '+(additional.length===1?'source':'sources')));
+        evidence.open=previousStories.has(article.url)?previousStories.get(article.url):document.body.dataset.analysisMode==='analyst';
+        const summary=el('summary','',additional.length+' additional '+(additional.length===1?'source':'sources'));
+        evidence.append(summary);
+        if(focusedSummary===article.url)restoreSummary=summary;
         const read=el('div','country-related-links');
         for(const report of additional){
           const published=new Date(report.feed_time_utc);
@@ -153,6 +158,7 @@ function renderCountryCard(container,country,entry){
       links.append(profile);
     }
     container.replaceChildren(title,status,links);
+    if(restoreSummary)restoreSummary.focus({preventScroll:true});
 }
 
 function retryMessage(response) {
