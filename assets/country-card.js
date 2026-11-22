@@ -15,7 +15,8 @@ function renderCountryCard(container,country,entry){
     const status=document.createElement('span');
     status.setAttribute('role','status');
     const data=entry?.data;
-    const wasOpen=Boolean(container.querySelector('.country-coverage-details')?.open);
+    const previousDetails=container.querySelector('.country-coverage-details');
+    const wasOpen=previousDetails ? previousDetails.open : document.body.dataset.analysisMode==='analyst';
     const checked=Array.isArray(data?.sources_checked)?data.sources_checked:[];
     const errors=Array.isArray(data?.provider_errors)?data.provider_errors:[];
     const checkedAt=new Date(data?.checked_at_utc);
@@ -80,6 +81,10 @@ function renderCountryCard(container,country,entry){
         content.append(link,source);
       }
       source.textContent+=' · '+(labels[group.basis]||'Recent coverage');
+      const preciseTime=Number.isFinite(timestamp.getTime())?timestamp.toISOString():'unknown';
+      const metadata=el('span','analyst-only analyst-metadata',
+        'Exact source timestamp: '+preciseTime+' · '+group.reports.length+' '+(group.reports.length===1?'linked report':'linked reports')+' · Not independently verified');
+      content.append(metadata);
       for(const report of related){
         if(!report.editorial)content.append(reportLink(report.url,'Also covered by '+report.source));
       }

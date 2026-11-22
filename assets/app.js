@@ -252,6 +252,8 @@ function renderResults(payload,search){
   header.append(left,timeWindow);area.append(header);
   const notice=el('div','result-warning',payload.notice);area.append(notice);
   if(payload.provider_errors?.length){ area.append(el('p','provider-note','Some providers were unavailable: '+payload.provider_errors.join('; ')+'. Results may be incomplete.')); }
+  const windowText='Requested UTC window: '+(payload.window_start||'unknown')+' to '+(payload.window_end||'unknown')+'.';
+  area.append(el('p','analyst-only analyst-metadata',windowText));
   const exportUi=window.ClearIntelReport?reportExport(payload,search):null;
   if(exportUi)area.append(exportUi.controls);
   if(!payload.results.length){area.append(el('div','empty-results','Try a broader term or 7-day window. No headline match does not establish that nothing happened.'));}
@@ -262,6 +264,9 @@ function renderResults(payload,search){
     const link=el('a','result-title',article.title);link.href=article.url;link.target='_blank';link.rel='noopener noreferrer nofollow';
     const incidentTime=search.incidentOnly&&article.incident_time_utc==null?' · Incident time unknown':'';
     card.append(eyebrow,link,el('div','result-provider',article.provider+incidentTime));
+    const date=new Date(article.feed_time_utc);
+    card.append(el('span','analyst-only analyst-metadata',
+      'Exact feed timestamp: '+(Number.isFinite(date.getTime())?date.toISOString():'unknown')+' · Headline is a research lead'));
     if(exportUi)card.append(exportUi.choiceFor(article));
     list.append(card);
   }

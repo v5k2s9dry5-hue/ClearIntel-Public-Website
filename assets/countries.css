@@ -16,3 +16,9 @@ section{padding:1rem 0;border-bottom:1px solid #2a405b}h2{margin:.5rem 0}.direct
 .country-coverage-details p,.country-coverage-details ul{margin:.5rem 0}
 .country-coverage-details ul{padding-inline-start:1.2rem}
 .country-coverage-details li{margin:.2rem 0}
+
+.analyst-only { display: none !important; }
+body[data-analysis-mode="analyst"] .analyst-only { display: block !important; }
+.analyst-metadata { font-size: .8rem; color: #b6cbde; overflow-wrap: anywhere; }
+.analyst-mode-toggle[aria-pressed="true"] { outline: 2px solid #65d9ef; outline-offset: 2px; }
+.analyst-mode-toggle { font: inherit; border: 1px solid #46637d; background: #132239; color: inherit; border-radius: .4rem; padding: .4rem .65rem; cursor: pointer; margin-bottom: .6rem; }
