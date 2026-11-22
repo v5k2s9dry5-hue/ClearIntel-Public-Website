@@ -69,6 +69,16 @@ class PublicSiteTests(unittest.TestCase):
             self.assertGreater(int(response.headers['retry-after']), 0)
             provider.assert_called_once()
 
+    def test_country_searches_have_independent_panel_limits(self):
+        with patch('main.search_country_news', return_value=SEARCH_RESPONSE), patch('main.search_news', return_value=SEARCH_RESPONSE):
+            for code in ('GB', 'ES', 'NL', 'FR', 'DE'):
+                self.assertEqual(self.client.get('/api/country-news/' + code).status_code, 200)
+                self.assertEqual(self.client.post('/api/news', json={'query': code}).status_code, 200)
+            for response in (self.client.get('/api/country-news/IT'),
+                             self.client.post('/api/news', json={'query': 'IT'})):
+                self.assertEqual(response.status_code, 429)
+                self.assertGreater(int(response.headers['retry-after']), 0)
+
     def test_site_limit_applies_across_client_addresses(self):
         other_client = TestClient(app, client=('93.184.216.35', 50000))
         with patch('main.SITE_SEARCHES_PER_MINUTE', 1):

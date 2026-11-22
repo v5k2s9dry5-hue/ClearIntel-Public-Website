@@ -231,7 +231,7 @@ function renderCountryCard(container,country,entry){
       weekly:'From the past week', recent:'Recent coverage',
     };
     if(!entry?.data){
-      status.textContent=entry?.failed?'The news sources are temporarily unavailable.':'Checking national headlines…';
+      status.textContent=entry?.failed?(entry.message || 'Country headlines are temporarily unavailable.'):'Checking national headlines…';
     }else if(!stories.length){
       status.textContent='No leading headline available from the sources checked.';
     }else{
@@ -302,6 +302,11 @@ function renderCountryCard(container,country,entry){
     container.replaceChildren(title,status,links);
 }
 
+function retryMessage(response) {
+  const seconds = Number(response.headers.get('Retry-After'));
+  return seconds > 0 ? `Try again in ${seconds} seconds.` : 'Try again shortly.';
+}
+
 let countryList;
 let countrySearchVersion=0;
 async function showSearchCountry(query){
@@ -320,7 +325,11 @@ async function showSearchCountry(query){
     renderCountryCard(panel,country,null);
     try{
       const response=await fetch('/api/country-news/'+encodeURIComponent(country.id));
-      if(!response.ok)throw Error();
+      if(!response.ok){
+        const message=response.status===429?'Country headlines are rate limited. '+retryMessage(response):'Country headlines are temporarily unavailable.';
+        if(version===countrySearchVersion)renderCountryCard(panel,country,{failed:true,message});
+        return;
+      }
       const data=await response.json();
       if(version===countrySearchVersion)renderCountryCard(panel,country,{
         data,change:window.ClearIntelCountryChanges(country.id,data)});
@@ -374,8 +383,12 @@ $('news-form').addEventListener('submit',async e=>{
     const controller=new AbortController();timeout=setTimeout(()=>controller.abort(),25000);
     const response=await fetch('/api/news',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,window:timeWindow,incident_only:incidentOnly}),signal:controller.signal});
     let payload;try{payload=await response.json();}catch{payload={};}
+    if(response.status===429){
+      fillStatus('Filtered search is rate limited',retryMessage(response),'error');
+      return;
+    }
     if(!response.ok)throw new Error(typeof payload.detail==='string'?payload.detail:'News search could not be completed.');
     renderResults(payload,{query,window:timeWindow,incidentOnly});
-  }catch(err){fillStatus('Live search unavailable',err.name==='AbortError'?'The sources did not respond within the time limit. Try again.':err.message,'error');}
+  }catch(err){fillStatus('Filtered search unavailable',err.name==='AbortError'?'The sources did not respond within the time limit. Try again.':err.message,'error');}
   finally{clearTimeout(timeout);submit.disabled=false;}
 });
