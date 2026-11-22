@@ -6,6 +6,8 @@
   function setMode(analyst, updateDetails){
     document.body.dataset.analysisMode=analyst?'analyst':'simple';
     button.setAttribute('aria-pressed',String(analyst));
+    const indicator=button.querySelector('.workspace-control-indicator');
+    if(indicator)indicator.textContent=analyst?'On':'Off';
     if(updateDetails)document.querySelectorAll('.country-coverage-details, .country-related-reports').forEach(details=>{details.open=analyst;});
   }
   let analyst=false;

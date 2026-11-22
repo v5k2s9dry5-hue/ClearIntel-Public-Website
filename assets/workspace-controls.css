@@ -1,0 +1,41 @@
+/* Workspace action controls — keep utility buttons away from the title text. */
+.dashboard .dashboard-toolbar{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:14px 24px}
+.dashboard .dashboard-title{display:block;flex:1 1 370px;min-width:0;max-width:720px}
+.dashboard .dashboard-heading-group{min-width:0}
+.dashboard .dashboard-toolbar-tools{display:flex;flex:0 1 auto;align-items:flex-start;justify-content:flex-end;flex-wrap:wrap;gap:12px;margin-left:auto;min-width:0}
+.dashboard .workspace-control-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-top:4px}
+.dashboard .workspace-control{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:43px;padding:9px 12px;border:1px solid #344e65;border-radius:9px;background:#0d1a29;color:#dcecf7;font:650 12px/1.35 Inter,system-ui,sans-serif;letter-spacing:.005em;white-space:nowrap;box-shadow:inset 0 1px #ffffff0a;transition:background .15s,border-color .15s}
+.dashboard .workspace-control svg{height:17px;width:17px;flex:none;color:#82b9cf}
+.dashboard .workspace-control:hover{background:#152c42;border-color:#6b9bb1;color:#f6fcff}
+.dashboard .workspace-control:focus-visible{outline:2px solid #a2ebfa;outline-offset:3px}
+.dashboard .workspace-control[aria-pressed="true"]{background:#123245;border-color:#6eabc5;color:#ddf9ff}
+.dashboard .workspace-control[aria-pressed="true"] svg{color:#9ce9f6}
+.dashboard .workspace-control-indicator{display:inline-flex;align-items:center;gap:6px;padding:3px 7px;border-radius:5px;background:#172435;color:#b0c3d5;font:750 10px/1.3 Inter,system-ui,sans-serif;letter-spacing:.03em}
+.dashboard .workspace-control-indicator::before{content:"";width:6px;height:6px;border-radius:50%;background:#6c8495}
+.dashboard .workspace-control[aria-pressed="true"] .workspace-control-indicator{background:#164a53;color:#baf4fa}
+.dashboard .workspace-control[aria-pressed="true"] .workspace-control-indicator::before{background:#84ecdb;box-shadow:0 0 8px #84ecdb77}
+.dashboard .workspace-layer-picker{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:180px;padding:9px 12px;border:1px solid #344e65;border-radius:9px;background:#0d1a29;color:#a9c8db;text-transform:uppercase;font:750 10px/1.3 Inter,system-ui,sans-serif;letter-spacing:.09em}
+.dashboard .workspace-layer-picker select{min-height:38px;padding:6px 9px;border:1px solid #2e4d65;border-radius:6px;background:#091626;color:#ebf7ff;font:650 12px/1.4 Inter,system-ui,sans-serif;letter-spacing:normal;text-transform:none}
+.dashboard .workspace-layer-picker select:focus-visible{outline:2px solid #a2ebfa;outline-offset:2px}
+.dashboard .workspace-control[hidden]{display:none!important}
+@media(max-width:1380px){
+ .dashboard .dashboard-toolbar-tools{flex-basis:100%;justify-content:space-between;margin-left:0}
+}
+@media(max-width:1080px){
+ .dashboard .workspace-control-sidebar{display:none!important}
+ .dashboard .dashboard-toolbar-tools{justify-content:space-between}
+}
+@media(max-width:860px){
+ .dashboard .dashboard-title{flex-basis:100%;max-width:none}
+ .dashboard .dashboard-toolbar-tools{width:100%;flex-basis:100%;align-items:center;gap:9px}
+ .dashboard .workspace-control-group{padding-top:0}
+ .dashboard .workspace-layer-picker{flex:1 1 155px;min-width:145px;max-width:240px}
+ .dashboard .workspace-control{min-height:43px}
+}
+@media(max-width:470px){
+ .dashboard .dashboard-toolbar-tools{display:grid;grid-template-columns:minmax(0,1fr);gap:9px}
+ .dashboard .workspace-control-group{justify-content:flex-start}
+ .dashboard .workspace-layer-picker{max-width:none;min-width:0;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;padding:7px 10px}
+ .dashboard .workspace-layer-picker select{flex:1;max-width:67%;min-width:0}
+}
+@media(prefers-reduced-motion:reduce){.dashboard .workspace-control{transition:none}}

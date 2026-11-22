@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="/assets/dashboard.css?v=20261122-analyst-mode">
   <link rel="stylesheet" href="/assets/dashboard-visual.css?v=20261122-result-controls"><link rel="stylesheet" href="/assets/command-center.css">
   <link rel="stylesheet" href="/assets/obsidian.css">
+  <link rel="stylesheet" href="/assets/workspace-controls.css">
   <link rel="stylesheet" href="/assets/replay.css">
   <script src="/assets/research-pdf.js" defer></script>
   <script src="/assets/analyst-mode.js" defer></script>
@@ -61,20 +62,30 @@
       <div class="dashboard-workspace">
         <div class="dashboard-toolbar">
           <div class="dashboard-title">
-            <button id="sidebar-toggle" type="button" class="globe-control" aria-controls="dashboard-sidebar" aria-expanded="true" hidden>Hide sidebar</button>
             <div class="dashboard-heading-group"><span class="workspace-kicker">CLEARINTEL / GLOBAL SITUATION ROOM</span><h1 id="dashboard-heading">Intelligence <span class="dashboard-headline-accent">at a glance.</span></h1><p class="dashboard-lede">Explore public observations, country headlines and source-linked historical reports from one global workspace.</p></div>
-            <button type="button" id="analyst-mode-toggle" class="globe-control analyst-mode-toggle" aria-pressed="false" hidden>Analyst mode</button>
           </div>
-          <label for="globe-layer">Layer
-            <select id="globe-layer">
-              <option value="earthquakes">Earthquakes</option>
-              <option value="wildfires">Wildfires</option>
-              <option value="iss">ISS position</option>
-              <option value="countries">Country news</option>
-              <option value="aviation">Military aviation</option>
-              <option value="maritime">Naval activity</option>
-            </select>
-          </label>
+          <div class="dashboard-toolbar-tools">
+            <div class="workspace-control-group" role="group" aria-label="Workspace display options">
+              <button id="sidebar-toggle" type="button" class="workspace-control workspace-control-sidebar" aria-controls="dashboard-sidebar" aria-expanded="true" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+                <span class="workspace-control-text">Hide sidebar</span>
+              </button>
+              <button type="button" id="analyst-mode-toggle" class="workspace-control analyst-mode-toggle" aria-pressed="false" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="#08111b"/><circle cx="15" cy="12" r="2" fill="#08111b"/><circle cx="11" cy="17" r="2" fill="#08111b"/></svg>
+                <span class="workspace-control-text">Analyst mode</span><span class="workspace-control-indicator" aria-hidden="true">Off</span>
+              </button>
+            </div>
+            <label for="globe-layer" class="workspace-layer-picker">Layer
+              <select id="globe-layer">
+                <option value="earthquakes">Earthquakes</option>
+                <option value="wildfires">Wildfires</option>
+                <option value="iss">ISS position</option>
+                <option value="countries">Country news</option>
+                <option value="aviation">Military aviation</option>
+                <option value="maritime">Naval activity</option>
+              </select>
+            </label>
+          </div>
         </div>
         <div class="command-overview" aria-label="Explore intelligence categories">
           <button type="button" class="command-overview-card" data-command-layer="earthquakes" aria-pressed="true">
