@@ -100,6 +100,18 @@ def check_site(browser, width):
         assert page.locator("#dashboard-sidebar").is_visible()
     else:
         assert not toggle.is_visible()
+    if mobile:
+        def swipe(selector, dx, dy):
+            target = page.locator(selector)
+            pointer = {"pointerType": "touch", "pointerId": 8, "isPrimary": True}
+            target.dispatch_event("pointerdown", {**pointer, "clientX": 160, "clientY": 200})
+            target.dispatch_event("pointerup", {**pointer, "clientX": 160 + dx, "clientY": 200 + dy})
+        swipe(".dashboard-map-footer", -20, 90)
+        assert page.locator("#dashboard-map").is_visible()
+        swipe(".dashboard-map-footer", -95, 4)
+        assert page.locator("#dashboard-feed").is_visible()
+        swipe("#dashboard-feed-heading", 95, 4)
+        assert page.locator("#dashboard-map").is_visible()
     query = page.locator("#dashboard-query")
     if mobile:
         page.locator("#dashboard-search-tab").click()

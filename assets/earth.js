@@ -368,6 +368,26 @@
     viewControls.hidden=false;
     showDashboardView('map');
   }
+  const panels = dashboard.querySelector('.dashboard-panels');
+  let swipeStart = null;
+  panels.addEventListener('pointerdown', event => {
+    swipeStart = null;
+    if (!mobileDashboard.matches || event.pointerType !== 'touch' || !event.isPrimary) return;
+    if (event.target.closest('canvas, a, button, input, select, textarea, label, [role="group"]')) return;
+    swipeStart = {id: event.pointerId, x: event.clientX, y: event.clientY};
+  });
+  panels.addEventListener('pointercancel', () => { swipeStart = null; });
+  panels.addEventListener('pointerup', event => {
+    const start = swipeStart;
+    swipeStart = null;
+    if (!start || event.pointerId !== start.id || !mobileDashboard.matches) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.abs(dx) < 65 || Math.abs(dx) < 2 * Math.abs(dy)) return;
+    const next = dx < 0 ? 'feed' : 'map';
+    if (dashboard.dataset.mobileView === next) return;
+    (next === 'feed' ? feedTab : mapTab).click();
+  });
   canvas.addEventListener('pointerdown',e=>{
     if(!e.isPrimary||e.button!==0||dragPointer!==null)return;
     dragPointer=e.pointerId;dragDistance=0;px=e.clientX;py=e.clientY;
