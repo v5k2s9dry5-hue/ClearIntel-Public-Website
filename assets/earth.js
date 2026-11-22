@@ -285,8 +285,13 @@
         continue;
       }
       const radius=count>99?15:count>1?12:cityPin?5:selected?7:4;
+      const marker=cityPin?'#78c8ec':selected?activeLayer.selectedMarker:activeLayer.marker;
+      if(selected||count>1){
+        ctx.save();ctx.globalAlpha=.15;ctx.fillStyle=marker;
+        ctx.beginPath();ctx.arc(group.x,group.y,radius+5,0,2*Math.PI);ctx.fill();ctx.restore();
+      }
       ctx.beginPath();ctx.arc(group.x,group.y,radius,0,2*Math.PI);
-      ctx.fillStyle=cityPin?'#78c8ec':selected?activeLayer.selectedMarker:activeLayer.marker;ctx.fill();
+      ctx.fillStyle=marker;ctx.fill();
       ctx.strokeStyle='#071b24';ctx.lineWidth=1.5;ctx.stroke();
       if(count>1){ctx.fillStyle='#071b24';ctx.fillText(String(count),group.x,group.y);}
       group.hitRadius=Math.max(14,radius+4);
@@ -299,16 +304,16 @@
     if(!width||!height)return;
     ctx.clearRect(0,0,width,height);
     if(flatMap){drawFlatMap(width,height);return;}
-    const cx=width/2, cy=height/2-4, r=Math.min(width*0.39,height*0.45)*zoom;
+    const cx=width/2, cy=height/2-4, r=Math.min(width*0.435,height*0.455)*zoom;
     const halo=ctx.createRadialGradient(cx,cy,r*.8,cx,cy,r*1.4);
-    halo.addColorStop(0,'rgba(72,152,246,.23)');halo.addColorStop(1,'rgba(31,72,130,0)');
+    halo.addColorStop(0,'rgba(58,157,213,.27)');halo.addColorStop(.5,'rgba(37,108,170,.11)');halo.addColorStop(1,'rgba(31,72,130,0)');
     ctx.fillStyle=halo;ctx.beginPath();ctx.arc(cx,cy,r*1.4,0,Math.PI*2);ctx.fill();
     const ocean=ctx.createRadialGradient(cx-r*.36,cy-r*.4,r*.04,cx,cy,r*1.15);
-    ocean.addColorStop(0,'#1a395d');ocean.addColorStop(.65,'#102745');ocean.addColorStop(1,'#081628');
-    ctx.fillStyle=ocean;ctx.strokeStyle='#3d6289';ctx.lineWidth=1.25;
+    ocean.addColorStop(0,'#142f48');ocean.addColorStop(.65,'#0b2339');ocean.addColorStop(1,'#050f1e');
+    ctx.fillStyle=ocean;ctx.strokeStyle='#588cad';ctx.lineWidth=1.15;
     ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);ctx.fill();ctx.stroke();
     ctx.save();ctx.beginPath();ctx.arc(cx,cy,r-.4,0,Math.PI*2);ctx.clip();
-    ctx.strokeStyle='rgba(129,176,223,.23)';ctx.lineWidth=.65;
+    ctx.strokeStyle='rgba(129,176,223,.15)';ctx.lineWidth=.65;
     for(let lon=-180;lon<=180;lon+=30)strokeTrack(drawGrid(lon),cx,cy,r);
     for(let lat=-75;lat<=75;lat+=15)strokeTrack(Array.from({length:361},(_,i)=>[-180+i,lat]),cx,cy,r);
     const map=zoom>1&&detailedMap?detailedMap:worldMap;
@@ -339,8 +344,9 @@
     ctx.fillStyle=shade;ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);ctx.fill();
     ctx.restore();
     if(zoom===1){
-      ctx.strokeStyle='rgba(143,184,231,.21)';ctx.lineWidth=1;
-      ctx.beginPath();ctx.ellipse(cx,cy,r*1.13,r*.30,-.3,0,2*Math.PI);ctx.stroke();
+      // A subtle rim follows the globe; no decorative orbital path implying a track.
+      ctx.strokeStyle='rgba(114,198,235,.19)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(cx,cy,r+3,0,2*Math.PI);ctx.stroke();
     }
     pins=reportLayers[layer.value]?drawReportPins(cx,cy,r):[];
     ctx.fillStyle='#9ebbd6';ctx.font='9px system-ui';

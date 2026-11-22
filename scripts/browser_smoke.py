@@ -220,6 +220,8 @@ def check_site(browser, width):
     page.wait_for_url("**/countries/gb")
     page.locator("#country-brief .country-top-stories li").wait_for()
     assert page.get_by_role("heading", name="United Kingdom").is_visible()
+    assert page.locator(".profile-source-panel").is_visible()
+    assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     # A complete outage retains prior headlines, but a successful empty search does not.
     page.evaluate("""previous => {
         const outage = {...previous, stories: [], sources_checked: [], provider_errors: ['gdelt: timeout']};
@@ -251,6 +253,7 @@ def check_site(browser, width):
     assert page.locator("#country-brief").get_by_text("Gdelt — timeout").is_visible()
     page.get_by_role("link", name="Country directory").click()
     page.get_by_role("link", name="Netherlands", exact=True).wait_for()
+    assert page.locator(".directory-code").first.is_visible()
     page.get_by_label("Find a country or territory").fill("UK")
     assert page.get_by_role("link", name="United Kingdom", exact=True).is_visible()
     assert not page.get_by_role("link", name="Netherlands", exact=True).is_visible()

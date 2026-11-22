@@ -92,3 +92,17 @@ body { font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif; font-siz
 .dashboard-map[data-category="aviation"] { --layer-accent:#f3ce70; }
 .dashboard-map[data-category="maritime"] { --layer-accent:#b3a7ff; }
 .dashboard-map[data-category="iss"] { --layer-accent:#88c9ff; }
+
+/* Map and research detail refinement; colours describe categories, not severity. */
+.dashboard-map .globe-canvas-wrap{background:radial-gradient(ellipse at 50% 48%,#132b43 0%,#081321 70%)}
+.dashboard-map-footer .globe-control{font-size:12px;min-height:36px;padding-inline:10px}
+.dashboard-map-footer .globe-controls{gap:6px}
+.dashboard-map-footer .globe-coord-label{color:#9db9d1}
+.dashboard .country-sources .country-change-badge{font-size:11px}
+.research-panel .result-list{display:grid;gap:10px}
+.research-panel .result-card{padding:16px;border-radius:9px}
+.research-panel .result-title{font-size:16px;line-height:1.45;font-weight:650}
+.research-panel .result-title:hover{color:#65d9ef}
+.research-panel .result-meta{font-size:12px;line-height:1.5}
+.research-panel .result-provider{font-size:12px}
+@media(max-width:860px){.dashboard-map-footer .globe-control{min-height:40px}.research-panel .result-card{padding:12px}}
