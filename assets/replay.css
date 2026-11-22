@@ -40,3 +40,8 @@
 .replay-previous-title{display:block;color:#eacb9a;font-size:11px;overflow-wrap:anywhere}
 .replay-compare .replay-warning{margin:0;color:#ebcb98}
 .replay-panel .replay-no-change{color:#bde9d2;font-size:12px}
+
+/* Source-coverage disclosure in local snapshots and comparisons. */
+.replay-panel .replay-coverage{font-size:12px;color:#d1e9f5;margin:5px 0}
+.replay-panel .replay-coverage-warning{font-size:12px;color:#f0cf99;border-left:3px solid #dfb778;padding:7px 9px;background:#271f1a;border-radius:3px;margin:8px 0}
+.replay-panel .replay-coverage-details{font-size:11px;color:#b9d6e5;overflow-wrap:anywhere;margin:0}

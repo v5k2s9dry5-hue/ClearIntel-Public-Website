@@ -114,6 +114,29 @@
         ' changed headline/publisher · '+changes.unchanged.length+' unchanged'),
       node('p','replay-warning','These are differences between two saved, potentially incomplete search results. They do not prove an article was published or deleted, an incident occurred, or reports were independently verified. Changes to URLs and syndication may look like separate stories.')
     );
+    const priorSources=Array.isArray(older.sources_checked) ? older.sources_checked : [];
+    const newSources=Array.isArray(newer.sources_checked) ? newer.sources_checked : [];
+    const priorErrors=Array.isArray(older.provider_errors) ? older.provider_errors : [];
+    const newErrors=Array.isArray(newer.provider_errors) ? newer.provider_errors : [];
+    const normalized=sources=>new Set(sources.map(s=>String(s).trim().toLowerCase()));
+    const first=normalized(priorSources),second=normalized(newSources);
+    const changedSources=first.size!==second.size || [...first].some(s=>!second.has(s));
+    if(changedSources || priorErrors.length || newErrors.length){
+      const note=node('p','replay-coverage-warning',
+        'Source coverage caution: the sources checked differed or at least one provider reported an error. Missing headlines may reflect feed availability, not changes in real-world reporting.');
+      compareResult.append(note);
+      const evidence=node('p','replay-coverage-details',
+        'Earlier sources: ' + (priorSources.length?priorSources.join(', '):'None recorded') +
+        ' · Later sources: ' + (newSources.length?newSources.join(', '):'None recorded') +
+        ' · Earlier provider problems: ' + priorErrors.length +
+        ' · Later provider problems: ' + newErrors.length);
+      compareResult.append(evidence);
+    }
+    if(Number(older.total_results)>older.articles.length ||
+       Number(newer.total_results)>newer.articles.length)
+      compareResult.append(node('p','replay-coverage-warning',
+        'At least one saved snapshot includes only the first ' + MAX_RESULTS +
+        ' results. Headlines outside that limit cannot be compared.'));
     for(const [name,entries,kind] of [
       ['Newly present in later snapshot',changes.added,'added'],
       ['No longer present in later snapshot',changes.removed,'removed']]){
@@ -160,6 +183,16 @@
       snapshot.total_results + ' headlines returned · ' + snapshot.articles.length + ' saved');
     const caution = node('p', 'replay-warning', 'This is what the selected search returned when saved. It is not a reconstructed history, complete news archive, or verified incident record.');
     detail.append(heading, observed, windowLabel, caution);
+    const checked = Array.isArray(snapshot.sources_checked) ? snapshot.sources_checked : [];
+    const errors = Array.isArray(snapshot.provider_errors) ? snapshot.provider_errors : [];
+    detail.append(node('p','replay-coverage','Sources checked when saved: ' +
+      (checked.length ? checked.slice(0,20).map(s => short(s,100)).join(', ') : 'Not recorded')));
+    if(errors.length)detail.append(node('p','replay-coverage-warning',
+      'Provider problems when saved: ' + errors.slice(0,12).map(s => short(s,180)).join('; ')));
+    if(Number(snapshot.total_results)>snapshot.articles.length)
+      detail.append(node('p','replay-coverage-warning',
+        'Only the first ' + snapshot.articles.length + ' of ' + snapshot.total_results +
+        ' returned headlines were retained in this browser snapshot.'));
     if (!snapshot.articles.length) {
       detail.append(node('p', 'replay-empty', 'No matching headlines were returned by the checked sources in this snapshot. This does not establish that no event occurred.'));
       return;
