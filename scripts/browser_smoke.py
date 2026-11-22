@@ -175,6 +175,14 @@ def check_site(browser, width):
     page.locator("#news-submit").click()
     page.locator("#news-results .result-title").wait_for()
     assert page.locator("#news-results .result-title").inner_text() == NEWS["results"][0]["title"]
+    page.locator("#result-publisher").select_option("Fixture publisher")
+    page.locator("#result-order").select_option("oldest")
+    assert page.locator(".result-view-count").inner_text() == "Showing 1 of 1 headlines"
+    page.get_by_role("button", name="Reset view").click()
+    assert page.locator("#result-publisher").input_value() == ""
+    assert page.locator("#result-order").input_value() == "original"
+    assert page.locator("#news-results .report-include input").first.is_checked()
+    assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     page.locator("#search-country .country-top-stories li").wait_for()
     assert page.locator("#search-country .country-city-note").is_visible()
     assert page.locator("#search-country").get_by_text("Partial source coverage", exact=False).is_visible()
