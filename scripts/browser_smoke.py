@@ -101,6 +101,10 @@ def check_site(browser, width):
     assert page.locator("#map-layer-source").inner_text() == "USGS · Earthquake observations"
     assert page.locator("#map-layer-kind").inner_text() == "Public feed"
     assert page.locator("#dashboard-map-heading").is_visible()
+    assert page.evaluate("getComputedStyle(document.body).backgroundColor") == "rgb(6, 9, 16)"
+    assert page.evaluate("getComputedStyle(document.querySelector('#dashboard-map')).backgroundColor") == "rgb(5, 14, 26)"
+    assert page.evaluate("getComputedStyle(document.querySelector('.command-overview-card')).backgroundImage.includes('gradient')")
+    assert page.locator('link[href*="/assets/obsidian.css"]').count() == 1
     assert page.get_by_role("heading", name="Intelligence at a glance.").is_visible()
     assert page.locator(".command-overview-card").count() == 3
     page.locator('[data-command-layer="countries"]').click()
@@ -249,6 +253,8 @@ def check_site(browser, width):
     page.wait_for_url("**/countries/gb")
     page.locator("#country-brief .country-top-stories li").wait_for()
     assert page.get_by_role("heading", name="United Kingdom").is_visible()
+    assert page.evaluate("getComputedStyle(document.body).backgroundColor") == "rgb(6, 9, 16)"
+    assert page.locator('link[href*="/assets/obsidian.css"]').count() == 1
     assert page.locator(".profile-source-panel").is_visible()
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     # A complete outage retains prior headlines, but a successful empty search does not.
