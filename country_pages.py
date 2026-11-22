@@ -11,7 +11,7 @@ PAGE = Template("""<!doctype html>
 <title>$title | ClearIntel</title><meta name="description" content="$description">
 <link rel="canonical" href="$canonical"><meta property="og:url" content="$canonical">
 <meta property="og:title" content="$title | ClearIntel"><meta property="og:description" content="$description">
-<link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/countries.css?v=visual-profile">
+<link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/countries.css?v=evidence-disclosure">
 $script</head><body>
 <header><a class="brand" href="/">Clear<span>Intel</span></a><nav aria-label="Main navigation"><a href="/">Live map</a><a href="/countries">Country directory</a></nav></header>
 <main>$content</main></body></html>""")
@@ -61,5 +61,5 @@ def profile(base, code):
             '<h2>Recent headlines</h2><noscript>Enable JavaScript to load headlines or use the source links below.</noscript></section>'
             f'<p class="update-note">Headlines refresh every five minutes while this page is open and visible.</p>'
             f'</div><section class="profile-source-panel"><h2>Browse sources</h2><p>Publisher and news-index links. Coverage varies by country.</p><ul>{source_links}</ul></section></div>')
-    scripts = '<script src="/assets/analyst-mode.js" defer></script><script src="/assets/country-card.js?v=refresh-resilience" defer></script><script src="/assets/country-profile.js?v=refresh-resilience" defer></script>'
+    scripts = '<script src="/assets/analyst-mode.js" defer></script><script src="/assets/country-card.js?v=evidence-disclosure" defer></script><script src="/assets/country-profile.js?v=refresh-resilience" defer></script>'
     return page(base, '/countries/' + code.lower(), name + ' news and sources', description, body, scripts)

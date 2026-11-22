@@ -55,3 +55,10 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
 .directory li a:hover{background:#172c40;border-color:#5593ad}
 .directory-code{flex:none;width:2.1rem;text-align:center;border:1px solid #3a596f;border-radius:.3rem;padding:.25rem;color:#8fd5e5;font-size:.72rem;font-weight:700}
 @media(max-width:740px){.country-profile-grid{grid-template-columns:minmax(0,1fr)}header,main{padding-inline:1rem}.directory{grid-template-columns:repeat(auto-fill,minmax(min(100%,10rem),1fr))}}
+
+.country-related-reports{min-width:0;border:1px solid #354c65;border-radius:7px;background:#0d1929;padding:7px 9px;color:#bad0e4;font-size:12px;overflow-wrap:anywhere}
+.country-related-reports summary{cursor:pointer;color:#85d9eb;font-weight:650;min-height:28px;align-content:center}
+.country-related-links{display:grid;gap:9px;margin-top:7px}
+.country-related-item{display:grid;gap:3px;border-top:1px solid #2d4057;padding-top:7px}
+.country-related-item span,.country-related-reports p{color:#a9bfd4;font-size:11px;line-height:1.4}
+.country-related-reports p{margin:8px 0 2px}

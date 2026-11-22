@@ -242,6 +242,21 @@ def check_site(browser, width):
     assert not page.locator("#country-brief .analyst-metadata").first.is_visible()
     page.locator("#country-brief .country-coverage-details summary").click()
     assert page.locator("#country-brief").get_by_text("Gdelt — timeout").is_visible()
+    # Related coverage is collapsed in simple mode, and remains open after a same-story refresh.
+    page.evaluate("""data => {
+        const extra = {...data.stories[0].reports[0], source:'Second fixture', title:'Related report', url:'https://example.org/related'};
+        data.stories[0].reports.push(extra);
+        window.evidenceFixture = data;
+        renderCountryCard(document.querySelector('#country-brief'), {id:'GB',place:'United Kingdom'}, {data});
+    }""", COUNTRY)
+    related = page.locator("#country-brief .country-related-reports")
+    assert related.is_visible()
+    assert not related.get_by_role("link", name="Related report").is_visible()
+    related.locator("summary").click()
+    assert related.get_by_role("link", name="Related report").is_visible()
+    page.evaluate("""() => renderCountryCard(document.querySelector('#country-brief'),
+        {id:'GB',place:'United Kingdom'}, {data:window.evidenceFixture})""")
+    assert related.get_by_role("link", name="Related report").is_visible()
     # Exercise the retained snapshot and weekly fallback without calling live providers.
     page.evaluate("""data => {
         data.stories[0].basis = 'weekly';
