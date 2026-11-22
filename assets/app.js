@@ -210,15 +210,18 @@ function reportExport(payload,search){
 }
 
 let countryList;
+function loadCountries(){
+  countryList??=fetch('/assets/countries.json').then(r=>r.json()).then(data=>data.events)
+    .catch(error=>{countryList=null;throw error;});
+  return countryList;
+}
 let countrySearchVersion=0;
 async function showSearchCountry(query){
   const version=++countrySearchVersion;
   const panel=$('search-country');
   panel.hidden=true;
   try{
-    countryList??=fetch('/assets/countries.json').then(r=>r.json()).then(data=>data.events)
-      .catch(error=>{countryList=null;throw error;});
-    const places=await countryList;
+    const places=await loadCountries();
     const aliases={uk:'GB',usa:'US','united states of america':'US',britain:'GB','españa':'ES'};
     const term=query.toLowerCase();
     const country=places.find(item=>item.id===(aliases[term]||query.toUpperCase())||item.place.toLowerCase()===term);

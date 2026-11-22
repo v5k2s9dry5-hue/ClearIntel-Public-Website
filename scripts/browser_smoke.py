@@ -100,6 +100,28 @@ def check_site(browser, width):
         assert page.locator("#dashboard-sidebar").is_visible()
     else:
         assert not toggle.is_visible()
+    query = page.locator("#dashboard-query")
+    if mobile:
+        page.locator("#dashboard-search-tab").click()
+        assert query.evaluate("(field) => field === document.activeElement")
+    query.fill("UK")
+    query.press("Enter")
+    profile_link = page.locator("#dashboard-matches").get_by_role("link", name="United Kingdom · Country profile")
+    profile_link.wait_for()
+    assert profile_link.get_attribute("href") == "/countries/gb"
+    query.fill("UKMTO")
+    query.press("Enter")
+    page.locator("#dashboard-matches").get_by_role("button", name="Naval activity · Historical map layer").click()
+    assert page.locator("#ukmto-bulletins").get_by_role("link", name="Official advisories").is_visible()
+    page.locator("#globe-layer").select_option("earthquakes")
+    assert not page.locator("#ukmto-bulletins").is_visible()
+    query.fill("rail services")
+    query.press("Enter")
+    page.locator("#dashboard-matches").get_by_role("button", name="Search recent headlines", exact=False).click()
+    page.locator("#news-results .result-title").wait_for()
+    assert page.locator("#news-query").input_value() == "rail services"
+    if mobile:
+        page.locator("#dashboard-map-tab").click()
     page.locator("#map-expand").click()
     assert page.get_by_role("dialog", name="Expanded map").is_visible()
     page.locator("#earth-zoom-in").click()

@@ -17,14 +17,15 @@
   <title>ClearIntel | OSINT Research & Public-Source Intelligence</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/styles.css?v=20261121-mobile-help">
-  <link rel="stylesheet" href="/assets/dashboard.css?v=20261122-sidebar">
+  <link rel="stylesheet" href="/assets/dashboard.css?v=20261122-navigation">
   <script src="/assets/research-pdf.js" defer></script>
   <script src="/assets/country-card.js" defer></script>
-  <script src="/assets/app.js?v=20261122-profiles" defer></script>
+  <script src="/assets/app.js?v=20261122-search-nav" defer></script>
   <script src="/assets/dashboard-sidebar.js" defer></script>
+  <script src="/assets/dashboard-search.js" defer></script>
   <script src="/assets/map-expand.js" defer></script>
   <script src="/assets/timeline.js?v=event-timeline" defer></script>
-  <script src="/assets/earth.js?v=20261121-city-pins" defer></script>
+  <script src="/assets/earth.js?v=20261122-mobile-nav" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -66,9 +67,18 @@
             </select>
           </label>
         </div>
-        <div id="dashboard-view-controls" class="dashboard-view-controls" role="group" aria-label="Globe view" hidden>
+        <form id="dashboard-search" role="search" aria-label="Dashboard search" hidden>
+          <label for="dashboard-query" class="visually-hidden">Search countries, map layers and news</label>
+          <input type="search" id="dashboard-query" minlength="2" maxlength="140" required placeholder="Find a country, map layer or news topic">
+          <button class="globe-control" type="submit">Search</button>
+        </form>
+        <p id="dashboard-search-status" role="status" class="visually-hidden"></p>
+        <div id="dashboard-matches" hidden></div>
+        <div id="dashboard-view-controls" class="dashboard-view-controls" role="group" aria-label="Dashboard shortcuts" hidden>
           <button type="button" id="dashboard-map-tab" aria-controls="dashboard-map" aria-pressed="true">Map</button>
           <button type="button" id="dashboard-feed-tab" aria-controls="dashboard-feed" aria-pressed="false">Feed</button>
+          <button type="button" id="dashboard-search-tab">Search</button>
+          <a href="/countries">Countries</a>
         </div>
         <dialog id="expanded-map" aria-label="Expanded map"></dialog>
         <div class="dashboard-panels">
@@ -114,6 +124,11 @@
                 </label>
               </div>
               <p id="quake-status" class="orbital-status" role="status">Checking USGS earthquake reports…</p>
+              <aside id="ukmto-bulletins" aria-label="UKMTO official bulletins" hidden>
+                <strong>UKMTO maritime security bulletins</strong>
+                <a href="https://www.ukmto.org/ukmto-products/advisories">Official advisories ↗</a>
+                <a href="https://www.ukmto.org/ukmto-products/warnings">Official warnings ↗</a>
+              </aside>
               <div id="report-timeline" class="report-timeline" aria-label="Public report timeline"></div>
               <div id="quake-group" class="quake-group" hidden>
                 <h3 id="quake-group-title" tabindex="-1"></h3>
