@@ -117,3 +117,10 @@ body { font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif; font-siz
 .result-view-count{color:#e1ebf7;font-weight:650}
 .research-panel .result-card[hidden]{display:none!important}
 @media(max-width:520px){.result-view-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px}.result-view-controls button{grid-column:1/-1;justify-self:start}.result-view-field select{font-size:13px}}
+
+/* Copy original-source citations without additional provider requests. */
+.citation-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:10px}
+.research-panel .citation-copy{min-height:36px;padding:7px 11px;border:1px solid #3b5972;border-radius:7px;background:#142e40;color:#a6e7f5;font-size:12px;font-weight:650}
+.research-panel .citation-copy:hover:not(:disabled){background:#1c3c50;color:#e9f8ff}
+.research-panel .citation-copy:disabled{opacity:.6}
+.citation-status{color:#b6cde0;font-size:12px;line-height:1.5}

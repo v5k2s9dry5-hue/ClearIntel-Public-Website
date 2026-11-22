@@ -85,6 +85,10 @@ def check_site(browser, width):
         reduced_motion="reduce",
     )
     page = context.new_page()
+    page.add_init_script("""() => {
+        Object.defineProperty(navigator, 'clipboard', {configurable:true,
+            value:{writeText:async value=>{window.lastCitation=value;}}});
+    }""")
     errors = []
     regional_requests = []
     page.on("request", lambda request: regional_requests.append(request.url) if request.url.endswith("/assets/uk-coastline.json") else None)
@@ -188,6 +192,12 @@ def check_site(browser, width):
     page.locator("#news-submit").click()
     page.locator("#news-results .result-title").wait_for()
     assert page.locator("#news-results .result-title").inner_text() == NEWS["results"][0]["title"]
+    page.locator("#news-results .citation-copy").first.click()
+    page.wait_for_function("() => window.lastCitation && window.lastCitation.includes('UK transport news update')")
+    assert "Fixture publisher" in page.evaluate("() => window.lastCitation")
+    assert "https://example.org/transport-update" in page.evaluate("() => window.lastCitation")
+    assert "not independently verified" in page.evaluate("() => window.lastCitation")
+    assert page.locator("#news-results .citation-status").inner_text() == "Citation copied."
     page.locator("#result-publisher").select_option("Fixture publisher")
     page.locator("#result-order").select_option("oldest")
     assert page.locator(".result-view-count").inner_text() == "Showing 1 of 1 headlines"
