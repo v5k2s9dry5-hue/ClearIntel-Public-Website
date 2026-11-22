@@ -15,6 +15,11 @@ function renderCountryCard(container,country,entry){
     const status=document.createElement('span');
     status.setAttribute('role','status');
     const data=entry?.data;
+    const previousStories=new Map([...container.querySelectorAll('.country-related-reports')]
+      .filter(item=>item.dataset.country===country.id).map(item=>[item.dataset.story,item.open]));
+    const focusedStory=document.activeElement?.closest('.country-related-reports');
+    const focusedSummary=focusedStory?.contains(document.activeElement)&&document.activeElement.tagName==='SUMMARY'&&container.contains(focusedStory)&&focusedStory.dataset.country===country.id?focusedStory.dataset.story:null;
+    let restoreSummary=null;
     const previousDetails=container.querySelector('.country-coverage-details');
     const wasOpen=previousDetails ? previousDetails.open : document.body.dataset.analysisMode==='analyst';
     const checked=Array.isArray(data?.sources_checked)?data.sources_checked:[];
@@ -52,7 +57,8 @@ function renderCountryCard(container,country,entry){
     const list=document.createElement('ol');
     list.className='country-top-stories';
     for(const [index,group] of stories.entries()){
-      const [article,...related]=group.reports;
+      const [article,...related]=group.reports||[];
+      if(!article?.url)continue;
       const row=document.createElement('li');
       const content=document.createElement('div');
       row.append(content);
@@ -63,9 +69,9 @@ function renderCountryCard(container,country,entry){
       const source=document.createElement('span');
       const timestamp=new Date(article.feed_time_utc);
       if(article.editorial){
-        source.textContent=`${article.source||'Publisher'} · Event date · ${utcDate.format(timestamp)}`;
+        source.textContent=`${article.source||'Publisher'} · Event date · ${Number.isFinite(timestamp.getTime())?utcDate.format(timestamp):'Unknown'}`;
         content.append(link,source);
-        for(const citation of article.citations.slice(1)){
+        for(const citation of (article.citations||[]).slice(1)){
           content.append(reportLink(citation.url,citation.name||'Publisher report'));
         }
         const attribution=document.createElement('span');
@@ -77,7 +83,7 @@ function renderCountryCard(container,country,entry){
         );
         content.append(attribution);
       }else{
-        source.textContent=`${article.source||'Publisher'} · ${article.time_basis} · ${utcTime.format(timestamp)} UTC`;
+        source.textContent=`${article.source||'Publisher'} · ${article.time_basis||'Feed time'} · ${Number.isFinite(timestamp.getTime())?utcTime.format(timestamp)+' UTC':'Unknown'}`;
         content.append(link,source);
       }
       source.textContent+=' · '+(labels[group.basis]||'Recent coverage');
@@ -85,8 +91,26 @@ function renderCountryCard(container,country,entry){
       const metadata=el('span','analyst-only analyst-metadata',
         'Exact source timestamp: '+preciseTime+' · '+group.reports.length+' '+(group.reports.length===1?'linked report':'linked reports')+' · Not independently verified');
       content.append(metadata);
-      for(const report of related){
-        if(!report.editorial)content.append(reportLink(report.url,'Also covered by '+report.source));
+      const additional=related.filter(report=>!report.editorial&&report.url);
+      if(additional.length){
+        const evidence=el('details','country-related-reports');
+        evidence.dataset.country=country.id;
+        evidence.dataset.story=article.url;
+        evidence.open=previousStories.has(article.url)?previousStories.get(article.url):document.body.dataset.analysisMode==='analyst';
+        const summary=el('summary','',additional.length+' additional '+(additional.length===1?'source':'sources'));
+        evidence.append(summary);
+        if(focusedSummary===article.url)restoreSummary=summary;
+        const read=el('div','country-related-links');
+        for(const report of additional){
+          const published=new Date(report.feed_time_utc);
+          const item=el('div','country-related-item');
+          item.append(reportLink(report.url,report.title||'Original report'),
+            el('span','', (report.source||'Publisher')+' · '+(report.time_basis||'Feed time')+' · '+
+              (Number.isFinite(published.getTime())?utcTime.format(published)+' UTC':'Unknown')));
+          read.append(item);
+        }
+        evidence.append(read,el('p','', 'Related reporting does not establish independent corroboration.'));
+        content.append(evidence);
       }
     }
     if(stories.length)links.append(list);
@@ -134,6 +158,7 @@ function renderCountryCard(container,country,entry){
       links.append(profile);
     }
     container.replaceChildren(title,status,links);
+    if(restoreSummary)restoreSummary.focus({preventScroll:true});
 }
 
 function retryMessage(response) {

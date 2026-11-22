@@ -129,3 +129,10 @@
 body[data-analysis-mode="analyst"] .analyst-only { display: block !important; }
 .analyst-metadata { font-size: .8rem; color: #b6cbde; overflow-wrap: anywhere; }
 .analyst-mode-toggle[aria-pressed="true"] { outline: 2px solid #65d9ef; outline-offset: 2px; }
+
+.country-related-reports{min-width:0;border:1px solid #354c65;border-radius:7px;background:#0d1929;padding:7px 9px;color:#bad0e4;font-size:12px;overflow-wrap:anywhere}
+.country-related-reports summary{cursor:pointer;color:#85d9eb;font-weight:650;min-height:28px;align-content:center}
+.country-related-links{display:grid;gap:9px;margin-top:7px}
+.country-related-item{display:grid;gap:3px;border-top:1px solid #2d4057;padding-top:7px}
+.country-related-item span,.country-related-reports p{color:#a9bfd4;font-size:11px;line-height:1.4}
+.country-related-reports p{margin:8px 0 2px}
