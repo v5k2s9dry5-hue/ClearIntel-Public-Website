@@ -112,6 +112,13 @@ def check_site(browser, width):
         assert page.locator("#dashboard-feed").is_visible()
         swipe("#dashboard-feed-heading", 95, 4)
         assert page.locator("#dashboard-map").is_visible()
+    guide = page.locator("#dashboard-source-guide")
+    assert not guide.locator("dl").is_visible()
+    guide.locator("summary").click()
+    assert guide.get_by_text("not live tracking", exact=False).is_visible()
+    assert guide.get_by_role("link", name="NASA EONET").is_visible()
+    guide.locator("summary").click()
+    assert not guide.locator("dl").is_visible()
     query = page.locator("#dashboard-query")
     if mobile:
         page.locator("#dashboard-search-tab").click()

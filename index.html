@@ -17,7 +17,7 @@
   <title>ClearIntel | OSINT Research & Public-Source Intelligence</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/styles.css?v=20261122-country-coverage">
-  <link rel="stylesheet" href="/assets/dashboard.css?v=20261122-panel-swipe">
+  <link rel="stylesheet" href="/assets/dashboard.css?v=20261122-source-guide">
   <script src="/assets/research-pdf.js" defer></script>
   <script src="/assets/country-card.js?v=coverage-details" defer></script>
   <script src="/assets/app.js?v=20261122-search-nav" defer></script>
@@ -74,6 +74,17 @@
         </form>
         <p id="dashboard-search-status" role="status" class="visually-hidden"></p>
         <div id="dashboard-matches" hidden></div>
+        <details id="dashboard-source-guide" class="dashboard-source-guide">
+          <summary>Sources &amp; update frequency</summary>
+          <p>Refresh intervals apply while this page is visible. Providers may publish more slowly, and reporting can be incomplete.</p>
+          <dl>
+            <div><dt>Earthquakes · USGS</dt><dd>Checked every minute unless paused. Magnitude 4.5+ event reports. Published estimates may be revised. <a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener noreferrer">USGS</a></dd></div>
+            <div><dt>Wildfires · NASA EONET</dt><dd>Checked every minute unless paused. Observations are not fire perimeters or evacuation advice. <a href="https://eonet.gsfc.nasa.gov/" target="_blank" rel="noopener noreferrer">NASA EONET</a></dd></div>
+            <div><dt>ISS · Where the ISS at?</dt><dd>Position checked every 30 seconds. Coordinates include the provider's observation time. <a href="https://wheretheiss.at/" target="_blank" rel="noopener noreferrer">Position provider</a></dd></div>
+            <div><dt>Country news</dt><dd>The selected country's headline panel is checked every five minutes. City pins show locations named in headlines, not verified event locations. Open original articles for context.</dd></div>
+            <div><dt>Military aviation / naval activity</dt><dd>Selected, source-linked historical reports of completed events; not live tracking. The archive changes when maintained, rather than on an automatic live timer.</dd></div>
+          </dl>
+        </details>
         <div id="dashboard-view-controls" class="dashboard-view-controls" role="group" aria-label="Dashboard shortcuts" hidden>
           <button type="button" id="dashboard-map-tab" aria-controls="dashboard-map" aria-pressed="true">Map</button>
           <button type="button" id="dashboard-feed-tab" aria-controls="dashboard-feed" aria-pressed="false">Feed</button>
