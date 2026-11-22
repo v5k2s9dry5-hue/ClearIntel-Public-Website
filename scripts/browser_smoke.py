@@ -113,6 +113,47 @@ def check_site(browser, width):
     assert page.get_by_role("heading", name="Intelligence at a glance.").is_visible()
     assert page.locator(".command-overview-card").count() == 3
     assert page.locator(".dashboard-toolbar-tools").is_visible()
+    assert page.locator("#ci-start-guide").is_visible()
+    guide = page.locator("#ci-start-guide")
+    assert not guide.get_by_text("Choose a map layer").is_visible()
+    guide.locator("summary").click()
+    assert guide.get_by_text("Choose a map layer").is_visible()
+    assert guide.get_by_text("Save and compare evidence").is_visible()
+    assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
+    guide.locator("summary").click()
+    assert not guide.get_by_text("Choose a map layer").is_visible()
+    map_help = page.get_by_role("button", name="Explain map markers")
+    map_help.click()
+    assert map_help.get_attribute("aria-expanded") == "true"
+    assert page.locator("#ci-map-note").is_visible()
+    assert page.get_by_text("not a confirmed incident location", exact=False).is_visible()
+    map_help.click()
+    assert map_help.get_attribute("aria-expanded") == "false"
+    assert not page.locator("#ci-map-note").is_visible()
+    assert page.locator("#ci-feed-note").is_hidden()
+    feed_help = page.get_by_role("button", name="Explain source feed and timestamps")
+    feed_help.click()
+    assert page.locator("#ci-feed-note").is_visible()
+    assert map_help.get_attribute("aria-expanded") == "false"
+    feed_help.click()
+    assert not page.locator("#ci-feed-note").is_visible()
+    if not mobile:
+        mode_hover = page.locator("#analyst-mode-toggle")
+        mode_hover.hover()
+        hint = page.locator("#ci-context-tooltip")
+        assert hint.is_visible()
+        assert "extra source details" in hint.inner_text()
+        hint_rect = hint.bounding_box()
+        assert hint_rect and hint_rect["x"] >= 0
+        assert hint_rect["x"] + hint_rect["width"] <= width + 1
+        page.locator(".workspace-kicker").hover()
+        assert hint.is_hidden()
+    else:
+        assert page.locator("#ci-context-tooltip").is_hidden()
+        page.get_by_role("button", name="Explain workspace controls").click()
+        assert page.locator("#ci-workspace-note").is_visible()
+        assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
+        page.get_by_role("button", name="Explain workspace controls").click()
     assert page.locator(".workspace-layer-picker select").is_visible()
     mode_button = page.locator("#analyst-mode-toggle")
     assert mode_button.is_visible()
@@ -209,6 +250,10 @@ def check_site(browser, width):
     page.locator("#expanded-map").wait_for(state="hidden")
     page.wait_for_function("() => document.querySelector('#map-expand') === document.activeElement")
     page.locator("#research").scroll_into_view_if_needed()
+    page.get_by_role("button", name="Explain public news search").click()
+    assert page.locator("#ci-research-note").is_visible()
+    page.get_by_role("button", name="Explain public news search").click()
+    assert not page.locator("#ci-research-note").is_visible()
     page.locator(".field-head .help-button").click()
     tip = page.locator("#help-panel-1")
     tip.wait_for(state="visible")
@@ -241,6 +286,10 @@ def check_site(browser, width):
     assert replay[0]["articles"][0]["url"] == "https://example.org/transport-update"
     assert "observed_at_utc" in replay[0]
     assert page.locator("#replay-history").is_visible()
+    page.get_by_role("button", name="Explain Intelligence Replay").click()
+    assert page.locator("#ci-replay-note").is_visible()
+    page.get_by_role("button", name="Explain Intelligence Replay").click()
+    assert not page.locator("#ci-replay-note").is_visible()
     assert page.locator("#replay-detail").get_by_text("Observed by this browser:", exact=False).is_visible()
     assert page.locator("#replay-detail").get_by_text("Sources checked when saved: Fixture provider").is_visible()
     # A second, deliberately changed observed result set, not fabricated history.
