@@ -362,8 +362,8 @@
     if(view==='map'){fit();draw();}
   }
   if(viewControls){
-    mapTab.addEventListener('click',()=>showDashboardView('map'));
-    feedTab.addEventListener('click',()=>showDashboardView('feed'));
+    mapTab.addEventListener('click',()=>{showDashboardView('map');canvas.scrollIntoView({block:'center'});});
+    feedTab.addEventListener('click',()=>{showDashboardView('feed');feedHeading.scrollIntoView({block:'center'});});
     showMap.addEventListener('click',()=>{showDashboardView('map');mapTab.focus();});
     viewControls.hidden=false;
     showDashboardView('map');
@@ -763,6 +763,7 @@
     if(!reportsPaused)refreshReports();
   });
   function changeLayer(){
+    document.getElementById('ukmto-bulletins').hidden=layer.value!=='maritime';
     const active=reportLayers[layer.value];
     dashboard.dataset.layer=layer.value;
     const wasArchive=archiveActive;
