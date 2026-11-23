@@ -39,3 +39,37 @@
  .dashboard .workspace-layer-picker select{flex:1;max-width:67%;min-width:0}
 }
 @media(prefers-reduced-motion:reduce){.dashboard .workspace-control{transition:none}}
+
+/* The layer selector belongs to the map, not the global workspace header.
+   Same control and id, so map layers, keyboard access and expanded map work unchanged. */
+.dashboard .map-panel-heading .map-panel-heading-copy{min-width:0;flex:1 1 170px}
+.dashboard .map-panel-heading .ci-heading-actions{
+ display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;
+ gap:8px;max-width:100%;margin-left:auto;min-width:0;
+}
+.dashboard .map-panel-heading .map-layer-picker{
+ display:inline-flex;flex:0 1 254px;min-width:180px;max-width:254px;
+ flex-direction:row;align-items:center;justify-content:space-between;gap:9px;
+ min-height:44px;padding:4px 8px;border-radius:8px;
+ color:#b3d8e9;letter-spacing:.04em;
+}
+.dashboard .map-panel-heading .map-layer-picker select{
+ flex:1 1 auto;min-width:0;max-width:160px;min-height:40px;
+ padding:7px 8px;font-size:13px;
+}
+@media(max-width:900px){
+ .dashboard .map-panel-heading .ci-heading-actions{
+  flex:1 1 100%;justify-content:flex-start;margin-left:0;flex-wrap:wrap;
+ }
+ .dashboard .map-panel-heading .map-layer-picker{
+  flex:1 1 190px;min-width:135px;max-width:300px;
+ }
+ .dashboard .map-panel-heading .map-layer-picker select{
+  max-width:none;
+ }
+}
+@media(max-width:440px){
+ .dashboard .map-panel-heading .ci-heading-actions{gap:7px}
+ .dashboard .map-panel-heading .map-layer-picker{flex:1 1 145px;min-width:115px}
+ .dashboard .map-panel-heading .map-layer-kind{font-size:10px;padding:6px 8px}
+}
