@@ -26,6 +26,14 @@
     button.addEventListener('click', handler);
     return button;
   }
+  function dismissMatches(event) {
+    if (event.key !== 'Escape' || matches.hidden) return;
+    event.preventDefault();
+    clear();
+    input.focus();
+  }
+  form.addEventListener('keydown', dismissMatches);
+  matches.addEventListener('keydown', dismissMatches);
   form.hidden = false;
   input.addEventListener('input', clear);
   $('dashboard-search-tab').addEventListener('click', () => {
@@ -48,8 +56,11 @@
       choices.push(action(option.text + (archive ? ' · Historical map layer' : ' · Map layer'), () => {
         layers.value = option.value;
         layers.dispatchEvent(new Event('change'));
-        if (term === 'ukmto' && matchMedia('(max-width: 860px)').matches) $('dashboard-feed-tab').click();
-        const target = term === 'ukmto' ? $('ukmto-bulletins').querySelector('a') : layers;
+        const openBulletins = term === 'ukmto';
+        if (matchMedia('(max-width: 860px)').matches) {
+          $(openBulletins ? 'dashboard-feed-tab' : 'dashboard-map-tab').click();
+        }
+        const target = openBulletins ? $('ukmto-bulletins').querySelector('a') : $('dashboard-map-heading');
         target.focus();
         target.scrollIntoView({block:'center'});
       }));

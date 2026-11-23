@@ -236,6 +236,19 @@ def check_site(browser, width):
     profile_link = page.locator("#dashboard-matches").get_by_role("link", name="United Kingdom · Country profile")
     profile_link.wait_for()
     assert profile_link.get_attribute("href") == "/countries/gb"
+    profile_link.focus()
+    profile_link.press("Escape")
+    assert page.locator("#dashboard-matches").is_hidden()
+    assert query.input_value() == "UK"
+    assert query.evaluate("(field) => field === document.activeElement")
+    if mobile:
+        page.locator("#dashboard-feed-tab").click()
+        page.locator("#dashboard-search-tab").click()
+    query.fill("earthquake")
+    query.press("Enter")
+    page.locator("#dashboard-matches").get_by_role("button", name="Map layer", exact=False).click()
+    assert page.locator("#dashboard-map").is_visible()
+    assert page.locator("#dashboard-map-heading").evaluate("(heading) => heading === document.activeElement")
     query.fill("UKMTO")
     query.press("Enter")
     page.locator("#dashboard-matches").get_by_role("button", name="Naval activity · Historical map layer").click()
