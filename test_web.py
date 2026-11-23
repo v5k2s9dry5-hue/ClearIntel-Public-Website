@@ -44,6 +44,13 @@ class PublicSiteTests(unittest.TestCase):
         self.assertIn('does not automatically import UKMTO reports', html)
         self.assertIn('not affiliated with or endorsed by UKMTO', html)
 
+    def test_activity_chart_precedes_guide_and_category_cards(self):
+        html = self.client.get("/").text
+        self.assertEqual(html.count('id="activity-pulse"'), 1)
+        self.assertLess(html.index('id="activity-pulse"'), html.index('id="ci-start-guide"'))
+        self.assertLess(html.index('id="activity-pulse"'), html.index('id="dashboard-search"'))
+        self.assertIn('src="/assets/activity-pulse.js?', html)
+
     def test_ukmto_briefing_contains_dated_reports_not_live_tracking(self):
         from datetime import datetime, timezone
         from urllib.parse import urlsplit
