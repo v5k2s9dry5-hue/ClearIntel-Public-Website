@@ -298,6 +298,11 @@ def check_site(browser, width):
     assert "not affiliated with or endorsed by UKMTO" in ukmto.inner_text()
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     assert page.locator("#map-layer-kind").inner_text() == "Historical archive"
+    # The layer picker now travels with the map. On mobile, return to the Map
+    # tab before using it; it must not remain an off-screen top-bar control.
+    if mobile:
+        page.locator("#dashboard-map-tab").click()
+    assert page.locator("#globe-layer").is_visible()
     page.locator("#globe-layer").select_option("earthquakes")
     assert page.locator("#map-layer-kind").inner_text() == "Public feed"
     assert not page.locator("#ukmto-bulletins").is_visible()
