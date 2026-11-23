@@ -8,6 +8,7 @@ from html import escape
 from pathlib import Path
 import os
 import json
+import re
 from urllib.request import Request as UrlRequest, urlopen
 from urllib.error import HTTPError, URLError
 from math import ceil
@@ -96,6 +97,16 @@ async def country_profile(code: str):
 @app.get("/health", include_in_schema=False)
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/api/build", include_in_schema=False)
+async def public_build():
+    """Read-only public revision marker; never expose environment configuration."""
+    commit = os.getenv("RENDER_GIT_COMMIT", "").strip().lower()
+    return {
+        "product": "ClearIntel Atlas",
+        "git_commit": commit if re.fullmatch(r"[0-9a-f]{40}", commit) else None,
+    }
 
 
 async def _search_payload(request: Request) -> Query:

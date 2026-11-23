@@ -46,6 +46,8 @@ From the repository root, run:
 
 ```bash
 python scripts/check_production.py https://clearintel-public.onrender.com
+# After a deployment, verify that the actual served revision matches main:
+python scripts/check_production.py https://clearintel-public.onrender.com --expected-commit FULL_40_CHARACTER_GIT_SHA
 ```
 
-The read-only checker validates HTTPS responses, health, canonical URLs, public country page links, sitemap consistency, the Google verification file, security headers and dashboard HTML markers. Use the configured canonical public URL if it changes. It does not query live news providers, determine Google's indexing status, prove the deployed Git commit, or replace browser and security testing. Exit code 1 means at least one public check failed; a connection failure may indicate a cold start or network issue. Run again manually after deployment rather than polling aggressively.
+The read-only checker validates HTTPS responses, health, canonical URLs, public country page links, sitemap consistency, the Google verification file, security headers and dashboard HTML markers. It also checks the minimal public `/api/build` revision response; `--expected-commit` verifies the deployed Render Git SHA against a full commit from the `main` branch, failing closed on a stale/missing revision. Render provides the `RENDER_GIT_COMMIT` variable automatically, so do not add deployment secrets or configure extra environment variables. Use the configured canonical public URL if it changes. It does not query live news providers, determine Google's indexing status, or replace browser and security testing. Exit code 1 means at least one public check failed; a connection failure may indicate a cold start or network issue. Run again manually after deployment rather than polling aggressively.
