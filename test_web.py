@@ -72,6 +72,13 @@ class PublicSiteTests(unittest.TestCase):
             self.assertEqual(r.json()['results'],[])
             self.assertTrue(mock.called)
 
+    def test_search_without_a_subject_skips_providers(self):
+        with patch('main.search_news') as provider:
+            response = self.client.post('/api/news', json={'query': 'bombing today'})
+            self.assertEqual(response.status_code, 400)
+            self.assertIn('location or topic', response.json()['detail'])
+            provider.assert_not_called()
+
     def test_two_character_search_is_accepted(self):
         with patch('main.search_news', return_value=SEARCH_RESPONSE) as provider:
             self.assertEqual(self.client.post('/api/news', json={'query': ' UK '}).status_code, 200)
