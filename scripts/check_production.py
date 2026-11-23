@@ -18,6 +18,8 @@ class Page(HTMLParser):
         super().__init__()
         self.canonical = None
         self.links, self.ids = set(), set()
+        self.has_directory_link = False
+        self.description = None
         self.stylesheets = set()
         self.scripts = set()
         self.noindex = False
@@ -33,6 +35,10 @@ class Page(HTMLParser):
             self.stylesheets.add(urlsplit(attrs.get("href") or "").path)
         if tag == "script" and attrs.get("src"):
             self.scripts.add(urlsplit(attrs["src"]).path)
+        if tag == "meta" and (attrs.get("name") or "").lower() == "description":
+            self.description = (attrs.get("content") or "").strip()
+        if tag == "a" and attrs.get("href") == "/countries":
+            self.has_directory_link = True
         if tag == "a" and (attrs.get("href") or "").startswith("/countries/"):
             self.links.add(attrs["href"])
         if tag == "meta" and attrs.get("name", "").lower() in ("robots", "googlebot"):
@@ -81,6 +87,8 @@ def check(base, requester=fetch):
 
     home = Page(bodies.get("/", ""))
     directory = Page(bodies.get("/countries", ""))
+    record("Homepage links to country directory", home.has_directory_link)
+    descriptions = [page.description for page in (home, directory)]
     record("Homepage canonical", home.canonical == base + "/")
     record("Homepage indexable", "/" in bodies and not home.noindex and
            "noindex" not in headers.get("/", {}).get("x-robots-tag", "").lower())
@@ -115,8 +123,14 @@ def check(base, requester=fetch):
 
     for path in ("/countries", "/countries/gb", "/countries/es"):
         page = Page(bodies.get(path, ""))
+        if path != "/countries":
+            descriptions.append(page.description)
+            record(path + " linked from directory", path in directory.links)
         record(path + " canonical and indexable", page.canonical == base + path and
                not page.noindex and "noindex" not in headers.get(path, {}).get("x-robots-tag", "").lower())
+
+    record("Sampled public pages have distinct descriptions",
+           all(descriptions) and len(set(descriptions)) == len(descriptions))
 
     homepage_headers = headers.get("/", {})
     record("Public security headers",

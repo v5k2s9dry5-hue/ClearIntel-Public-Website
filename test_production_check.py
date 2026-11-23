@@ -31,6 +31,25 @@ class ProductionCheckTests(TestCase):
             self.assertFalse(results["Google verification file"])
             self.assertFalse(results["Sitemap matches country directory"])
 
+    def test_detects_missing_navigation_and_duplicate_descriptions(self):
+        with patch("main.PUBLIC_URL", DEFAULT_BASE), TestClient(app) as client:
+            def fetch(url):
+                path = urlsplit(url).path
+                response = client.get(path)
+                body = response.text
+                if path == "/":
+                    body = body.replace('href="/countries"', 'href="#countries"')
+                elif path == "/countries":
+                    body = body.replace('href="/countries/es"', 'href="#spain"')
+                elif path == "/countries/es":
+                    body = client.get("/countries/gb").text
+                return response.status_code, response.headers, body
+
+            results = dict(check(DEFAULT_BASE, fetch))
+            self.assertFalse(results["Homepage links to country directory"])
+            self.assertFalse(results["/countries/es linked from directory"])
+            self.assertFalse(results["Sampled public pages have distinct descriptions"])
+
     def test_unavailable_site_is_not_reported_as_passed(self):
         def offline(url):
             raise OSError("offline")
