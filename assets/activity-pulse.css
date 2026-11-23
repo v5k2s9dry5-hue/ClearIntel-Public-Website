@@ -1,0 +1,39 @@
+/* Lightweight, source-driven activity chart. No chart library or background polls. */
+.activity-pulse{margin:12px 0 18px;padding:16px 18px;border:1px solid #2c5268;border-radius:12px;background:linear-gradient(145deg,#0d1d30,#081321 77%);color:#eaf5ff;min-width:0}
+.activity-pulse-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.activity-pulse-heading>div:first-child{min-width:0}
+.activity-pulse-kicker{font-size:10px;letter-spacing:.14em;font-weight:750;color:#6cdeed}
+.activity-pulse-heading h2{font-size:17px;line-height:1.3;margin:4px 0;color:#edf8ff}
+.activity-pulse-heading p{font-size:12px;line-height:1.5;color:#abc1d5;margin:5px 0}
+.activity-pulse-stat{display:flex;align-items:end;flex-direction:column;gap:1px;min-width:104px}
+.activity-pulse-stat strong{font-size:30px;line-height:1;font-variant-numeric:tabular-nums;color:#91eff7;font-weight:750}
+.activity-pulse-stat span{font-size:11px;color:#a7c5d4}
+.activity-pulse-bars{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:end;gap:8px;min-width:0;padding:10px 2px 2px;height:122px;border-bottom:1px solid #34546b}
+.activity-pulse-bin{display:flex;flex-direction:column;gap:5px;justify-content:end;align-items:center;min-width:0;height:100%;font-size:11px;color:#8dc7da}
+.activity-pulse-value{font-size:11px;font-variant-numeric:tabular-nums;color:#b8d9e8}
+.activity-pulse-bar{width:clamp(7px,65%,30px);border-radius:5px 5px 1px 1px;background:linear-gradient(180deg,#7af0f8,#27768d);box-shadow:0 0 12px #45d1ea2b;flex:none}
+.activity-pulse-tick{font-size:10px;color:#98acbf;white-space:nowrap;font-variant-numeric:tabular-nums}
+.activity-pulse-footer{display:flex;align-items:center;justify-content:space-between;gap:8px 14px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:#afc6d6}
+.activity-pulse-footer a{color:#8deaf6}
+.activity-pulse-footer #activity-pulse-status{font-weight:700;color:#b4e5f1}
+.ukmto-reports{padding:10px 0;margin:10px 0;border-block:1px solid #345168;min-width:0}
+.ukmto-reports h3{font-size:15px;margin:2px 0 8px;color:#e6f5ff}
+.ukmto-briefing-status{font-size:12px;color:#bbd1e3;line-height:1.55;overflow-wrap:anywhere}
+.ukmto-report-list{list-style:none;padding:0;margin:10px 0;display:grid;gap:8px;max-height:390px;overflow-y:auto;overflow-x:hidden}
+.ukmto-report{background:#0b1b2b;border:1px solid #35516a;border-radius:8px;padding:10px;display:grid;gap:5px;min-width:0}
+.ukmto-report-meta{font-size:11px;color:#e9c89a;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.ukmto-report-link{font-size:13px;font-weight:700;line-height:1.45;color:#92eaf6!important;overflow-wrap:anywhere}
+.ukmto-report-region{font-size:11px;color:#bed8e7}
+.ukmto-report-summary{font-size:12px;color:#afc6d9;line-height:1.5;margin:0}
+.ukmto-briefing-links{font-size:12px;line-height:1.5;margin:10px 0 3px}
+@media(max-width:620px){
+ .activity-pulse{padding:12px 11px;margin:10px 0 13px}
+ .activity-pulse-heading h2{font-size:15px}
+ .activity-pulse-heading p{font-size:11px}
+ .activity-pulse-stat{min-width:74px}
+ .activity-pulse-stat strong{font-size:23px}
+ .activity-pulse-stat span{font-size:10px}
+ .activity-pulse-bars{gap:3px;height:111px}
+ .activity-pulse-tick{font-size:9px}
+ .ukmto-report-list{max-height:340px}
+}
