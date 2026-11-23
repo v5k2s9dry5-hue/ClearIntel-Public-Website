@@ -120,7 +120,8 @@
 }
 
 .country-coverage-details{border:1px solid #3a566f;border-radius:7px;padding:.55rem .65rem;color:inherit;font-size:.85rem;overflow-wrap:anywhere}
-.country-coverage-details summary{cursor:pointer;font-weight:600}
+.country-coverage-details summary{cursor:pointer;font-weight:600;min-height:44px;align-content:center}
+.country-coverage-details[data-health="unavailable"] summary,.country-coverage-details[data-health="previous-snapshot"] summary{color:#f3ce90}
 .country-coverage-details p,.country-coverage-details ul{margin:.5rem 0}
 .country-coverage-details ul{padding-inline-start:1.2rem}
 .country-coverage-details li{margin:.2rem 0}
@@ -139,4 +140,6 @@ body[data-analysis-mode="analyst"] .analyst-only { display: block !important; }
 
 .search-coverage{margin:12px 0;font-size:13px;overflow-wrap:anywhere}
 .search-coverage summary{cursor:pointer;min-height:44px;align-content:center}
+.search-coverage[data-health="unavailable"] summary{color:#f3ce90}
+.search-coverage[data-health="partial"] summary{color:#b3ddf2}
 .search-coverage ul,.search-coverage p{margin:6px 0}
