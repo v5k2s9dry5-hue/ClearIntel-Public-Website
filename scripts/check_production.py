@@ -2,6 +2,7 @@
 import argparse
 from html.parser import HTMLParser
 import json
+import re
 import sys
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
@@ -57,7 +58,11 @@ def fetch(url):
         return response.status, dict(response.headers.items()), body.decode("utf-8")
 
 
-def check(base, requester=fetch):
+def check(base, requester=fetch, expected_commit=None):
+    if expected_commit is not None:
+        if not re.fullmatch(r"[0-9a-fA-F]{40}", expected_commit):
+            raise ValueError("Expected commit must be a full 40-character hexadecimal SHA")
+        expected_commit = expected_commit.lower()
     base = base.rstrip("/")
     parts = urlsplit(base)
     if (parts.scheme != "https" or not parts.hostname or parts.username or parts.password
@@ -68,7 +73,7 @@ def check(base, requester=fetch):
     def record(name, condition):
         results.append((name, bool(condition)))
 
-    for path in ("/health", "/", "/robots.txt", "/sitemap.xml", "/countries",
+    for path in ("/health", "/api/build", "/", "/robots.txt", "/sitemap.xml", "/countries",
                  "/countries/gb", "/countries/es", "/" + VERIFICATION,
                  "/assets/dashboard-visual.css", "/assets/dashboard-visual.js", "/assets/countries.css"):
         try:
@@ -84,6 +89,19 @@ def check(base, requester=fetch):
         record("Health JSON", json.loads(bodies.get("/health", "")) == {"status": "ok"})
     except ValueError:
         record("Health JSON", False)
+
+    try:
+        build_info = json.loads(bodies.get("/api/build", ""))
+    except ValueError:
+        build_info = None
+    valid_build = isinstance(build_info, dict) and build_info.get("product") == "ClearIntel Atlas"
+    current_commit = build_info.get("git_commit") if valid_build else None
+    valid_commit = current_commit is None or (
+        isinstance(current_commit, str) and re.fullmatch(r"[0-9a-f]{40}", current_commit))
+    record("Public build endpoint is minimal and valid",
+           valid_build and valid_commit and set(build_info) == {"product", "git_commit"})
+    if expected_commit is not None:
+        record("Live deployment matches expected Git commit", current_commit == expected_commit)
 
     home = Page(bodies.get("/", ""))
     directory = Page(bodies.get("/countries", ""))
@@ -144,14 +162,15 @@ def check(base, requester=fetch):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("base", nargs="?", default=DEFAULT_BASE)
+    parser.add_argument("--expected-commit", help="Full Git SHA expected in the live deployment")
     args = parser.parse_args()
     try:
-        results = check(args.base)
+        results = check(args.base, expected_commit=args.expected_commit)
     except ValueError as error:
         parser.error(str(error))
     for name, passed in results:
         print(("PASS" if passed else "FAIL") + "  " + name)
-    print("Checks deployed markup and assets, not live provider availability, Google indexing or exact deployed commit.")
+    print("Checks deployment identity when --expected-commit is supplied; does not test live provider availability or Google indexing.")
     return 0 if all(passed for _, passed in results) else 1
 
 
