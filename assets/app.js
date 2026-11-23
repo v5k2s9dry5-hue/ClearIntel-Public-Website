@@ -353,8 +353,22 @@ function renderResults(payload,search){
   const sources=payload.sources_checked?.length?payload.sources_checked.join(' and '):'no sources';
   area.append(el('div','results-foot','Sources queried: '+sources+'. Feed timestamps may be publication or first-seen dates; they do not establish the incident date.'));
 }
+const searchSubmit = $('news-submit');
+let searchRetryTimer;
+function pauseFilteredSearch(response) {
+  // The API supplies a whole-second delay of at most one hour.
+  const delay = Number(response.headers.get('Retry-After'));
+  if (!Number.isInteger(delay) || delay < 1 || delay > 3600) return;
+  searchRetryTimer = setTimeout(() => {
+    searchRetryTimer = undefined;
+    searchSubmit.disabled = false;
+    fillStatus('Ready to search again', 'Choose Search recent reports to retry with your current filters.');
+  }, delay * 1000);
+}
+
 $('news-form').addEventListener('submit',async e=>{
   e.preventDefault();
+  if (searchSubmit.disabled) return;
   const query=$('news-query').value.trim();
   if(query.length<2){
     fillStatus('Enter at least two characters','Try a country abbreviation such as UK or US.','error');
@@ -363,7 +377,7 @@ $('news-form').addEventListener('submit',async e=>{
   showSearchCountry(query);
   const incidentOnly=$('incident-only').checked;
   const timeWindow=$('news-window').value;
-  const submit=$('news-submit');submit.disabled=true;
+  searchSubmit.disabled=true;
   document.dispatchEvent(new Event('clearintel:search-start'));
   fillStatus('Checking recent news feeds…','Looking for published headlines that actually match the time window and subject.');
   $('news-results').scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -373,7 +387,11 @@ $('news-form').addEventListener('submit',async e=>{
     const response=await fetch('/api/news',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,window:timeWindow,incident_only:incidentOnly}),signal:controller.signal});
     let payload;try{payload=await response.json();}catch{payload={};}
     if(response.status===429){
-      fillStatus('Filtered search is rate limited',
+      pauseFilteredSearch(response);
+      let title = 'Filtered search is rate limited';
+      if (payload?.detail === 'Hourly search limit reached. Try again later.') title = 'Hourly filtered search limit reached';
+      if (payload?.detail === 'News search is busy. Try again shortly.') title = 'Filtered search is busy across the site';
+      fillStatus(title,
         'This filtered search did not return new results. '+retryMessage(response)+
         ' Any country briefing above is an independent feed and does not mean this search succeeded.','error');
       return;
@@ -387,5 +405,5 @@ $('news-form').addEventListener('submit',async e=>{
       (err.name==='AbortError'?'The sources did not respond within the time limit. Try again.':err.message)+
       ' Any country briefing above is separate; it is not a result from this failed search.','error');
   }
-  finally{clearTimeout(timeout);submit.disabled=false;}
+  finally{clearTimeout(timeout);searchSubmit.disabled = searchRetryTimer !== undefined;}
 });
