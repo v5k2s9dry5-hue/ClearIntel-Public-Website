@@ -143,16 +143,21 @@ def check_site(browser, width):
         page.locator("#dashboard-map-tab").click()
     if not mobile:
         mode_hover = page.locator("#analyst-mode-toggle")
+        mode_hover.evaluate("(button) => button.setAttribute('aria-describedby', 'dashboard-map-heading')")
         mode_hover.hover()
         hint = page.locator("#ci-context-tooltip")
         assert hint.is_visible()
+        assert mode_hover.get_attribute("aria-describedby").split() == ["dashboard-map-heading", "ci-context-tooltip"]
         assert "extra source details" in hint.inner_text()
         hint_rect = hint.bounding_box()
         assert hint_rect and hint_rect["x"] >= 0
         assert hint_rect["x"] + hint_rect["width"] <= width + 1
         page.locator(".workspace-kicker").hover()
         assert hint.is_hidden()
+        assert mode_hover.get_attribute("aria-describedby") == "dashboard-map-heading"
     else:
+        bounds = map_help.bounding_box()
+        assert bounds and min(bounds["width"], bounds["height"]) >= 44
         assert page.locator("#ci-context-tooltip").is_hidden()
         page.get_by_role("button", name="Explain workspace controls").click()
         assert page.locator("#ci-workspace-note").is_visible()

@@ -35,8 +35,8 @@
 @media(max-width:1170px){.ci-guide-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){
  .ci-context-tooltip{display:none!important}
- .ci-help-dot{width:38px;height:38px;min-width:38px;min-height:38px}
- .dashboard .workspace-control-group>.ci-help-dot{width:38px;min-width:38px;min-height:38px}
+ .ci-help-dot{width:44px;height:44px;min-width:44px;min-height:44px}
+ .dashboard .workspace-control-group>.ci-help-dot{width:44px;min-width:44px;min-height:44px}
  .ci-start-guide>summary{min-height:64px;padding:11px;gap:9px}
  .ci-start-guide>summary small{font-size:11px}
  .ci-guide-steps{grid-template-columns:1fr;gap:8px;padding:8px 10px 12px}
