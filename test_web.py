@@ -44,6 +44,26 @@ class PublicSiteTests(unittest.TestCase):
         self.assertIn('does not automatically import UKMTO reports', html)
         self.assertIn('not affiliated with or endorsed by UKMTO', html)
 
+    def test_ukmto_briefing_contains_dated_reports_not_live_tracking(self):
+        from datetime import datetime, timezone
+        from urllib.parse import urlsplit
+        briefing = self.client.get("/assets/ukmto-incidents.json").json()
+        self.assertEqual(briefing["curated_on_utc"], "2026-11-23")
+        self.assertEqual(len(briefing["events"]), 5)
+        self.assertEqual(len({item["id"] for item in briefing["events"]}), 5)
+        for item in briefing["events"]:
+            self.assertEqual(urlsplit(item["url"]).hostname, "www.ukmto.org")
+            self.assertEqual(urlsplit(item["url"]).scheme, "https")
+            self.assertIsNotNone(datetime.fromisoformat(item["at_utc"]).tzinfo)
+            self.assertLess(datetime.fromisoformat(item["at_utc"]),
+                            datetime(2026,11,24,tzinfo=timezone.utc))
+        home = self.client.get("/").text
+        self.assertIn('id="ukmto-reports"', home)
+        self.assertIn('id="activity-pulse-bars"', home)
+        self.assertIn('does not automatically import UKMTO reports', home)
+        self.assertIn('/assets/activity-pulse.js', home)
+        self.assertIn('/assets/ukmto-briefing.js', home)
+
     def test_page_assets_are_content_versioned_and_cacheable(self):
         for path in ("/", "/countries", "/countries/gb"):
             page = self.client.get(path)
