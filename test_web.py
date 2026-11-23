@@ -44,6 +44,17 @@ class PublicSiteTests(unittest.TestCase):
         self.assertIn('does not automatically import UKMTO reports', html)
         self.assertIn('not affiliated with or endorsed by UKMTO', html)
 
+    def test_layer_selector_is_map_local_and_has_all_options(self):
+        from html.parser import HTMLParser
+        html = self.client.get("/").text
+        self.assertEqual(html.count('id="globe-layer"'), 1)
+        self.assertLess(html.index('id="dashboard-map"'), html.index('id="globe-layer"'))
+        self.assertLess(html.index('id="globe-layer"'), html.index('id="earth-canvas"'))
+        self.assertIn('class="workspace-layer-picker map-layer-picker"', html)
+        for label in ('Earthquakes', 'Wildfires', 'ISS position',
+                      'Country news', 'Military aviation', 'Naval activity'):
+            self.assertIn('>' + label + '</option>', html)
+
     def test_activity_chart_precedes_guide_and_category_cards(self):
         html = self.client.get("/").text
         self.assertEqual(html.count('id="activity-pulse"'), 1)
