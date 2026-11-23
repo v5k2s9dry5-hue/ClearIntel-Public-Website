@@ -303,6 +303,19 @@ def check_site(browser, width):
         assert field is not None
         assert bounds["y"] + bounds["height"] <= field["y"] + 1, (
             "Help obscures the search input", bounds, field)
+    # Search health must distinguish total failure, partial coverage and no checks.
+    page.evaluate("""() => {
+        const unavailable = searchCoverage({sources_checked: [], provider_errors: ['gdelt: timeout']});
+        if (unavailable.dataset.health !== 'unavailable' ||
+            !unavailable.querySelector('summary').textContent.includes('Feeds unavailable'))
+            throw Error('Full outage was misreported as partial or successful');
+        const partial = searchCoverage({sources_checked: ['google'], provider_errors: ['gdelt: timeout']});
+        if (partial.dataset.health !== 'partial' ||
+            !partial.querySelector('summary').textContent.includes('1 of 2 feeds responded'))
+            throw Error('Partial feed coverage mislabeled');
+        const empty = searchCoverage({sources_checked: [], provider_errors: []});
+        if (empty.dataset.health !== 'not-checked') throw Error('Unqueried feeds mislabeled');
+    }""")
     page.locator("#news-query").fill("UK")
     page.locator("#news-submit").click()
     page.locator("#news-results .result-title").wait_for()
@@ -521,6 +534,8 @@ def check_site(browser, width):
         renderCountryCard(box, country, {data: outage});
         if (!box.textContent.includes('no sources responded'))
             throw Error('A complete country source outage was reported as empty news');
+        if (box.querySelector('.country-coverage-details')?.dataset.health !== 'unavailable')
+            throw Error('Country sources should be marked unavailable');
 
         const unsafe = {...window.evidenceFixture, sources_checked:['fixture'], provider_errors:[],
             stories:[{basis:'national', reports:[{
@@ -530,6 +545,11 @@ def check_site(browser, width):
         if (box.querySelector('.country-top-stories a') ||
             !box.querySelector('.country-unlinked-source')?.textContent.includes('Unsafe fixture'))
             throw Error('Unsafe headline URL became clickable');
+
+        renderCountryCard(box, country, {data:window.evidenceFixture, failed:true});
+        if (box.querySelector('.country-coverage-details')?.dataset.health !== 'previous-snapshot' ||
+            !box.querySelector('.country-coverage-details').textContent.includes('previous snapshot'))
+            throw Error('Stale country source state was not disclosed');
 
         unsafe.stories[0].reports[0].url='https://example.org/legitimate';
         renderCountryCard(box, country, {data: unsafe});
