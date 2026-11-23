@@ -116,6 +116,19 @@ def check_site(browser, width):
     assert page.locator('link[href*="/assets/obsidian.css"]').count() == 1
     assert page.get_by_role("heading", name="Intelligence at a glance.").is_visible()
     assert page.locator(".command-overview-card").count() == 3
+    assert page.locator("#activity-pulse").is_visible()
+    page.evaluate("""() => {
+        const now=Date.now();
+        window.dispatchEvent(new CustomEvent('clearintel:earthquake-snapshot', {detail:{
+          generated_at_ms:now,
+          events:[{occurred_at_ms:now-3600000},{occurred_at_ms:now-9000000}],
+          stale:false
+        }}));
+    }""")
+    assert page.locator("#activity-pulse-total").inner_text() == "2"
+    assert page.locator("#activity-pulse-bars .activity-pulse-bin").count() == 6
+    assert page.locator("#activity-pulse-status").inner_text() == "USGS feed checked"
+    assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     assert page.locator(".dashboard-toolbar-tools").is_visible()
     assert page.locator("#ci-start-guide").is_visible()
     guide = page.locator("#ci-start-guide")
@@ -258,6 +271,11 @@ def check_site(browser, width):
     assert ukmto.get_by_role("link", name="Recent incidents").is_visible()
     assert ukmto.get_by_role("link", name="Weekly overview reports").is_visible()
     assert ukmto.locator(".ukmto-source-links a").count() == 4
+    ukmto.locator("#ukmto-reports .ukmto-report").first.wait_for(timeout=15000)
+    assert ukmto.locator(".ukmto-report").count() == 5
+    assert ukmto.get_by_text("NOT live or automatically refreshed", exact=False).is_visible()
+    assert ukmto.locator(".ukmto-report-link").first.get_attribute("href") == "https://www.ukmto.org/recent-incidents"
+    assert ukmto.get_by_text("UKMTO 217-26", exact=False).is_visible()
     assert "does not automatically import UKMTO reports" in ukmto.inner_text()
     assert "not affiliated with or endorsed by UKMTO" in ukmto.inner_text()
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
