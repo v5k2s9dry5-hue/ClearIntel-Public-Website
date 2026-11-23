@@ -785,6 +785,15 @@
     }catch(error){if(active.mode||!reportsPaused){active.failed=true;active.retryAt=Math.max(Date.now()+30000,error.retryAt||0);}}
     finally{
       active.loading=false;
+      // Reuse already retrieved USGS observations. The activity chart never
+      // starts another request or invents counts during provider failures.
+      if(active===reportLayers.earthquakes){
+        const snapshot=active.feed?{
+          events:active.feed.events, generated_at_ms:active.feed.generated_at_ms,
+          stale:Boolean(active.feed.stale), unavailable:Boolean(active.failed),
+        }:{unavailable:true};
+        window.dispatchEvent(new CustomEvent('clearintel:earthquake-snapshot',{detail:snapshot}));
+      }
       if(reportLayers[layer.value]===active){renderReports();draw();}
     }
   }
