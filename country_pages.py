@@ -48,7 +48,12 @@ def profile(base, code):
     search_url = 'https://news.google.com/search?' + urlencode({'q': name, 'hl': 'en-GB'})
     sources = [(label + ' (RSS)', url) for label, url in sources]
     if code == 'NL':
-        sources.append(('NOS news feeds', 'https://nos.nl/feeds'))
+        sources.extend([
+            ('NOS domestic news (Dutch)', 'https://nos.nl/nieuws/binnenland'),
+            ('NOS regional news (Dutch)', 'https://nos.nl/nieuws/regio'),
+            ('Dutch government announcements (English)', 'https://www.government.nl/latest/news'),
+            ('NOS news feeds', 'https://nos.nl/feeds'),
+        ])
     national_edition = edition_url(code)
     if national_edition:
         sources.append((f'Google News national edition for {name}', national_edition))
@@ -60,6 +65,6 @@ def profile(base, code):
             f'<div class="country-profile-grid"><div><section id="country-brief" data-code="{code}" data-place="{escape(name)}">'
             '<h2>Recent headlines</h2><noscript>Enable JavaScript to load headlines or use the source links below.</noscript></section>'
             f'<p class="update-note">Headlines refresh every five minutes while this page is open and visible.</p>'
-            f'</div><section class="profile-source-panel"><h2>Browse sources</h2><p>Publisher and news-index links. Coverage varies by country.</p><ul>{source_links}</ul></section></div>')
+            f'</div><section class="profile-source-panel"><h2>Browse sources</h2><p>Open these sources directly, including when the headline feed is unavailable.</p><ul>{source_links}</ul></section></div>')
     scripts = '<script src="/assets/analyst-mode.js" defer></script><script src="/assets/country-card.js?v=evidence-disclosure" defer></script><script src="/assets/country-profile.js?v=refresh-resilience" defer></script>'
     return page(base, '/countries/' + code.lower(), name + ' news and sources', description, body, scripts)
