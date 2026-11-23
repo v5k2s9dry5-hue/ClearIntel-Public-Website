@@ -12,7 +12,8 @@ section{padding:1rem 0;border-bottom:1px solid #2a405b}h2{margin:.5rem 0}.direct
 #filter-count{font-size:.9rem;color:#b8cadb}
 
 .country-coverage-details{border:1px solid #3a566f;border-radius:7px;padding:.55rem .65rem;color:inherit;font-size:.85rem;overflow-wrap:anywhere}
-.country-coverage-details summary{cursor:pointer;font-weight:600}
+.country-coverage-details summary{cursor:pointer;font-weight:600;min-height:44px;align-content:center}
+.country-coverage-details[data-health="unavailable"] summary,.country-coverage-details[data-health="previous-snapshot"] summary{color:#f3ce90}
 .country-coverage-details p,.country-coverage-details ul{margin:.5rem 0}
 .country-coverage-details ul{padding-inline-start:1.2rem}
 .country-coverage-details li{margin:.2rem 0}
