@@ -255,7 +255,12 @@ def search_news(query: str, days: int = 1, incident_only: bool = True,
                        "time_basis": str(article.get("time_basis", "Provider timestamp"))[:45], "provider": str(article.get("provider", ""))[:30],
                        "relevance": score})
     ranked.sort(key=lambda r: (r["relevance"], r["feed_time_utc"]), reverse=True)
-    if not ranked and not incident_only:
+    if not checked and errors:
+        notice = ("News search unavailable: all queried feeds failed to respond. "
+                  "No results were established, and this does not mean that nothing happened.")
+    elif not checked:
+        notice = "No news feeds were checked. This result cannot establish that no reports exist."
+    elif not ranked and not incident_only:
         notice = "No headlines matched this search within the selected time window."
     elif not ranked:
         notice = ("No matching recent incident headlines were found in the available feeds. "
