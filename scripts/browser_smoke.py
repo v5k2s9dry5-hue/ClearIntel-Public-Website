@@ -503,6 +503,31 @@ def check_site(browser, width):
     assert page.locator("#country-brief").get_by_text("Last available snapshot", exact=False).is_visible()
     assert page.locator("#country-brief").get_by_text("Older coverage: past week", exact=False).is_visible()
     assert page.locator("#country-brief").get_by_text("Gdelt — timeout").is_visible()
+    # An empty result after every provider fails is an outage, not proof of no news.
+    # All feed-derived URLs are untrusted, even when the API normally validates them.
+    page.evaluate("""() => {
+        const box = document.querySelector('#country-brief');
+        const country = {id:'GB', place:'United Kingdom'};
+        const outage = {...window.evidenceFixture, stories: [], sources_checked: [],
+            provider_errors: ['google: HTTP 429']};
+        renderCountryCard(box, country, {data: outage});
+        if (!box.textContent.includes('no sources responded'))
+            throw Error('A complete country source outage was reported as empty news');
+
+        const unsafe = {...window.evidenceFixture, sources_checked:['fixture'], provider_errors:[],
+            stories:[{basis:'national', reports:[{
+                title:'Unsafe fixture', url:'javascript:alert(1)', source:'Fixture',
+                feed_time_utc:'2026-11-21T12:00:00+00:00'}]}]};
+        renderCountryCard(box, country, {data: unsafe});
+        if (box.querySelector('.country-top-stories a') ||
+            !box.querySelector('.country-unlinked-source')?.textContent.includes('Unsafe fixture'))
+            throw Error('Unsafe headline URL became clickable');
+
+        unsafe.stories[0].reports[0].url='https://example.org/legitimate';
+        renderCountryCard(box, country, {data: unsafe});
+        if (!box.querySelector('.country-top-stories a[href="https://example.org/legitimate"]'))
+            throw Error('Valid HTTPS headline link disappeared');
+    }""")
     page.get_by_role("link", name="Country directory").click()
     page.get_by_role("link", name="Netherlands", exact=True).wait_for()
     assert page.locator(".directory-code").first.is_visible()

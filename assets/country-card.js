@@ -3,8 +3,17 @@ const el = (name, cls, text) => { const node = document.createElement(name); if(
 
 function renderCountryCard(container,country,entry){
   function reportLink(url, text){
+    // Defence in depth: no clickable URL is built from an untrusted feed or
+    // browser-supplied country result unless it is absolute HTTPS.
+    let safe;
+    try {
+      const parsed=new URL(url);
+      if(parsed.protocol==='https:' && parsed.hostname && !parsed.username && !parsed.password)
+        safe=parsed.href;
+    } catch (_) { /* Invalid source URLs remain plain text. */ }
+    if(!safe)return el('span','country-unlinked-source',text);
     const link=document.createElement('a');
-    link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=text;
+    link.href=safe;link.target='_blank';link.rel='noopener noreferrer';link.textContent=text;
     return link;
   }
 
@@ -34,15 +43,19 @@ function renderCountryCard(container,country,entry){
     };
     if(!entry?.data){
       status.textContent=entry?.failed?(entry.message || 'Country headlines are temporarily unavailable.'):'Checking national headlines…';
+    }else if(!stories.length && !checked.length && errors.length){
+      status.textContent='Country headlines unavailable — no sources responded. This does not mean no news occurred.';
+    }else if(!stories.length && !checked.length){
+      status.textContent='No news sources have been checked for this country.';
     }else if(!stories.length){
-      status.textContent='No leading headline available from the sources checked.';
+      status.textContent='No leading headlines matched the sources checked.';
     }else{
       const count=data.publisher_count;
       const coverage=Number.isInteger(count)?` · ${count} ${count===1?'publisher':'publishers'} found`:'';
       status.textContent=(validTime?`Checked ${utcTime.format(checkedAt)} UTC`:'Check time unavailable')+coverage;
     }
     if(data && !stories.length && validTime)status.textContent+=' · Checked '+utcTime.format(checkedAt)+' UTC';
-    if(errors.length)status.textContent+=' · '+(checked.length?'Partial source coverage':'Sources unavailable');
+    if(errors.length && (checked.length || stories.length))status.textContent+=' · '+(checked.length?'Partial source coverage':'Sources unavailable');
     if(stories.length && stories.every(group=>group.basis==='weekly'))status.textContent+=' · Older coverage: past week';
     if(entry?.failed && data)status.textContent+=' · Last available snapshot';
     if(entry?.data && entry.failed)status.textContent+=' · '+(entry.message || 'Refresh unavailable');
@@ -118,7 +131,7 @@ function renderCountryCard(container,country,entry){
       const details=el('details','country-coverage-details');
       details.open=wasOpen;
       details.append(el('summary','','Source coverage details'));
-      details.append(el('p','',checked.length+' source checks completed; '+errors.length+' unavailable. A completed check may return no relevant headlines.'));
+      details.append(el('p','',checked.length+' source checks completed; '+errors.length+' unavailable. A completed check may return no relevant headlines. If every source is unavailable, there is no basis to conclude that no stories exist.'));
       const providerLabel=value=>String(value).replace(/_/g,' ').replace(/^./,letter=>letter.toUpperCase());
       if(checked.length){
         const completed=el('ul');
