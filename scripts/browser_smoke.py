@@ -395,12 +395,25 @@ def check_site(browser, width):
     assert download.value.suggested_filename.endswith(".pdf")
 
     page.route("**/api/news", lambda route: route.fulfill(
-        status=429, headers={"Retry-After": "19"}, content_type="application/json", body="{}"))
+        status=429, headers={"Retry-After": "3"}, content_type="application/json",
+        body='{"detail":"News search is busy. Try again shortly."}'))
     page.locator("#news-submit").click()
-    page.get_by_text("Try again in 19 seconds.").wait_for()
-    assert page.get_by_text("Filtered search is rate limited").is_visible()
+    page.get_by_text("Try again in 3 seconds.").wait_for()
+    assert page.get_by_text("Filtered search is busy across the site").is_visible()
+    assert page.locator("#news-submit").is_disabled()
+    page.locator("#search-country .country-top-stories li").wait_for()
+    retry_requests = []
+    def track_search(request):
+        if request.url.endswith("/api/news"):
+            retry_requests.append(request.url)
+    page.on("request", track_search)
+    page.locator("#news-form").evaluate("(form) => form.requestSubmit()")
     assert page.get_by_text("independent feed and does not mean this search succeeded", exact=False).is_visible()
     page.locator("#search-country .country-top-stories li").wait_for()
+    page.get_by_text("Ready to search again").wait_for(timeout=8000)
+    assert page.locator("#news-submit").is_enabled()
+    assert not retry_requests, retry_requests
+    page.remove_listener("request", track_search)
 
     page.locator("#globe-layer").select_option("countries")
     if mobile:
