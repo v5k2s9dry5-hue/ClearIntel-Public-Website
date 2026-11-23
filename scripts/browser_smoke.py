@@ -117,6 +117,12 @@ def check_site(browser, width):
     assert page.get_by_role("heading", name="Intelligence at a glance.").is_visible()
     assert page.locator(".command-overview-card").count() == 3
     assert page.locator("#activity-pulse").is_visible()
+    hero_graph = page.locator("#activity-pulse").bounding_box()
+    guide_box = page.locator("#ci-start-guide").bounding_box()
+    category_box = page.locator(".command-overview").bounding_box()
+    assert hero_graph and guide_box and category_box
+    assert hero_graph["y"] < guide_box["y"], "Graph is below the guide instead of in the hero"
+    assert hero_graph["y"] < category_box["y"], "Graph was buried below the cards"
     page.evaluate("""() => {
         const now=Date.now();
         window.dispatchEvent(new CustomEvent('clearintel:earthquake-snapshot', {detail:{
@@ -587,6 +593,36 @@ def check_site(browser, width):
     context.close()
 
 
+def check_wide_hero_layout(browser):
+    """Verify the chart occupies the desktop header gap and uses a real feed."""
+    width = 1574
+    context = browser.new_context(viewport={"width": width, "height": 870},
+                                  reduced_motion="reduce")
+    page = context.new_page()
+    now = int(time.time() * 1000)
+    observation = {"generated_at_ms": now, "events": [{
+        "id": "test-earthquake", "occurred_at_ms": now - 3600000,
+        "magnitude": 5.0, "place": "Fixture location", "latitude": 1.0,
+        "longitude": 2.0, "url": "https://earthquake.usgs.gov/earthquakes/eventpage/test"
+    }]}
+    page.route("**/api/earthquakes", lambda route: route_json(route, observation))
+    page.goto(ROOT, wait_until="domcontentloaded")
+    page.wait_for_function("() => document.querySelector('#activity-pulse-total')?.textContent === '1'",
+                           timeout=15000)
+    chart = page.locator("#activity-pulse").bounding_box()
+    title = page.locator(".dashboard-heading-group").bounding_box()
+    guide = page.locator("#ci-start-guide").bounding_box()
+    cards = page.locator(".command-overview").bounding_box()
+    assert chart and title and guide and cards
+    assert chart["x"] >= title["x"] + title["width"] - 35, (chart, title)
+    assert chart["y"] < 430, "Chart should be visible in the initial desktop viewport"
+    assert chart["y"] < guide["y"] and chart["y"] < cards["y"]
+    assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
+    assert page.locator("#activity-pulse-status").inner_text() == "USGS feed checked"
+    print("Desktop 1574px hero layout and USGS-driven chart passed")
+    context.close()
+
+
 if __name__ == "__main__":
     wait_for_local_server()
     with sync_playwright() as p:
@@ -594,5 +630,6 @@ if __name__ == "__main__":
         try:
             for size in (390, 1280):
                 check_site(browser, size)
+            check_wide_hero_layout(browser)
         finally:
             browser.close()
