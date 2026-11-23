@@ -95,7 +95,11 @@ def check_site(browser, width):
     page.on("request", lambda request: regional_requests.append(request.url) if request.url.endswith("/assets/uk-coastline.json") else None)
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.route("**/api/country-news/GB", lambda route: route_json(route, COUNTRY))
-    page.route("**/api/news", lambda route: route_json(route, NEWS))
+    def news_fixture(route):
+        if route.request.post_data_json["query"] == "rail services":
+            return route_json(route, {**NEWS, "provider_errors": ["gdelt: timeout"]})
+        return route_json(route, NEWS)
+    page.route("**/api/news", news_fixture)
     page.goto(ROOT, wait_until="domcontentloaded")
     page.evaluate("""() => {
         const response = new Response(null, {status: 429, headers: {'Retry-After': '180'}});
@@ -245,6 +249,10 @@ def check_site(browser, width):
     page.locator("#dashboard-matches").get_by_role("button", name="Search recent headlines", exact=False).click()
     page.locator("#news-results .result-title").wait_for()
     assert page.locator("#news-query").input_value() == "rail services"
+    feed_coverage = page.locator("#news-results .search-coverage")
+    feed_coverage.get_by_text("Partial feed coverage · 1 of 2 feeds responded").click()
+    assert feed_coverage.get_by_text("GDELT — unavailable (timeout)").is_visible()
+    assert feed_coverage.get_by_text("Fixture provider — responded").is_visible()
     if mobile:
         page.locator("#dashboard-map-tab").click()
     assert not regional_requests, "UK coastline downloaded before regional view was requested"
@@ -278,6 +286,7 @@ def check_site(browser, width):
     page.locator("#news-submit").click()
     page.locator("#news-results .result-title").wait_for()
     assert page.locator("#news-results .result-title").inner_text() == NEWS["results"][0]["title"]
+    assert feed_coverage.get_by_text("Feed coverage · 1 of 1 feed responded").is_visible()
     page.locator("#news-results .citation-copy").first.click()
     page.wait_for_function("() => window.lastCitation && window.lastCitation.includes('UK transport news update')")
     assert "Fixture publisher" in page.evaluate("() => window.lastCitation")

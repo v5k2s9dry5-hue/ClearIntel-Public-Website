@@ -252,6 +252,30 @@ async function showSearchCountry(query){
   }catch{ /* General news search still runs when the country index is unavailable. */ }
 }
 
+const searchFeedLabels = new Map([['google', 'Google News'], ['bing', 'Bing News'],
+    ['gdelt', 'GDELT'], ['country_section', 'Country news section']]);
+
+function feedName(id) {
+  return searchFeedLabels.get(id) || id;
+}
+
+function searchCoverage(payload) {
+  const checked = payload.sources_checked || [];
+  const problems = payload.provider_errors || [];
+  const details = el('details', 'search-coverage');
+  const count = checked.length + problems.length;
+  const summary = problems.length ? 'Partial feed coverage' : 'Feed coverage';
+  details.append(el('summary', '', summary + ' · ' + checked.length + ' of ' + count + (count === 1 ? ' feed responded' : ' feeds responded')));
+  const list = el('ul', '');
+  for (const id of checked) list.append(el('li', '', feedName(id) + ' — responded'));
+  for (const problem of problems) {
+    const [id, ...reason] = problem.split(': ');
+    list.append(el('li', '', feedName(id) + ' — unavailable' + (reason.length ? ' (' + reason.join(': ') + ')' : '')));
+  }
+  details.append(list, el('p', '', 'A feed can respond with zero matching headlines.'));
+  return details;
+}
+
 function renderResults(payload,search){
   const area=$('news-results');area.replaceChildren();
   const header=el('div','results-header');
@@ -259,7 +283,7 @@ function renderResults(payload,search){
   const timeWindow=el('span','result-window', search.window==='24h'?'Last 24 hours':'Last 7 days');
   header.append(left,timeWindow);area.append(header);
   const notice=el('div','result-warning',payload.notice);area.append(notice);
-  if(payload.provider_errors?.length){ area.append(el('p','provider-note','Some providers were unavailable: '+payload.provider_errors.join('; ')+'. Results may be incomplete.')); }
+  area.append(searchCoverage(payload));
   const windowText='Requested UTC window: '+(payload.window_start||'unknown')+' to '+(payload.window_end||'unknown')+'.';
   area.append(el('p','analyst-only analyst-metadata',windowText));
   const exportUi=window.ClearIntelReport?reportExport(payload,search):null;
@@ -350,8 +374,7 @@ function renderResults(payload,search){
   }
   area.append(list);
   if(exportUi)exportUi.refreshSelection();
-  const sources=payload.sources_checked?.length?payload.sources_checked.join(' and '):'no sources';
-  area.append(el('div','results-foot','Sources queried: '+sources+'. Feed timestamps may be publication or first-seen dates; they do not establish the incident date.'));
+  area.append(el('div','results-foot','Feed timestamps may be publication or first-seen dates; they do not establish the incident date.'));
 }
 const searchSubmit = $('news-submit');
 let searchRetryTimer;
@@ -386,6 +409,10 @@ $('news-form').addEventListener('submit',async e=>{
     const controller=new AbortController();timeout=setTimeout(()=>controller.abort(),25000);
     const response=await fetch('/api/news',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,window:timeWindow,incident_only:incidentOnly}),signal:controller.signal});
     let payload;try{payload=await response.json();}catch{payload={};}
+    if (response.status === 400) {
+      fillStatus('Check your search', payload?.detail || 'Enter a location or topic.', 'error');
+      return;
+    }
     if(response.status===429){
       pauseFilteredSearch(response);
       let title = 'Filtered search is rate limited';

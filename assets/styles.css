@@ -136,3 +136,7 @@ body[data-analysis-mode="analyst"] .analyst-only { display: block !important; }
 .country-related-item{display:grid;gap:3px;border-top:1px solid #2d4057;padding-top:7px}
 .country-related-item span,.country-related-reports p{color:#a9bfd4;font-size:11px;line-height:1.4}
 .country-related-reports p{margin:8px 0 2px}
+
+.search-coverage{margin:12px 0;font-size:13px;overflow-wrap:anywhere}
+.search-coverage summary{cursor:pointer;min-height:44px;align-content:center}
+.search-coverage ul,.search-coverage p{margin:6px 0}
