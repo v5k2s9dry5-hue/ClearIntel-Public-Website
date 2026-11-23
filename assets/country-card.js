@@ -130,8 +130,24 @@ function renderCountryCard(container,country,entry){
     if(data){
       const details=el('details','country-coverage-details');
       details.open=wasOpen;
-      details.append(el('summary','','Source coverage details'));
-      details.append(el('p','',checked.length+' source checks completed; '+errors.length+' unavailable. A completed check may return no relevant headlines. If every source is unavailable, there is no basis to conclude that no stories exist.'));
+      const health = entry?.failed ? 'previous-snapshot' :
+        !checked.length && errors.length ? 'unavailable' :
+        !checked.length ? 'not-checked' : errors.length ? 'partial' : 'responded';
+      details.dataset.health=health;
+      const count=checked.length+errors.length;
+      const healthTitle = health==='previous-snapshot' ? 'Previous snapshot · refresh unavailable' :
+        health==='unavailable' ? 'Sources unavailable' :
+        health==='not-checked' ? 'No source checks' :
+        health==='partial' ? 'Partial coverage' : 'Checks completed';
+      details.append(el('summary','', 'Source health · '+healthTitle+(count?' · '+checked.length+' of '+count+' completed':'')));
+      const timeText=validTime ? 'Snapshot checked '+utcTime.format(checkedAt)+' UTC. ' : 'Snapshot check time unavailable. ';
+      const explanation=health==='previous-snapshot' ?
+        'The latest refresh failed; the source counts and timestamp belong to the previous snapshot, not a successful new check.' :
+        health==='unavailable' ? 'Every queried source failed; no headlines here does not mean no news occurred.' :
+        health==='not-checked' ? 'No source-check status was returned for this country.' :
+        health==='partial' ? 'Some sources failed, so major stories may be missing.' :
+        'A completed source check may return no relevant headlines; it does not establish independent corroboration.';
+      details.append(el('p','',timeText+explanation));
       const providerLabel=value=>String(value).replace(/_/g,' ').replace(/^./,letter=>letter.toUpperCase());
       if(checked.length){
         const completed=el('ul');
