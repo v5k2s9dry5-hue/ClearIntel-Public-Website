@@ -54,6 +54,8 @@ class PublicSiteTests(unittest.TestCase):
             self.assertIn('rel="canonical" itemprop="url" href="https://research.example/"', html)
             self.assertIn('itemprop="name" content="ClearIntel Atlas"', html)
             self.assertIn('<title>ClearIntel Atlas | Global News Map &amp; Country Briefs</title>', html)
+            self.assertIn('CLEARINTEL ATLAS / GLOBAL SITUATION ROOM', html)
+            self.assertIn('ClearIntel Atlas is a free public-source intelligence dashboard', html)
             self.assertIn('property="og:url" content="https://research.example/"', html)
             self.assertIn('<loc>https://research.example/</loc>', self.client.get('/sitemap.xml').text)
             self.assertIn('Sitemap: https://research.example/sitemap.xml', self.client.get('/robots.txt').text)
