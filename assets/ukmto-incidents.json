@@ -1,0 +1,54 @@
+{
+  "source": "UK Maritime Trade Operations (UKMTO)",
+  "source_url": "https://www.ukmto.org/recent-incidents",
+  "curated_on_utc": "2026-11-23",
+  "licence_url": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "scope": "Selected public UKMTO notices, manually reviewed 23 November 2026. Not a live feed, not exhaustive, and may be superseded. Incident times are those in UKMTO reports.",
+  "events": [
+    {
+      "id": "217-26",
+      "type": "Advisory",
+      "at_utc": "2026-11-22T14:25:00Z",
+      "region": "Gulf of Oman",
+      "title": "UKMTO advisory — reported tanker and military-forces encounter",
+      "summary": "UKMTO reported an incident involving a tanker and military forces. Investigations were ongoing at the time of publication.",
+      "url": "https://www.ukmto.org/recent-incidents"
+    },
+    {
+      "id": "216-26",
+      "type": "Attack",
+      "at_utc": "2026-11-21T05:50:00Z",
+      "region": "Strait of Hormuz · Oman",
+      "title": "UKMTO warning — tanker reportedly struck in engine room",
+      "summary": "UKMTO reported a projectile striking a tanker transiting outbound; no casualties were reported at the time.",
+      "url": "https://www.ukmto.org/recent-incidents"
+    },
+    {
+      "id": "215-26",
+      "type": "Attack",
+      "at_utc": "2026-11-21T05:00:00Z",
+      "region": "Strait of Hormuz · Oman",
+      "title": "UKMTO warning — tanker reportedly struck at stern",
+      "summary": "UKMTO reported that a projectile hit a tanker during an outbound transit; the reported environmental impact remained unconfirmed.",
+      "url": "https://www.ukmto.org/recent-incidents"
+    },
+    {
+      "id": "214-26",
+      "type": "Attack",
+      "at_utc": "2026-11-20T15:00:00Z",
+      "region": "Strait of Hormuz · Oman",
+      "title": "UKMTO warning — tanker reportedly struck; fire reported",
+      "summary": "UKMTO reported a tanker hit during an outbound transit, with an onboard fire reported by its company security officer.",
+      "url": "https://www.ukmto.org/recent-incidents"
+    },
+    {
+      "id": "213-26",
+      "type": "Suspicious activity",
+      "at_utc": "2026-11-20T11:02:00Z",
+      "region": "Gulf of Aden · Yemen",
+      "title": "UKMTO warning — armed skiff reportedly approached bulk carrier",
+      "summary": "A ship's master reported an armed approach and exchange of warning shots. No crew injuries or vessel damage were reported.",
+      "url": "https://www.ukmto.org/-/media/ukmto/products/20261120-ukmto_warning_213-26.pdf?rev=80e96f4329454560b7c7f2f47f0b953a"
+    }
+  ]
+}
