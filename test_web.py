@@ -24,6 +24,14 @@ class PublicSiteTests(unittest.TestCase):
         self.assertIn('ClearIntel',self.client.get('/').text)
         self.assertEqual(self.client.get('/health').json()['status'],'ok')
 
+    def test_official_ukmto_source_hub_is_explicitly_external(self):
+        html = self.client.get('/').text
+        for path in ('/ukmto-products/warnings', '/ukmto-products/advisories',
+                     '/recent-incidents', '/ukmto-products/weekly-reports'):
+            self.assertIn('href="https://www.ukmto.org' + path + '"', html)
+        self.assertIn('does not automatically import UKMTO reports', html)
+        self.assertIn('not affiliated with or endorsed by UKMTO', html)
+
     def test_page_assets_are_content_versioned_and_cacheable(self):
         for path in ("/", "/countries", "/countries/gb"):
             page = self.client.get(path)

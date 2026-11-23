@@ -280,6 +280,12 @@ body:has(#expanded-map[open]) { overflow: hidden; }
 #dashboard-query { flex:1; min-width:0; padding:10px 12px; border:1px solid var(--dashboard-border); border-radius:7px; background:#0b1728; color:var(--ink); font:inherit; }
 #dashboard-matches:not([hidden]), #ukmto-bulletins:not([hidden]) { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:12px; padding:12px; background:#102238; border-radius:8px; }
 #dashboard-matches a, #ukmto-bulletins a { color:#85dfed; text-decoration:underline; padding:5px; }
+#ukmto-bulletins:not([hidden]) { display:block; min-width:0; border:1px solid #324c65; }
+#ukmto-bulletins .ukmto-source-note { margin:8px 0; max-width:74ch; color:#c0d5e6; font-size:13px; line-height:1.55; }
+#ukmto-bulletins .ukmto-source-links { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr)); gap:8px; margin:10px 0; }
+#ukmto-bulletins .ukmto-source-links a { display:flex; align-items:center; justify-content:center; min-height:44px; padding:9px; border:1px solid #486681; border-radius:7px; background:#162d43; text-align:center; overflow-wrap:anywhere; }
+#ukmto-bulletins .ukmto-source-links a:hover { border-color:#8bdce9; background:#1e3c53; }
+#ukmto-bulletins .ukmto-source-links a:focus-visible { outline:2px solid #8bdce9; outline-offset:2px; }
 @media(max-width:860px){
   .dashboard-view-controls:not([hidden]) { position:fixed; bottom:0; inset-inline:0; z-index:30; grid-template-columns:repeat(4,minmax(0,1fr)); margin:0; border-radius:0; padding-bottom:max(4px,env(safe-area-inset-bottom)); }
   .dashboard-view-controls a,.dashboard-view-controls button { text-align:center; align-content:center; min-height:44px; font:600 14px/1.3 system-ui,sans-serif; color:var(--muted); }

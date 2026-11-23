@@ -252,7 +252,15 @@ def check_site(browser, width):
     query.fill("UKMTO")
     query.press("Enter")
     page.locator("#dashboard-matches").get_by_role("button", name="Naval activity · Historical map layer").click()
-    assert page.locator("#ukmto-bulletins").get_by_role("link", name="Official advisories").is_visible()
+    ukmto = page.locator("#ukmto-bulletins")
+    assert ukmto.get_by_role("link", name="Official advisories").is_visible()
+    assert ukmto.get_by_role("link", name="Official warnings").get_attribute("href") == "https://www.ukmto.org/ukmto-products/warnings"
+    assert ukmto.get_by_role("link", name="Recent incidents").is_visible()
+    assert ukmto.get_by_role("link", name="Weekly overview reports").is_visible()
+    assert ukmto.locator(".ukmto-source-links a").count() == 4
+    assert "does not automatically import UKMTO reports" in ukmto.inner_text()
+    assert "not affiliated with or endorsed by UKMTO" in ukmto.inner_text()
+    assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     assert page.locator("#map-layer-kind").inner_text() == "Historical archive"
     page.locator("#globe-layer").select_option("earthquakes")
     assert page.locator("#map-layer-kind").inner_text() == "Public feed"
