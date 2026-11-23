@@ -109,6 +109,18 @@ def check_site(browser, width):
     }""")
     assert page.locator("#map-layer-source").inner_text() == "USGS · Earthquake observations"
     assert page.locator("#map-layer-kind").inner_text() == "Public feed"
+    # A single accessible layer control must sit inside the interactive map,
+    # not in the global page header or elsewhere off-screen.
+    assert page.locator("#dashboard-map .map-panel-heading #globe-layer").count() == 1
+    assert page.locator(".dashboard-toolbar-tools #globe-layer").count() == 0
+    map_heading = page.locator("#dashboard-map .map-panel-heading").bounding_box()
+    map_picker = page.locator("#dashboard-map .map-layer-picker").bounding_box()
+    assert map_heading and map_picker
+    assert map_picker["x"] >= map_heading["x"] - 1, (map_heading, map_picker)
+    assert map_picker["y"] >= map_heading["y"] - 1, (map_heading, map_picker)
+    assert map_picker["x"] + map_picker["width"] <= map_heading["x"] + map_heading["width"] + 1, (map_heading, map_picker)
+    assert map_picker["y"] + map_picker["height"] <= map_heading["y"] + map_heading["height"] + 1, (map_heading, map_picker)
+    assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     assert page.locator("#dashboard-map-heading").is_visible()
     assert page.evaluate("getComputedStyle(document.body).backgroundColor") == "rgb(6, 9, 16)"
     assert page.evaluate("getComputedStyle(document.querySelector('#dashboard-map')).backgroundColor") == "rgb(5, 14, 26)"
@@ -307,6 +319,7 @@ def check_site(browser, width):
     page.locator("#earth-uk-view").click()
     page.locator("#map-expand").click()
     assert page.get_by_role("dialog", name="Expanded map").is_visible()
+    assert page.locator("#expanded-map #globe-layer").is_visible()
     page.locator("#earth-zoom-in").click()
     page.keyboard.press("Escape")
     page.locator("#expanded-map").wait_for(state="hidden")
