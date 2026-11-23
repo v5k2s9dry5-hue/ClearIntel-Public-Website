@@ -37,3 +37,51 @@
  .activity-pulse-tick{font-size:9px}
  .ukmto-report-list{max-height:340px}
 }
+
+/* Keep the activity chart in the hero rather than below the category cards.
+   At large widths it occupies the unused area beside the heading and tools. */
+.dashboard .dashboard-toolbar > .activity-pulse{
+  flex:1 1 100%;
+  order:3;
+  margin:0;
+  width:100%;
+  min-width:0;
+}
+@media(min-width:1380px){
+  .dashboard .dashboard-toolbar{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,48%);
+    grid-template-areas:"intro tools" "intro chart";
+    column-gap:22px;
+    row-gap:12px;
+    align-items:start;
+  }
+  .dashboard .dashboard-title{
+    grid-area:intro;
+    align-self:center;
+    max-width:none;
+    min-width:0;
+  }
+  .dashboard .dashboard-heading-group{max-width:690px}
+  .dashboard .dashboard-toolbar-tools{
+    grid-area:tools;
+    justify-self:stretch;
+    align-self:start;
+    width:100%;
+    justify-content:flex-end;
+    margin-left:0;
+    min-width:0;
+  }
+  .dashboard .dashboard-toolbar > .activity-pulse{
+    grid-area:chart;
+    align-self:start;
+    justify-self:stretch;
+    margin:0;
+    flex:none;
+    order:initial;
+  }
+  .dashboard .activity-pulse-bars{height:101px;gap:6px}
+}
+@media(min-width:1380px) and (max-width:1470px){
+  .dashboard .dashboard-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,52%)}
+}
