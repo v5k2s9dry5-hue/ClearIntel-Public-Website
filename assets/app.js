@@ -260,19 +260,29 @@ function feedName(id) {
 }
 
 function searchCoverage(payload) {
-  const checked = payload.sources_checked || [];
-  const problems = payload.provider_errors || [];
+  const checked = Array.isArray(payload.sources_checked) ? payload.sources_checked : [];
+  const problems = Array.isArray(payload.provider_errors) ? payload.provider_errors : [];
   const details = el('details', 'search-coverage');
   const count = checked.length + problems.length;
-  const summary = problems.length ? 'Partial feed coverage' : 'Feed coverage';
-  details.append(el('summary', '', summary + ' · ' + checked.length + ' of ' + count + (count === 1 ? ' feed responded' : ' feeds responded')));
+  const health = !count ? 'not-checked' : !checked.length ? 'unavailable' : problems.length ? 'partial' : 'responded';
+  details.dataset.health = health;
+  const summary = health === 'unavailable' ? 'Feeds unavailable' :
+    health === 'not-checked' ? 'No feeds checked' :
+    health === 'partial' ? 'Partial feed coverage' : 'Feed coverage';
+  details.append(el('summary', '', summary + (count ? ' · ' + checked.length + ' of ' + count +
+    (count === 1 ? ' feed responded' : ' feeds responded') : '')));
   const list = el('ul', '');
   for (const id of checked) list.append(el('li', '', feedName(id) + ' — responded'));
   for (const problem of problems) {
-    const [id, ...reason] = problem.split(': ');
+    const [id, ...reason] = String(problem).split(': ');
     list.append(el('li', '', feedName(id) + ' — unavailable' + (reason.length ? ' (' + reason.join(': ') + ')' : '')));
   }
-  details.append(list, el('p', '', 'A feed can respond with zero matching headlines.'));
+  if (count) details.append(list);
+  const caveat = health === 'unavailable' ? 'All queried feeds failed: no result can be treated as evidence that no news happened.' :
+    health === 'not-checked' ? 'No feed status is available for this search.' :
+    health === 'partial' ? 'Some feeds failed. The headlines below may omit major reports.' :
+    'Responded means the source check finished, not that a matching headline or independently verified event exists.';
+  details.append(el('p', '', caveat));
   return details;
 }
 
@@ -288,7 +298,15 @@ function renderResults(payload,search){
   area.append(el('p','analyst-only analyst-metadata',windowText));
   const exportUi=window.ClearIntelReport?reportExport(payload,search):null;
   if(exportUi)area.append(exportUi.controls);
-  if(!payload.results.length){area.append(el('div','empty-results','Try a broader term or 7-day window. No headline match does not establish that nothing happened.'));}
+  if(!payload.results.length){
+    const checked = Array.isArray(payload.sources_checked) ? payload.sources_checked : [];
+    const errors = Array.isArray(payload.provider_errors) ? payload.provider_errors : [];
+    const guidance = !checked.length && errors.length ?
+      'Every queried news feed failed. Try again later; this is not a successful search with zero matching stories.' :
+      !checked.length ? 'No news feeds were checked. This search cannot establish whether reports exist.' :
+      'Try a broader term or 7-day window. No headline match does not establish that nothing happened.';
+    area.append(el('div','empty-results',guidance));
+  }
   const list=el('div','result-list');
   const entries=[];
   for(const article of payload.results){

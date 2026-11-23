@@ -79,6 +79,12 @@ class NewsTests(unittest.TestCase):
         self.assertEqual(r['sources_checked'],[])
         self.assertNotIn('Fake API secret',str(r))
         self.assertTrue(r['provider_errors'])
+        self.assertIn('all queried feeds failed', r['notice'])
+        # One successful empty feed is different from a total provider outage.
+        partial = search_news('Iran bombing', now=NOW, fetchers=[down, fake([])])
+        self.assertEqual(len(partial['sources_checked']), 1)
+        self.assertEqual(len(partial['provider_errors']), 1)
+        self.assertNotIn('all queried feeds failed', partial['notice'])
 
 
 if __name__=='__main__':
