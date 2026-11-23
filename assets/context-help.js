@@ -62,9 +62,16 @@
     }
     return null;
   }
+  function descriptionIds(target) {
+    return (target.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+  }
   function hideTooltip() {
     tooltip.hidden = true;
-    if(activeTarget) activeTarget.removeAttribute('aria-describedby');
+    if (activeTarget) {
+      const remaining = descriptionIds(activeTarget).filter(id => id !== tooltip.id);
+      if (remaining.length) activeTarget.setAttribute('aria-describedby', remaining.join(' '));
+      else activeTarget.removeAttribute('aria-describedby');
+    }
     activeTarget = null;
   }
   function placeTooltip(anchor) {
@@ -81,11 +88,12 @@
   }
   function showTooltip(anchor) {
     if(!anchor || anchor.hidden || !anchor.dataset.ciExplain) return;
-    if(activeTarget && activeTarget!==anchor) activeTarget.removeAttribute('aria-describedby');
+    if(activeTarget && activeTarget!==anchor) hideTooltip();
     activeTarget=anchor;
     tooltip.textContent=anchor.dataset.ciExplain;
     tooltip.hidden=false;
-    anchor.setAttribute('aria-describedby',tooltip.id);
+    const ids = descriptionIds(anchor);
+    if (!ids.includes(tooltip.id)) anchor.setAttribute('aria-describedby', [...ids, tooltip.id].join(' '));
     placeTooltip(anchor);
   }
   // Mouse hover and keyboard focus; touch does not block normal controls.
