@@ -8,12 +8,12 @@ from country_news import COUNTRIES, NATIONAL_FEEDS, REGIONAL_FEEDS, edition_url
 PAGE = Template("""<!doctype html>
 <html lang="en-GB"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>$title | ClearIntel</title><meta name="description" content="$description">
+<title>$title | ClearIntel Atlas</title><meta name="description" content="$description">
 <link rel="canonical" href="$canonical"><meta property="og:url" content="$canonical">
-<meta property="og:title" content="$title | ClearIntel"><meta property="og:description" content="$description">
+<meta property="og:site_name" content="ClearIntel Atlas"><meta property="og:title" content="$title | ClearIntel Atlas"><meta property="og:description" content="$description">
 <link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/countries.css?v=evidence-disclosure"><link rel="stylesheet" href="/assets/obsidian.css">
 $script</head><body>
-<header><a class="brand" href="/">Clear<span>Intel</span></a><nav aria-label="Main navigation"><a href="/">Live map</a><a href="/countries">Country directory</a></nav></header>
+<header><a class="brand" href="/">Clear<span>Intel</span> Atlas</a><nav aria-label="Main navigation"><a href="/">Live map</a><a href="/countries">Country directory</a></nav></header>
 <main>$content</main></body></html>""")
 
 
