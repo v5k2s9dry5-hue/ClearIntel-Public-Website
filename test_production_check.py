@@ -17,6 +17,38 @@ class ProductionCheckTests(TestCase):
             checks = check(DEFAULT_BASE, fetch)
             self.assertTrue(all(passed for _, passed in checks), checks)
 
+    def test_expected_commit_matches_live_build_and_rejects_stale_deployment(self):
+        deployed = "b" * 40
+        with patch("main.PUBLIC_URL", DEFAULT_BASE), patch.dict(
+                "os.environ", {"RENDER_GIT_COMMIT": deployed}), TestClient(app) as client:
+            def fetch(url):
+                response = client.get(urlsplit(url).path)
+                return response.status_code, response.headers, response.text
+
+            checks = dict(check(DEFAULT_BASE, fetch, expected_commit=deployed))
+            self.assertTrue(checks["Public build endpoint is minimal and valid"])
+            self.assertTrue(checks["Live deployment matches expected Git commit"])
+            older_checks = dict(check(DEFAULT_BASE, fetch, expected_commit="c" * 40))
+            self.assertFalse(older_checks["Live deployment matches expected Git commit"])
+            self.assertTrue(older_checks["Public build endpoint is minimal and valid"])
+
+    def test_missing_or_malformed_build_fails_expected_deployment_check(self):
+        with patch("main.PUBLIC_URL", DEFAULT_BASE), TestClient(app) as client:
+            def fetch(url):
+                path = urlsplit(url).path
+                response = client.get(path)
+                if path == "/api/build":
+                    return 200, response.headers, '{"product":"ClearIntel Atlas","git_commit":"bad","secret":"never"}'
+                return response.status_code, response.headers, response.text
+
+            checks = dict(check(DEFAULT_BASE, fetch, expected_commit="b" * 40))
+            self.assertFalse(checks["Public build endpoint is minimal and valid"])
+            self.assertFalse(checks["Live deployment matches expected Git commit"])
+
+    def test_rejects_malformed_commit_before_network_requests(self):
+        with self.assertRaises(ValueError):
+            check(DEFAULT_BASE, expected_commit="not-a-git-sha")
+
     def test_detects_incorrect_canonical_and_missing_verification(self):
         with patch("main.PUBLIC_URL", "https://different.example"), TestClient(app) as client:
             def fetch(url):
