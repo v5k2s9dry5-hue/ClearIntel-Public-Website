@@ -24,6 +24,18 @@ class PublicSiteTests(unittest.TestCase):
         self.assertIn('ClearIntel',self.client.get('/').text)
         self.assertEqual(self.client.get('/health').json()['status'],'ok')
 
+    def test_public_build_exposes_only_validated_revision(self):
+        sha = "a" * 40
+        with patch.dict("os.environ", {"RENDER_GIT_COMMIT": sha.upper()}):
+            response = self.client.get("/api/build")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"product": "ClearIntel Atlas", "git_commit": sha})
+        self.assertEqual(response.headers["cache-control"], "no-store")
+        with patch.dict("os.environ", {"RENDER_GIT_COMMIT": "secret-token"}):
+            self.assertEqual(self.client.get("/api/build").json()["git_commit"], None)
+        with patch.dict("os.environ", {"RENDER_GIT_COMMIT": "a" * 39}):
+            self.assertEqual(self.client.get("/api/build").json()["git_commit"], None)
+
     def test_official_ukmto_source_hub_is_explicitly_external(self):
         html = self.client.get('/').text
         for path in ('/ukmto-products/warnings', '/ukmto-products/advisories',
