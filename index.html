@@ -93,6 +93,14 @@
               </select>
             </label>
           </div>
+          <section id="activity-pulse" class="activity-pulse" aria-label="Public earthquake observation chart">
+            <div class="activity-pulse-heading">
+              <div><span class="activity-pulse-kicker">LIVE SOURCE ACTIVITY</span><h2>Earthquake activity · last 24 hours</h2><p>Published USGS M4.5+ observations. Six 4-hour UTC intervals, updating with the existing source feed.</p></div>
+              <div class="activity-pulse-stat"><strong id="activity-pulse-total">—</strong><span>Recorded events</span></div>
+            </div>
+            <div id="activity-pulse-bars" class="activity-pulse-bars" role="img" aria-label="USGS hourly activity chart awaiting a feed check"></div>
+            <div class="activity-pulse-footer"><span id="activity-pulse-status" role="status">Waiting for USGS feed</span><span id="activity-pulse-check">No source observation yet</span><a href="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson" target="_blank" rel="noopener noreferrer">USGS source</a></div>
+          </section>
         </div>
         <p id="ci-workspace-note" class="ci-inline-help" hidden>Analyst mode shows extra source details and keeps evidence sections expanded. Use Hide sidebar to gain map space on a desktop. Layer chooses which public data or archived reports appear on the map; the military and naval layers are historical, not live tracking.</p>
         <details id="ci-start-guide" class="ci-start-guide">
@@ -123,14 +131,6 @@
             <span class="command-overview-foot">Explore historical reports <span aria-hidden="true">↗</span></span>
           </button>
         </div>
-        <section id="activity-pulse" class="activity-pulse" aria-label="Public earthquake observation chart">
-          <div class="activity-pulse-heading">
-            <div><span class="activity-pulse-kicker">LIVE SOURCE ACTIVITY</span><h2>Earthquake activity · last 24 hours</h2><p>Published USGS M4.5+ observations. Six 4-hour UTC intervals, updating with the existing source feed.</p></div>
-            <div class="activity-pulse-stat"><strong id="activity-pulse-total">—</strong><span>Recorded events</span></div>
-          </div>
-          <div id="activity-pulse-bars" class="activity-pulse-bars" role="img" aria-label="USGS hourly activity chart awaiting a feed check"></div>
-          <div class="activity-pulse-footer"><span id="activity-pulse-status" role="status">Waiting for USGS feed</span><span id="activity-pulse-check">No source observation yet</span><a href="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson" target="_blank" rel="noopener noreferrer">USGS source</a></div>
-        </section>
         <form id="dashboard-search" role="search" aria-label="Dashboard search" hidden>
           <label for="dashboard-query" class="visually-hidden">Search countries, map layers and news</label>
           <input type="search" id="dashboard-query" minlength="2" maxlength="140" required placeholder="Find a country, map layer or news topic">
