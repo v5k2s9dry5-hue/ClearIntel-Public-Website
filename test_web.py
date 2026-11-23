@@ -44,6 +44,8 @@ class PublicSiteTests(unittest.TestCase):
         with patch('main.PUBLIC_URL', 'https://research.example'):
             html = self.client.get('/').text
             self.assertIn('rel="canonical" itemprop="url" href="https://research.example/"', html)
+            self.assertIn('itemprop="name" content="ClearIntel Atlas"', html)
+            self.assertIn('<title>ClearIntel Atlas | Global News Map &amp; Country Briefs</title>', html)
             self.assertIn('property="og:url" content="https://research.example/"', html)
             self.assertIn('<loc>https://research.example/</loc>', self.client.get('/sitemap.xml').text)
             self.assertIn('Sitemap: https://research.example/sitemap.xml', self.client.get('/robots.txt').text)
