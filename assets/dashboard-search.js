@@ -36,7 +36,12 @@
   matches.addEventListener('keydown', dismissMatches);
   form.hidden = false;
   input.addEventListener('input', clear);
-  $('dashboard-search-tab').addEventListener('click', () => {
+  const searchTab=$('dashboard-search-tab');
+  const markSearch=()=>{searchTab.setAttribute('aria-pressed','true');$('dashboard-map-tab').setAttribute('aria-pressed','false');$('dashboard-feed-tab').setAttribute('aria-pressed','false');};
+  for(const id of ['dashboard-map-tab','dashboard-feed-tab'])$(id).addEventListener('click',()=>searchTab.setAttribute('aria-pressed','false'));
+  input.addEventListener('focus',markSearch);
+  searchTab.addEventListener('click', () => {
+    markSearch();
     input.scrollIntoView({block:'center'});
     input.focus({preventScroll:true});
   });
