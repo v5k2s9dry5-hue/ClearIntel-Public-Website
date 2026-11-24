@@ -49,7 +49,18 @@
   let countryBrief = null;
   let selectedCityMention = null;
   let militaryArchive = null;
+  const incidentFilter=document.getElementById('incident-severity');
+  const incidentControls=document.getElementById('incident-controls');
+  const severityColors={green:'#55d58e',amber:'#f1bd55',red:'#ff6b72'};
+  const severityRank={green:1,amber:2,red:3};
   const reportLayers = {
+    incidents: {
+      endpoint:'/api/incident-alerts',name:'GDACS incident alert',minimum:'',
+      timeField:'reported_at_ms',timeLabel:'Published',feedTime:'checked_at_ms',feedLabel:'Feed checked',
+      marker:'#55d58e',selectedMarker:'#d5ffee',window:'1',
+      title:event=>event.severity.toUpperCase()+' · '+event.title,
+      source:()=> 'GDACS alert',status:()=> 'Provider humanitarian-impact rating',
+    },
     earthquakes: {
       endpoint:'/api/earthquakes', name:'USGS earthquake', minimum:' · M4.5+',
       timeField:'occurred_at_ms', timeLabel:'Event time', feedTime:'generated_at_ms', feedLabel:'Feed updated',
@@ -289,7 +300,7 @@
         continue;
       }
       const radius=count>99?15:count>1?12:cityPin?5:selected?7:4;
-      const marker=cityPin?'#78c8ec':selected?activeLayer.selectedMarker:activeLayer.marker;
+      const marker=layer.value==='incidents'?severityColors[group.events.reduce((level,event)=>severityRank[event.severity]>severityRank[level]?event.severity:level,'green')]:cityPin?'#78c8ec':selected?activeLayer.selectedMarker:activeLayer.marker;
       if(selected||count>1){
         ctx.save();ctx.globalAlpha=.15;ctx.fillStyle=marker;
         ctx.beginPath();ctx.arc(group.x,group.y,radius+5,0,2*Math.PI);ctx.fill();ctx.restore();
@@ -641,6 +652,7 @@
       const row=document.createElement('li');
       const button=document.createElement('button');
       button.type='button';button.dataset.reportId=event.id;
+      if(layer.value==='incidents')button.dataset.severity=event.severity;
       const label=document.createElement('span');
       label.textContent=event.cityMention?event.city+' · headline mention':active.title(event);
       button.append(label);
@@ -708,12 +720,20 @@
   function renderLiveTimeline(active, now){
     const cutoff=now-Number(reportWindow.value)*86400000;
     const allReports=(active.feed?.events||[]).filter(event=>Number.isFinite(event[active.timeField]) && event[active.timeField]>=cutoff && event[active.timeField]<=now);
+    const isIncident=active===reportLayers.incidents;
+    const counts={green:0,amber:0,red:0};
+    if(isIncident){
+      for(const event of allReports)if(Object.hasOwn(counts,event.severity))counts[event.severity]++;
+      for(const level of Object.keys(counts))document.getElementById('incident-count-'+level).textContent=active.feed?String(counts[level]):'—';
+      document.getElementById('incident-coverage').textContent=active.failed?'Feed unavailable or older snapshot.':active.feed?'Natural-hazard alerts from GDACS. Not a global conflict or verified incident count.':'Checking GDACS alerts…';
+    }
+    const filteredReports=isIncident&&incidentFilter.value!=='all'?allReports.filter(event=>event.severity===incidentFilter.value):allReports;
     const step=Number(reportWindow.value)===1?7200000:86400000;
     const key=timestamp=>Math.floor(timestamp/step)*step;
     if(timelineStart!==null && (!allReports.some(event=>key(event[active.timeField])===timelineStart) || timelineStart>now))timelineStart=null;
-    visibleReports=timelineStart===null?allReports:allReports.filter(event=>key(event[active.timeField])===timelineStart);
+    visibleReports=timelineStart===null?filteredReports:filteredReports.filter(event=>key(event[active.timeField])===timelineStart);
     window.ClearIntelTimeline?.render({
-      events:allReports, timeField:active.timeField, windowDays:reportWindow.value,
+      events:filteredReports, timeField:active.timeField, windowDays:reportWindow.value,
       selectedStart:timelineStart, label:active.name, ready:Boolean(active.feed),
       onSelect:start=>{
         timelineStart=start;
@@ -787,7 +807,7 @@
           ? {events:latest.events.filter(event=>event.category===active.category)}
           : latest;
         active.failed=false;
-        active.retryAt=started+(key==='wildfires'?115000:55000);
+        active.retryAt=started+(key==='incidents'?295000:key==='wildfires'?115000:55000);
       }
     }catch(error){if(active.mode||!reportsPaused){active.failed=true;active.retryAt=Math.max(Date.now()+30000,error.retryAt||0);}}
     finally{
@@ -832,6 +852,7 @@
     renderReports();draw();
     (reportList.querySelector('button')||(layer.value==='countries'?countrySelect:reportWindow)).focus({preventScroll:true});
   });
+  incidentFilter.addEventListener('change',()=>{clusterIds=null;timelineStart=null;selectedReport=null;renderReports();draw();});
   reportWindow.addEventListener('change',()=>{
     reportLayers[layer.value].window=reportWindow.value;
     clusterIds=null;timelineStart=null;selectedReport=null;renderReports();draw();
@@ -856,6 +877,7 @@
     reportPanel.hidden=!active;issPanel.hidden=Boolean(active);
     feedHeading.textContent=active?.mode?active.name:'Live feed';
     countryControls.hidden=active?.mode!=='countries';
+    incidentControls.hidden=layer.value!=='incidents';
     reportControls.hidden=Boolean(active?.mode);
     reportTimeline.hidden=Boolean(active?.mode);
     reportShowAll.textContent=active?.mode==='countries'?'Clear group':'Show all reports';
