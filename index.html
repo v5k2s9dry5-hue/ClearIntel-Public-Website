@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="/assets/context-help.css">
   <link rel="stylesheet" href="/assets/replay.css">
   <link rel="stylesheet" href="/assets/activity-pulse.css">
+  <link rel="stylesheet" href="/assets/cinematic.css">
   <script src="/assets/research-pdf.js" defer></script>
   <script src="/assets/analyst-mode.js" defer></script>
   <script src="/assets/country-card.js?v=evidence-disclosure" defer></script>
@@ -49,10 +50,10 @@
         <span class="brand-mark header-monogram" aria-hidden="true"></span>
         <span>Clear<span class="brand-secondary">Intel</span> Atlas<small>PUBLIC-SOURCE RESEARCH</small></span>
       </a>
-      <nav class="main-nav" aria-label="Primary navigation"><a href="#research">Research desk</a><a href="/countries">Countries</a><a href="#services">Services</a><a href="#method">Method</a><a href="#contact" class="nav-contact">Make an enquiry <span aria-hidden="true">↗</span></a></nav>
+      <nav class="main-nav" aria-label="Primary navigation"><a href="#top">Home</a><a href="#dashboard-map">Map</a><a href="#research">Research</a><a href="/countries">Countries</a><a href="#dashboard-source-guide">Sources</a><a href="#contact" class="nav-contact">Make an enquiry <span aria-hidden="true">↗</span></a></nav>
       <button id="menu-toggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav">Menu <span aria-hidden="true">☰</span></button>
     </div>
-    <nav id="mobile-nav" class="mobile-nav" hidden aria-label="Mobile navigation"><a href="#research">Research desk</a><a href="/countries">Countries</a><a href="#services">Services</a><a href="#method">Method</a><a href="#contact">Make an enquiry</a><a href="#ci-start-guide">How to use ClearIntel</a></nav>
+    <nav id="mobile-nav" class="mobile-nav" hidden aria-label="Mobile navigation"><a href="#top">Home</a><a href="#dashboard-map">Map</a><a href="#research">Research desk</a><a href="#dashboard-source-guide">Sources</a><a href="/countries">Countries</a><a href="#services">Services</a><a href="#method">Method</a><a href="#contact">Make an enquiry</a><a href="#ci-start-guide">How to use ClearIntel</a></nav>
   </header>
   <main id="main">
     <section id="top" class="dashboard" aria-labelledby="dashboard-heading">
@@ -66,9 +67,23 @@
         <a href="#contact"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span>Make an enquiry</span></a>
       </nav>
       <div class="dashboard-workspace">
-        <div class="dashboard-toolbar">
+        <div id="dashboard-view-controls" class="dashboard-view-controls" role="group" aria-label="Dashboard shortcuts" hidden>
+          <button type="button" id="dashboard-map-tab" aria-controls="dashboard-map" aria-pressed="true"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg><span>Map</span></button>
+          <button type="button" id="dashboard-feed-tab" aria-controls="dashboard-feed" aria-pressed="false"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h14M5 12h14M5 18h9"/></svg><span>Feed</span></button>
+          <button type="button" id="dashboard-search-tab"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><span>Search</span></button>
+          <a href="/countries"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h13v18H5zM8 8h7M8 12h7M8 16h5"/></svg><span>Countries</span></a>
+        </div>
+        <div class="dashboard-toolbar cinematic-hero">
           <div class="dashboard-title">
             <div class="dashboard-heading-group"><span class="workspace-kicker">CLEARINTEL ATLAS / GLOBAL SITUATION ROOM</span><h1 id="dashboard-heading">Intelligence <span class="dashboard-headline-accent">at a glance.</span></h1><p class="dashboard-lede">ClearIntel Atlas is a free public-source intelligence dashboard for exploring a global news map, country briefs and source-linked observations. Reports are research leads, not independently verified incidents.</p></div>
+        <form id="dashboard-search" role="search" aria-label="Dashboard search" hidden>
+          <label for="dashboard-query" class="visually-hidden">Search countries, map layers and news</label>
+          <input type="search" id="dashboard-query" minlength="2" maxlength="140" required placeholder="Find a country, map layer or news topic">
+          <button class="globe-control" type="submit">Search</button>
+        </form>
+        <p id="dashboard-search-status" role="status" class="visually-hidden"></p>
+        <div id="dashboard-matches" hidden></div>
+            <div class="cinematic-quick"><a href="#dashboard-map">Explore map</a><a href="#dashboard-feed">Source feed</a><a href="#intelligence-replay">Replay</a></div>
           </div>
           <div class="dashboard-toolbar-tools">
             <div class="workspace-control-group" role="group" aria-label="Workspace display options">
@@ -83,70 +98,6 @@
               <button type="button" class="ci-help-dot" aria-label="Explain workspace controls" data-ci-note="ci-workspace-note" aria-expanded="false" aria-controls="ci-workspace-note">?</button>
             </div>
           </div>
-          <section id="activity-pulse" class="activity-pulse" aria-label="Public earthquake observation chart">
-            <div class="activity-pulse-heading">
-              <div><span class="activity-pulse-kicker">LIVE SOURCE ACTIVITY</span><h2>Earthquake activity · last 24 hours</h2><p>Published USGS M4.5+ observations. Six 4-hour UTC intervals, updating with the existing source feed.</p></div>
-              <div class="activity-pulse-stat"><strong id="activity-pulse-total">—</strong><span>Recorded events</span></div>
-            </div>
-            <div id="activity-pulse-bars" class="activity-pulse-bars" role="img" aria-label="USGS hourly activity chart awaiting a feed check"></div>
-            <div class="activity-pulse-footer"><span id="activity-pulse-status" role="status">Waiting for USGS feed</span><span id="activity-pulse-check">No source observation yet</span><a href="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson" target="_blank" rel="noopener noreferrer">USGS source</a></div>
-          </section>
-        </div>
-        <p id="ci-workspace-note" class="ci-inline-help" hidden>Analyst mode shows extra source details and keeps evidence sections expanded. Use Hide sidebar to gain map space on a desktop. Layer chooses which public data or archived reports appear on the map; the military and naval layers are historical, not live tracking.</p>
-        <details id="ci-start-guide" class="ci-start-guide">
-          <summary><span class="ci-guide-symbol" aria-hidden="true">?</span><span><strong>New to ClearIntel? Start here.</strong><small>A simple guide to the map, news, sources and Replay</small></span><span class="ci-guide-action" aria-hidden="true">Show guide</span></summary>
-          <div class="ci-guide-steps">
-            <div><span class="ci-guide-number">01</span><strong>Choose a map layer</strong><p>Select earthquakes, wildfires, ISS or country headlines. Aviation and naval reports show selected past events, not live movements.</p></div>
-            <div><span class="ci-guide-number">02</span><strong>Explore the map</strong><p>Drag or swipe to move the map, zoom with the controls, and select markers to read the linked reports. On mobile, use Map and Feed tabs.</p></div>
-            <div><span class="ci-guide-number">03</span><strong>Search for reporting</strong><p>Go to Public news research, enter a topic and select a date window. A country briefing is a separate feed; publication dates do not prove an incident happened then.</p></div>
-            <div><span class="ci-guide-number">04</span><strong>Save and compare evidence</strong><p>Replay saves search snapshots only when you choose Save. You can compare observations, and delete them. They stay on this browser.</p></div>
-          </div>
-          <p class="ci-guide-caution">ClearIntel collects public-source research leads. Headline matches, map mentions and timestamps are not independently verified incidents. Check original sources before drawing conclusions.</p>
-          <div class="ci-guide-links"><a href="#dashboard-map">Explore the map</a><a href="#research">Try news research</a><a href="#intelligence-replay">Open Replay</a></div>
-        </details>
-        <div class="command-overview" aria-label="Explore intelligence categories">
-          <button type="button" class="command-overview-card" data-command-layer="earthquakes" aria-pressed="true">
-            <span class="command-overview-top"><span class="command-index">01 / OBSERVATIONS</span><span class="command-symbol" aria-hidden="true">◎</span></span>
-            <strong>Earth observations</strong><span class="command-overview-detail">USGS earthquakes, NASA wildfire observations and ISS positioning</span>
-            <span class="command-overview-foot">Explore public feeds <span aria-hidden="true">↗</span></span>
-          </button>
-          <button type="button" class="command-overview-card" data-command-layer="countries" aria-pressed="false">
-            <span class="command-overview-top"><span class="command-index">02 / NEWS COVERAGE</span><span class="command-symbol" aria-hidden="true">◈</span></span>
-            <strong>Country intelligence</strong><span class="command-overview-detail">National headlines with source links, timestamps and coverage notes</span>
-            <span class="command-overview-foot">Explore country news <span aria-hidden="true">↗</span></span>
-          </button>
-          <button type="button" class="command-overview-card" data-command-layer="aviation" aria-pressed="false">
-            <span class="command-overview-top"><span class="command-index">03 / RESEARCH ARCHIVE</span><span class="command-symbol" aria-hidden="true">⌗</span></span>
-            <strong>Military &amp; maritime</strong><span class="command-overview-detail">Source-linked, completed events — historical records, not live tracking</span>
-            <span class="command-overview-foot">Explore historical reports <span aria-hidden="true">↗</span></span>
-          </button>
-        </div>
-        <form id="dashboard-search" role="search" aria-label="Dashboard search" hidden>
-          <label for="dashboard-query" class="visually-hidden">Search countries, map layers and news</label>
-          <input type="search" id="dashboard-query" minlength="2" maxlength="140" required placeholder="Find a country, map layer or news topic">
-          <button class="globe-control" type="submit">Search</button>
-        </form>
-        <p id="dashboard-search-status" role="status" class="visually-hidden"></p>
-        <div id="dashboard-matches" hidden></div>
-        <details id="dashboard-source-guide" class="dashboard-source-guide">
-          <summary>Sources &amp; update frequency</summary>
-          <p>Refresh intervals apply while this page is visible. Providers may publish more slowly, and reporting can be incomplete.</p>
-          <dl>
-            <div><dt>Earthquakes · USGS</dt><dd>Checked every minute unless paused. Magnitude 4.5+ event reports. Published estimates may be revised. <a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener noreferrer">USGS</a></dd></div>
-            <div><dt>Wildfires · NASA EONET</dt><dd>Checked every minute unless paused. Observations are not fire perimeters or evacuation advice. <a href="https://eonet.gsfc.nasa.gov/" target="_blank" rel="noopener noreferrer">NASA EONET</a></dd></div>
-            <div><dt>ISS · Where the ISS at?</dt><dd>Position checked every 30 seconds. Coordinates include the provider's observation time. <a href="https://wheretheiss.at/" target="_blank" rel="noopener noreferrer">Position provider</a></dd></div>
-            <div><dt>Country news</dt><dd>The selected country's headline panel is checked every five minutes. City pins show locations named in headlines, not verified event locations. Open original articles for context.</dd></div>
-            <div><dt>Military aviation / naval activity</dt><dd>Selected, source-linked historical reports of completed events; not live tracking. The archive changes when maintained, rather than on an automatic live timer.</dd></div>
-          </dl>
-        </details>
-        <div id="dashboard-view-controls" class="dashboard-view-controls" role="group" aria-label="Dashboard shortcuts" hidden>
-          <button type="button" id="dashboard-map-tab" aria-controls="dashboard-map" aria-pressed="true"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg><span>Map</span></button>
-          <button type="button" id="dashboard-feed-tab" aria-controls="dashboard-feed" aria-pressed="false"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h14M5 12h14M5 18h9"/></svg><span>Feed</span></button>
-          <button type="button" id="dashboard-search-tab"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><span>Search</span></button>
-          <a href="/countries"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h13v18H5zM8 8h7M8 12h7M8 16h5"/></svg><span>Countries</span></a>
-        </div>
-        <dialog id="expanded-map" aria-label="Expanded map"></dialog>
-        <div class="dashboard-panels">
           <section id="dashboard-map" class="dashboard-panel dashboard-map" aria-labelledby="dashboard-map-heading">
             <div class="map-panel-heading"><div class="map-panel-heading-copy"><h2 id="dashboard-map-heading" tabindex="-1">GLOBAL ACTIVITY MAP</h2><p id="map-layer-source">USGS · Earthquake observations</p></div><div class="ci-heading-actions"><label for="globe-layer" class="workspace-layer-picker map-layer-picker">Layer
               <select id="globe-layer">
@@ -184,6 +135,57 @@
               <span id="earth-map-credit">Map data: Natural Earth</span>
             </div>
           </section>
+          <section id="activity-pulse" class="activity-pulse" aria-label="Public earthquake observation chart">
+            <div class="activity-pulse-heading">
+              <div><span class="activity-pulse-kicker">LIVE SOURCE ACTIVITY</span><h2>Earthquake activity · last 24 hours</h2><p>Published USGS M4.5+ observations. Six 4-hour UTC intervals, updating with the existing source feed.</p></div>
+              <div class="activity-pulse-stat"><strong id="activity-pulse-total">—</strong><span>Recorded events</span></div>
+            </div>
+            <div id="activity-pulse-bars" class="activity-pulse-bars" role="img" aria-label="USGS hourly activity chart awaiting a feed check"></div>
+            <div class="activity-pulse-footer"><span id="activity-pulse-status" role="status">Waiting for USGS feed</span><span id="activity-pulse-check">No source observation yet</span><a href="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson" target="_blank" rel="noopener noreferrer">USGS source</a></div>
+          </section>
+        </div>
+        <p id="ci-workspace-note" class="ci-inline-help" hidden>Analyst mode shows extra source details and keeps evidence sections expanded. Use Show sidebar to open the optional desktop navigation. Layer chooses which public data or archived reports appear on the map; the military and naval layers are historical, not live tracking.</p>
+        <details id="ci-start-guide" class="ci-start-guide">
+          <summary><span class="ci-guide-symbol" aria-hidden="true">?</span><span><strong>New to ClearIntel? Start here.</strong><small>A simple guide to the map, news, sources and Replay</small></span><span class="ci-guide-action" aria-hidden="true">Show guide</span></summary>
+          <div class="ci-guide-steps">
+            <div><span class="ci-guide-number">01</span><strong>Choose a map layer</strong><p>Select earthquakes, wildfires, ISS or country headlines. Aviation and naval reports show selected past events, not live movements.</p></div>
+            <div><span class="ci-guide-number">02</span><strong>Explore the map</strong><p>Drag or swipe to move the map, zoom with the controls, and select markers to read the linked reports. On mobile, use Map and Feed tabs.</p></div>
+            <div><span class="ci-guide-number">03</span><strong>Search for reporting</strong><p>Go to Public news research, enter a topic and select a date window. A country briefing is a separate feed; publication dates do not prove an incident happened then.</p></div>
+            <div><span class="ci-guide-number">04</span><strong>Save and compare evidence</strong><p>Replay saves search snapshots only when you choose Save. You can compare observations, and delete them. They stay on this browser.</p></div>
+          </div>
+          <p class="ci-guide-caution">ClearIntel collects public-source research leads. Headline matches, map mentions and timestamps are not independently verified incidents. Check original sources before drawing conclusions.</p>
+          <div class="ci-guide-links"><a href="#dashboard-map">Explore the map</a><a href="#research">Try news research</a><a href="#intelligence-replay">Open Replay</a></div>
+        </details>
+        <div class="command-overview" aria-label="Explore intelligence categories">
+          <button type="button" class="command-overview-card" data-command-layer="earthquakes" aria-pressed="true">
+            <span class="command-overview-top"><span class="command-index">01 / OBSERVATIONS</span><span class="command-symbol" aria-hidden="true">◎</span></span>
+            <strong>Earth observations</strong><span class="command-overview-detail">USGS earthquakes, NASA wildfire observations and ISS positioning</span>
+            <span class="command-overview-foot">Explore public feeds <span aria-hidden="true">↗</span></span>
+          </button>
+          <button type="button" class="command-overview-card" data-command-layer="countries" aria-pressed="false">
+            <span class="command-overview-top"><span class="command-index">02 / NEWS COVERAGE</span><span class="command-symbol" aria-hidden="true">◈</span></span>
+            <strong>Country intelligence</strong><span class="command-overview-detail">National headlines with source links, timestamps and coverage notes</span>
+            <span class="command-overview-foot">Explore country news <span aria-hidden="true">↗</span></span>
+          </button>
+          <button type="button" class="command-overview-card" data-command-layer="aviation" aria-pressed="false">
+            <span class="command-overview-top"><span class="command-index">03 / RESEARCH ARCHIVE</span><span class="command-symbol" aria-hidden="true">⌗</span></span>
+            <strong>Military &amp; maritime</strong><span class="command-overview-detail">Source-linked, completed events — historical records, not live tracking</span>
+            <span class="command-overview-foot">Explore historical reports <span aria-hidden="true">↗</span></span>
+          </button>
+        </div>
+        <details id="dashboard-source-guide" class="dashboard-source-guide">
+          <summary>Sources &amp; update frequency</summary>
+          <p>Refresh intervals apply while this page is visible. Providers may publish more slowly, and reporting can be incomplete.</p>
+          <dl>
+            <div><dt>Earthquakes · USGS</dt><dd>Checked every minute unless paused. Magnitude 4.5+ event reports. Published estimates may be revised. <a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener noreferrer">USGS</a></dd></div>
+            <div><dt>Wildfires · NASA EONET</dt><dd>Checked every minute unless paused. Observations are not fire perimeters or evacuation advice. <a href="https://eonet.gsfc.nasa.gov/" target="_blank" rel="noopener noreferrer">NASA EONET</a></dd></div>
+            <div><dt>ISS · Where the ISS at?</dt><dd>Position checked every 30 seconds. Coordinates include the provider's observation time. <a href="https://wheretheiss.at/" target="_blank" rel="noopener noreferrer">Position provider</a></dd></div>
+            <div><dt>Country news</dt><dd>The selected country's headline panel is checked every five minutes. City pins show locations named in headlines, not verified event locations. Open original articles for context.</dd></div>
+            <div><dt>Military aviation / naval activity</dt><dd>Selected, source-linked historical reports of completed events; not live tracking. The archive changes when maintained, rather than on an automatic live timer.</dd></div>
+          </dl>
+        </details>
+        <dialog id="expanded-map" aria-label="Expanded map"></dialog>
+        <div class="dashboard-panels">
           <section id="dashboard-feed" class="dashboard-panel dashboard-feed" aria-labelledby="dashboard-feed-heading">
             <div class="command-feed-label"><span class="command-feed-dot" aria-hidden="true"></span><span>PUBLIC-SOURCE INTELLIGENCE</span></div><div class="ci-title-help"><h2 id="dashboard-feed-heading" tabindex="-1">Source feed</h2><button type="button" class="ci-help-dot" aria-label="Explain source feed and timestamps" data-ci-note="ci-feed-note" aria-expanded="false" aria-controls="ci-feed-note">?</button></div>
             <p id="ci-feed-note" class="ci-inline-help" hidden>Choose a timeframe, then select a report to see its original source and time. The timeline filters observations. Pausing updates stops automatic checks on supported layers, and provider outages can leave older results. Report and publication times are not always incident times.</p>
