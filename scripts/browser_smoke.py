@@ -572,6 +572,14 @@ def check_site(browser, width):
     assert page.locator("#replay-compare").is_visible()
     assert "1 newly present" in page.locator(".replay-compare-summary").inner_text()
     assert "1 no longer present" in page.locator(".replay-compare-summary").inner_text()
+    with page.expect_download(timeout=10000) as replay_export:
+        page.locator("#replay-export-comparison").click()
+    with open(replay_export.value.path(), encoding="utf-8") as exported:
+        comparison = json.load(exported)
+    assert comparison["schema"] == "clearintel.replay-comparison.v1"
+    assert len(comparison["newly_present"]) == 1
+    assert len(comparison["no_longer_present"]) == 1
+    assert comparison["later"]["provider_errors"] == ["Fixture provider: timeout"]
     assert page.locator(".replay-diff-added").get_by_text("New UK research report").is_visible()
     assert page.locator(".replay-diff-removed").get_by_text("UK transport news update").is_visible()
     assert page.get_by_text("These are differences between two saved", exact=False).is_visible()
