@@ -6,6 +6,7 @@
   const map=document.getElementById('dashboard-map');
   if(!layer||!source||!kind||!map)return;
   const labels={
+    incidents:['GDACS · Natural-hazard alerts','Source-rated alerts','#55d58e'],
     earthquakes:['USGS · Earthquake observations','Public feed','#5de5f4'],
     wildfires:['NASA EONET · Wildfire observations','Public feed','#ffae68'],
     iss:['Where the ISS at? · Position observations','Position feed','#88c9ff'],

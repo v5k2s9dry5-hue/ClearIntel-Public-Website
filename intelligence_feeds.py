@@ -3,6 +3,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from threading import Lock
+from math import isfinite
+from hashlib import sha256
 from time import monotonic
 from urllib.parse import urlsplit, urlunsplit
 from urllib.request import Request, build_opener, HTTPRedirectHandler
@@ -78,7 +80,23 @@ def parse_feed(data, hosts):
         except ValueError:
             valid = False
         if title and stamp and valid and len(link) <= 2048 and not any(ord(c) < 33 or c == "\\" for c in link):
-            rows[link] = {"title": title[:240], "url": link, "published_at_utc": stamp}
+            row = {"title": title[:240], "url": link, "published_at_utc": stamp}
+            if url.hostname in {"www.gdacs.org", "gdacs.org"}:
+                # Only structured natural-hazard alerts receive severity or map points.
+                # No inference from headlines, troop positions, or conflict reports.
+                level = _text(node, "alertlevel").casefold()
+                event_type = _text(node, "eventtype").upper()
+                try:
+                    lat, lon = map(float, _text(node, "point").split())
+                except (ValueError, TypeError):
+                    lat = lon = None
+                if (level in {"green", "orange", "red"} and event_type in {"EQ", "TC", "FL", "VO", "WF", "DR", "TS"}
+                        and lat is not None and lon is not None and isfinite(lat) and isfinite(lon)
+                        and -90 <= lat <= 90 and -180 <= lon <= 180):
+                    row.update({"severity": "amber" if level == "orange" else level,
+                                "hazard_type": event_type, "latitude": lat, "longitude": lon,
+                                "country": _text(node, "country")[:120]})
+            rows[link] = row
     if item_count and not rows:
         raise ValueError("Feed contains items but no valid dated source links")
     return sorted(rows.values(), key=lambda x: x["published_at_utc"], reverse=True)[:30]
@@ -125,3 +143,21 @@ def pulse():
         return {"status": "checked", "feeds": dict(zip(SOURCES, results))}
     finally:
         _pulse_lock.release()
+
+@router.get("/api/incident-alerts", include_in_schema=False)
+def incident_alerts():
+    """Source-rated natural-hazard alerts; shared GDACS cache, no conflict geolocation."""
+    data = feed("humanitarian")
+    events = []
+    for report in data["reports"]:
+        if report.get("severity") not in {"green", "amber", "red"}:
+            continue
+        events.append({
+            **report, "id": sha256(report["url"].encode()).hexdigest()[:24],
+            "reported_at_ms": int(datetime.fromisoformat(report["published_at_utc"]).timestamp() * 1000),
+            "source": "GDACS",
+        })
+    return {"events": events, "checked_at_ms": int(datetime.fromisoformat(data["checked_at_utc"]).timestamp()*1000) if data["checked_at_utc"] else None,
+            "stale": data["status"] != "available",
+            "status": data["status"],
+            "coverage": "GDACS natural-hazard alerts only. Severity is the provider's humanitarian-impact alert level. Publication time is not event time."}

@@ -101,8 +101,9 @@
             </div>
           </div>
           <section id="dashboard-map" class="dashboard-panel dashboard-map" aria-labelledby="dashboard-map-heading">
-            <div class="map-panel-heading"><div class="map-panel-heading-copy"><h2 id="dashboard-map-heading" tabindex="-1">GLOBAL ACTIVITY MAP</h2><p id="map-layer-source">USGS · Earthquake observations</p></div><div class="ci-heading-actions"><label for="globe-layer" class="workspace-layer-picker map-layer-picker">Layer
+            <div class="map-panel-heading"><div class="map-panel-heading-copy"><h2 id="dashboard-map-heading" tabindex="-1">GLOBAL ACTIVITY MAP</h2><p id="map-layer-source">GDACS · Natural-hazard alerts</p></div><div class="ci-heading-actions"><label for="globe-layer" class="workspace-layer-picker map-layer-picker">Layer
               <select id="globe-layer">
+                <option value="incidents" selected>Live incidents</option>
                 <option value="earthquakes">Earthquakes</option>
                 <option value="wildfires">Wildfires</option>
                 <option value="iss">ISS position</option>
@@ -119,6 +120,7 @@
                 <span aria-hidden="true"></span><b id="military-map-kind"></b><small>Past events</small>
               </div>
             </div>
+            <div class="incident-overview" aria-label="Incident severity overview"><div id="incident-controls" class="quake-controls" hidden><label for="incident-severity">Severity <select id="incident-severity"><option value="all">All severity levels</option><option value="green">Green</option><option value="amber">Amber</option><option value="red">Red</option></select></label></div><p id="incident-coverage">Checking GDACS alerts…</p><div class="incident-counts"><span data-severity="green">Green <b id="incident-count-green">—</b></span><span data-severity="amber">Amber <b id="incident-count-amber">—</b></span><span data-severity="red">Red <b id="incident-count-red">—</b></span></div></div>
             <div class="dashboard-map-footer">
               <div class="globe-controls">
                 <div id="map-projection" class="map-projection" role="group" aria-label="Map projection" hidden>
@@ -240,12 +242,13 @@
                 </label>
                 <button type="button" id="quake-pause" class="globe-control" aria-pressed="false">Pause updates</button>
               </div>
+              
               <div id="country-controls" class="quake-controls" hidden>
                 <label for="country-select">Country or territory
                   <select id="country-select"><option value="">Choose a country</option></select>
                 </label>
               </div>
-              <p id="quake-status" class="orbital-status" role="status">Checking USGS earthquake reports…</p>
+              <p id="quake-status" class="orbital-status" role="status">Checking incident alerts…</p>
               <aside id="ukmto-bulletins" aria-label="UKMTO official bulletins" hidden>
                 <strong>UKMTO maritime security sources</strong>
                 <p class="ukmto-source-note">Selected UKMTO incident notices are shown below with report dates and official source links. This is a dated public-source briefing, NOT a live incident feed: ClearIntel does not automatically import UKMTO reports. The map's naval reports are a separate historical archive.</p>

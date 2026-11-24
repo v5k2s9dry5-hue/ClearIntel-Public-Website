@@ -152,3 +152,7 @@
 @media(min-width:861px){
  .dashboard:not(.sidebar-collapsed) .cinematic-hero{grid-template-areas:"tools tools" "intro map" "chart chart"}
 }
+
+.incident-overview{display:none;padding:9px 12px;border-top:1px solid #294459;background:#0b1828}.dashboard[data-layer="incidents"] .incident-overview{display:block}.incident-overview p{font-size:11px;line-height:1.4;color:#b5ccda;margin:0 0 7px}.incident-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.incident-counts span{display:flex;justify-content:space-between;gap:4px;align-items:center;padding:6px 8px;border:1px solid currentColor;border-radius:6px;font-size:12px}.incident-counts b{font-variant-numeric:tabular-nums}.incident-counts [data-severity="green"],#quake-list button[data-severity="green"]{color:#55d58e}.incident-counts [data-severity="amber"],#quake-list button[data-severity="amber"]{color:#f1bd55}.incident-counts [data-severity="red"],#quake-list button[data-severity="red"]{color:#ff858a}
+
+.incident-overview #incident-controls:not([hidden]){display:flex;margin:0 0 8px;padding:0;justify-content:flex-start}.incident-overview #incident-controls label{display:flex;align-items:center;gap:9px;flex:1;font-size:12px}.incident-overview #incident-severity{flex:1;min-width:0;min-height:36px;color:#edf7ff;background:#0d1d2d;border:1px solid #36576c;border-radius:6px;padding:5px 8px}@media(max-width:860px){.incident-overview #incident-severity{min-height:44px}}
