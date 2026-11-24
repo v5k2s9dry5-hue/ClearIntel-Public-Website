@@ -130,6 +130,15 @@ def check_site(browser, width):
     assert page.get_by_role("heading", name="Intelligence at a glance.").is_visible()
     assert page.locator(".command-overview-card").count() == 3
     assert page.locator("#activity-pulse").is_visible()
+    assert page.locator(".pulse-categories > *").count() == 8
+    page.route("**/api/intelligence-feed/travel", lambda route: route_json(route, {
+        "source": "FCDO travel advice", "status": "available", "checked_at_utc": STAMP,
+        "reports": [{"title": "Fixture travel update", "url": "https://www.gov.uk/foreign-travel-advice/france", "published_at_utc": STAMP}]
+    }))
+    page.locator('[data-pulse-category="travel"]').click()
+    assert page.locator("#pulse-dedicated-list a").first.inner_text(timeout=10000) == "Fixture travel update"
+    assert page.locator("#pulse-dedicated-list a").first.get_attribute("href") == "https://www.gov.uk/foreign-travel-advice/france"
+
     hero_graph = page.locator("#global-pulse").bounding_box()
     guide_box = page.locator("#ci-start-guide").bounding_box()
     category_box = page.locator(".command-overview").bounding_box()
