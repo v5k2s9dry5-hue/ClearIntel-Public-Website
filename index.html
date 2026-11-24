@@ -144,7 +144,7 @@
             <div class="ci-title-help"><h2 id="global-pulse-heading">Global Intelligence Pulse</h2><button type="button" class="ci-help-dot" aria-label="Explain Global Intelligence Pulse" data-ci-note="ci-pulse-note" aria-expanded="false" aria-controls="ci-pulse-note">?</button></div>
             <p id="ci-pulse-note" class="ci-inline-help" hidden>Each graph line counts dated reports or observations from a source in four-hour intervals. Select a source name to hide or show its line. Current means the source responded recently; older means a retained snapshot. Zero reports is different from an unavailable source. Select a category to open its reports, or use the filter below to narrow recent developments. UKMTO maritime notices are reviewed manually.</p>
             <p class="pulse-caption">Last 24 hours where available. Counts are source observations, not a global risk score.</p>
-            <p id="pulse-coverage" class="pulse-coverage">Checking 7 automatic sources…</p>
+            <p id="pulse-coverage" class="pulse-coverage">Checking 7 automatic sources…</p><details id="pulse-source-health" class="pulse-source-health"><summary>Source health details</summary><p>Latest checks in this session, not historical uptime. An unavailable source does not mean no incidents.</p><ul id="pulse-health-list"></ul></details>
             <div id="pulse-chart" class="pulse-chart" aria-label="Activity by source, six four-hour intervals" role="img">
               <svg viewBox="0 0 300 92" width="300" height="92" aria-hidden="true">
                 <g class="pulse-grid"><path d="M8 12H292 M8 34H292 M8 56H292 M8 78H292"/></g>
@@ -322,7 +322,7 @@
           <p id="replay-status" class="replay-status" role="status">Run a public news search to enable saving. Nothing is stored automatically.</p>
           <div id="replay-history" class="replay-history" hidden>
             <label for="replay-select">Replay an observed snapshot</label>
-            <select id="replay-select"></select>
+            <div class="replay-filters"><label for="replay-query-filter">Filter saved searches<input id="replay-query-filter" type="search" placeholder="Country or topic"></label><label for="replay-period-filter">Saved within<select id="replay-period-filter"><option value="all">All saved history</option><option value="1">24 hours</option><option value="7">7 days</option><option value="30">30 days</option></select></label></div><p id="replay-filter-count" role="status"></p><select id="replay-select"></select>
             <div id="replay-detail"></div>
             <div class="replay-compare-controls">
               <button type="button" id="replay-compare-button" disabled>Compare with earlier snapshot</button>

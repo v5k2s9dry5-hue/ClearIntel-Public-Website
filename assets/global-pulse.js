@@ -11,6 +11,7 @@
   let expandedLatest=false;
   latestFilter.addEventListener('change',()=>{expandedLatest=false;render();});
   latestMore.addEventListener('click',()=>{expandedLatest=!expandedLatest;render();});
+  const healthList=document.getElementById('pulse-health-list');
   const snapshots={};
   const publications={};
   const publicationNames={geopolitical:'FCDO',cyber:'NCSC',economic:'ECB',humanitarian:'GDACS',travel:'FCDO travel'};
@@ -124,6 +125,20 @@
     const older=series.length-fresh;
     const checked=Object.keys(snapshots).length+Object.keys(publications).length;
     coverage.textContent=fresh+' of 7 automatic sources current'+(older?' · '+older+' older':'')+(checked>series.length?' · '+(checked-series.length)+' unavailable':'');
+    const stampLabel=value=>Number.isFinite(value)?new Date(value).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'short',timeStyle:'short'})+' UTC':'Not recorded';
+    const healthRows=[];
+    for(const [key,name] of [...Object.entries(sources).map(([key,s])=>[key,s.label]),...Object.entries(publicationNames)]){
+      const observation=Object.hasOwn(sources,key);
+      const data=observation?snapshots[key]:publications[key];
+      const last=observation?Number(data?.[sources[key].time]):Date.parse(data?.checked_at_utc);
+      const plotted=series.find(s=>s.key===key);
+      const state=!data?'Not checked':!plotted?'Unavailable':plotted.stale?'Older snapshot':'Current';
+      const li=document.createElement('li'),label=document.createElement('strong'),detail=document.createElement('small');
+      label.textContent=name+' · '+state;
+      detail.textContent='Last successful snapshot check: '+stampLabel(last);
+      li.dataset.health=state.toLowerCase().replace(' ','-');li.append(label,detail);healthRows.push(li);
+    }
+    healthList.replaceChildren(...healthRows);
     recent.sort((a,b)=>b.time-a.time);
     const seen=new Set();
     const selected=latestFilter.value;

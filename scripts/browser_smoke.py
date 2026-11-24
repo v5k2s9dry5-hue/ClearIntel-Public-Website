@@ -230,6 +230,10 @@ def check_site(browser, width):
     assert "Fixture automatic economic update" in page.locator("#pulse-latest a").inner_text()
     page.locator("#pulse-latest-filter").select_option("all")
     assert "of 7 automatic sources current" in page.locator("#pulse-coverage").inner_text()
+    page.locator("#pulse-source-health summary").click()
+    assert page.locator("#pulse-health-list li").count() == 7
+    assert "ECB · Current" in page.locator("#pulse-health-list").inner_text()
+    page.locator("#pulse-source-health summary").click()
     economic_legend = page.locator("#pulse-legend .economic")
     assert economic_legend.get_attribute("aria-pressed") == "true"
     economic_legend.click()
@@ -550,6 +554,13 @@ def check_site(browser, width):
     }))""")
     page.get_by_role("button", name="Save current snapshot").click()
     assert page.locator("#replay-select option").count() == 2
+    page.locator("#replay-query-filter").fill("no matching saved search")
+    assert page.locator("#replay-select").is_disabled()
+    assert "0 of 2" in page.locator("#replay-filter-count").inner_text()
+    page.locator("#replay-query-filter").fill("")
+    page.locator("#replay-period-filter").select_option("1")
+    assert page.locator("#replay-select option").count() == 2
+    page.locator("#replay-period-filter").select_option("all")
     page.get_by_role("button", name="Compare with earlier snapshot").click()
     assert page.locator("#replay-compare").is_visible()
     assert "1 newly present" in page.locator(".replay-compare-summary").inner_text()
