@@ -155,6 +155,8 @@
     textBlock((country?'Country: ':'Search: ') + report.query, 13);
     textBlock(country?'Source snapshot checked: '+formatUtc(report.checkedAt):'Feed window: ' + formatUtc(report.windowStart) + ' to ' + formatUtc(report.windowEnd), 10, muted);
     textBlock('Exported: ' + formatUtc(report.exportedAt), 10, muted);
+    if(!country&&report.observedAt)textBlock('Results received by browser: '+formatUtc(report.observedAt),10,muted);
+    textBlock('Evidence identifiers refer to this export only; source links and timestamps do not establish authenticity or independent verification.',9,muted);
     textBlock((country?'Eligible original linked reports':report.incidentOnly ? 'Incident-related headlines' : 'All matching headlines') +
       ' · ' + report.findings.length + ' of ' + report.total + ' findings included', 10, muted);
     textBlock('Sources queried: ' + (report.sources.join(', ') || 'None reported'), 10, muted);
@@ -173,7 +175,7 @@
       ensureSpace(110);
       pdf.setDrawColor(218, 229, 239).line(margin, y - 4, width - margin, y - 4);
       y += 12;
-      textBlock((index + 1) + '. ' + finding.title, 12, ink, 5);
+      textBlock('E'+String(index+1).padStart(3,'0')+' · ' + finding.title, 12, ink, 5);
       textBlock([finding.source, finding.provider].filter(Boolean).join(' · '), 9, muted, 3);
       textBlock((finding.time_basis || 'Feed time') + ': ' + formatUtc(finding.feed_time_utc), 9, muted, 3);
       if (report.incidentOnly || finding.incident_time_utc) {
@@ -193,11 +195,49 @@
     return pdf;
   }
 
+  function auditManifest(report) {
+    const short=(value,max)=>String(value??'').slice(0,max);
+    return {
+      schema:'clearintel.public-report.v1',
+      report_kind:report.kind==='country'?'country-briefing':'news-research',
+      exported_at_utc:report.exportedAt,
+      query:short(report.query,300),
+      observed_at_utc:report.checkedAt||report.observedAt||null,
+      requested_window_start_utc:report.windowStart||null,
+      requested_window_end_utc:report.windowEnd||null,
+      incident_only:Boolean(report.incidentOnly),
+      returned_findings:report.total,
+      included_findings:report.findings.length,
+      sources_checked:report.sources.map(value=>short(value,150)),
+      provider_errors:report.providerErrors.map(value=>short(value,250)),
+      limitations:short(report.notice,2500),
+      researcher_notes:short(report.notes,2000),
+      evidence:report.findings.map((finding,index)=>({
+        id:'E'+String(index+1).padStart(3,'0'),
+        title:short(finding.title,1000),
+        publisher:short(finding.source,200),
+        provider:short(finding.provider,150),
+        source_url:safeSourceUrl(finding.url),
+        source_time_utc:finding.feed_time_utc||null,
+        time_basis:short(finding.time_basis||'Feed time',80),
+        reported_incident_time_utc:finding.incident_time_utc||null,
+        verification:'Not independently verified'
+      }))
+    };
+  }
+  function downloadManifest(report){
+    const blob=new Blob([JSON.stringify(auditManifest(report),null,2)+'\n'],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const anchor=document.createElement('a');
+    anchor.href=url;anchor.download='ClearIntel-evidence-'+new Date(report.exportedAt).toISOString().slice(0,10)+'.json';
+    document.body.append(anchor);anchor.click();anchor.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
   async function download(report) {
     const [PDF, font] = await loadResources();
     const day = new Date(report.exportedAt).toISOString().slice(0, 10);
     makeReport(PDF, font, report).save('ClearIntel-'+(report.kind==='country'?'country-briefing':'news-report')+'-' + day + '.pdf');
   }
 
-  window.ClearIntelReport = { download };
+  window.ClearIntelReport = { download, downloadManifest, auditManifest };
 })();
