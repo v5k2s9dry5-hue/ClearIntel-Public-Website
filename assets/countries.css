@@ -63,3 +63,29 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
 .country-related-item{display:grid;gap:3px;border-top:1px solid #2d4057;padding-top:7px}
 .country-related-item span,.country-related-reports p{color:#a9bfd4;font-size:11px;line-height:1.4}
 .country-related-reports p{margin:8px 0 2px}
+
+/* Country workspace: shared brand, clear wayfinding, mobile-first controls. */
+.country-header{max-width:none;padding-inline:clamp(1rem,4vw,4rem);background:#090f1a;box-shadow:0 8px 24px #0005}
+.country-brand{display:flex;align-items:center;gap:.7rem;line-height:1.15}
+.country-brand img{flex:none}.country-brand span{color:#edf7ff}.country-brand b{color:#95e5f5}
+.country-brand small{display:block;font-size:.57rem;letter-spacing:.12em;color:#a0b9cc;margin-top:.3rem}
+.country-header nav{gap:.3rem 1rem}
+.country-header nav a{display:flex;align-items:center;min-height:44px}
+.country-header nav a[aria-current]{color:#a6e9fa;border-bottom:2px solid #80d7ec}
+.country-skip{position:absolute;top:8px;left:8px;transform:translateY(-160%);padding:.6rem;background:#102437;z-index:100}
+.country-skip:focus{transform:none}
+.country-breadcrumb{font-size:.85rem;color:#abc0d1;margin:.5rem 0 1rem;gap:.5rem}
+.country-workspace-hero{padding:clamp(1rem,3vw,2rem);border:1px solid #294459;border-radius:12px;background:linear-gradient(90deg,#0a1525f5,#0a1525c9),url('/assets/command-room.svg') center/cover;overflow-wrap:anywhere;margin:1rem 0 1.25rem}
+.country-workspace-hero .page-kicker{margin:0}
+.country-workspace-hero h1{margin:.4rem 0;letter-spacing:-.04em}
+.country-workspace-hero p{max-width:60ch;margin:.65rem 0}
+.country-directory-total{font-size:.82rem;color:#a9dbe8}
+.country-hero-links{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem}
+.country-hero-links a,#country-filter-clear{border:1px solid #3b5b72;border-radius:6px;padding:.55rem .8rem;background:#102336;color:#d9f4ff;text-decoration:none;min-height:44px;display:inline-flex;align-items:center;font:inherit;font-size:.85rem}
+#country-filter-clear[hidden]{display:none}
+#country-filter-clear{justify-self:start;cursor:pointer}
+#directory-filter:not([hidden]){max-width:36rem;padding:1rem;border-radius:9px;border:1px solid #294459;background:#0b1828}
+.letters a{min-width:40px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.letters a[hidden]{display:none}
+.country-related-reports summary{min-height:44px}
+@media(max-width:740px){.country-header{gap:.35rem}.country-header nav{width:100%;gap:0 .85rem}.country-header nav a{font-size:.8rem}.country-workspace-hero{margin-top:.6rem}.country-hero-links a{flex:1 1 auto;justify-content:center}}
