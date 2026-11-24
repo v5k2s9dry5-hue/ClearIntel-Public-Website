@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'scripts/probe_production_sources.py'
+      - 'scripts/probe_gdacs_parser.py'
       - '.github/workflows/production-source-probe.yml'
       - 'intelligence_feeds.py'
 permissions:
