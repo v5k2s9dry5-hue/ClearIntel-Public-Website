@@ -176,6 +176,12 @@ def check_site(browser, width):
         assert hero_title and hero_map and hero_pulse
         assert hero_map["x"] >= hero_title["x"] + hero_title["width"] - 2
         assert hero_pulse["x"] >= hero_map["x"] + hero_map["width"] - 2
+        assert hero_pulse["height"] <= max(hero_map["height"], hero_title["height"]) + 4
+        gap = page.locator("#ci-start-guide").bounding_box()["y"] - max(
+            hero_map["y"] + hero_map["height"], hero_title["y"] + hero_title["height"])
+        assert gap < 90, f"Excess empty space below globe/intro: {gap}px"
+        assert page.locator("#global-pulse").evaluate("(e) => getComputedStyle(e).overflowY") == "auto"
+
 
     page.locator('[data-pulse-category="economic"] small').filter(has_text="1 recent publications").wait_for(state="visible", timeout=10000)
     assert page.locator("#pulse-series polyline.economic").count() == 1
@@ -762,6 +768,10 @@ def check_wide_hero_layout(browser):
     assert chart["x"] >= globe["x"] + globe["width"] - 2
     assert globe["y"] < 430 and search["y"] < 650
     assert chart["y"] < guide["y"] and chart["y"] < cards["y"]
+    assert abs((chart["y"] + chart["height"]) - (globe["y"] + globe["height"])) < 5
+    assert guide["y"] - (globe["y"] + globe["height"]) < 90
+    assert page.locator("#global-pulse").evaluate("(e) => getComputedStyle(e).overflowY") == "auto"
+
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     assert page.locator("#activity-pulse-status").inner_text() == "USGS feed checked"
     page.wait_for_selector("#earth-texture-credit", state="visible", timeout=10000)
