@@ -414,6 +414,7 @@ function renderResults(payload,search){
     });
     citationRow.append(copy,copyStatus);
     card.append(citationRow);
+    if(window.ClearIntelCollection){const bookmark=el('button','globe-control','Save to collection');bookmark.type='button';bookmark.addEventListener('click',()=>{bookmark.textContent=window.ClearIntelCollection.add(article)?'Saved to collection':'Check collection status';});card.append(bookmark);}
     const date=new Date(article.feed_time_utc);
     card.append(el('span','analyst-only analyst-metadata',
       'Exact feed timestamp: '+(Number.isFinite(date.getTime())?date.toISOString():'unknown')+' · Headline is a research lead'));
