@@ -700,6 +700,16 @@ def check_site(browser, width):
         page.locator("#country-briefing-download").click()
     assert country_pdf.value.suggested_filename.startswith("ClearIntel-country-briefing-")
     assert country_pdf.value.suggested_filename.endswith(".pdf")
+    with page.expect_download(timeout=10000) as evidence_json:
+        page.locator("#country-briefing-manifest").click()
+    with open(evidence_json.value.path(), encoding="utf-8") as exported:
+        audit = json.load(exported)
+    assert audit["schema"] == "clearintel.public-report.v1"
+    assert audit["report_kind"] == "country-briefing"
+    assert audit["researcher_notes"] == "Fixture researcher note"
+    assert audit["evidence"][0]["id"] == "E001"
+    assert audit["evidence"][0]["source_url"] == "https://example.org/manchester-news"
+    assert audit["observed_at_utc"] == STAMP
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     # A complete outage retains prior headlines, but a successful empty search does not.
     page.evaluate("""previous => {

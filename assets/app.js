@@ -163,7 +163,9 @@ function reportExport(payload,search){
   const count=el('span','report-export-count');
   const toggle=el('button','globe-control','Deselect all');toggle.type='button';
   const download=el('button','button button-primary','Download PDF');download.type='button';
-  actions.append(count,toggle,download);
+  const manifest=el('button','globe-control','Download evidence JSON');manifest.type='button';
+  const observedAt=new Date().toISOString();
+  actions.append(count,toggle,download,manifest);
   const options=el('details','report-notes');
   const notesLabel=el('label','','Notes to include');notesLabel.htmlFor='report-notes-input';
   const notes=el('textarea','');notes.id='report-notes-input';notes.rows=4;notes.maxLength=1200;
@@ -180,23 +182,21 @@ function reportExport(payload,search){
     toggle.hidden=!choices.length;
     toggle.textContent=included===choices.length?'Deselect all':'Select all';
     download.disabled=busy||(choices.length>0&&included===0);
+    manifest.disabled=download.disabled;
   }
   toggle.addEventListener('click',()=>{
     const check=selected().length!==choices.length;
     choices.forEach(choice=>{choice.checked=check;});
     refreshSelection();
   });
+  function reportData(){return {query:search.query,incidentOnly:search.incidentOnly,exportedAt:new Date().toISOString(),observedAt,windowStart:payload.window_start,windowEnd:payload.window_end,findings:selected(),total:payload.results.length,sources:payload.sources_checked||[],providerErrors:payload.provider_errors||[],notice:payload.notice,notes:notes.value};}
+  manifest.addEventListener('click',()=>{try{window.ClearIntelReport.downloadManifest(reportData());status.textContent='Evidence file download started.';}catch(_){status.textContent='Could not export evidence.';}});
   download.addEventListener('click',async()=>{
     const findings=selected();
     if(busy||(choices.length&&!findings.length))return;
     busy=true;refreshSelection();status.textContent='Preparing PDF…';
     try{
-      await window.ClearIntelReport.download({
-        query:search.query,incidentOnly:search.incidentOnly,exportedAt:new Date().toISOString(),
-        windowStart:payload.window_start,windowEnd:payload.window_end,findings,total:payload.results.length,
-        sources:payload.sources_checked||[],providerErrors:payload.provider_errors||[],notice:payload.notice,
-        notes:notes.value,
-      });
+      await window.ClearIntelReport.download(reportData());
       status.textContent='Download started.';
     }catch(_){status.textContent='Could not create the PDF. Try again.';}
     finally{busy=false;refreshSelection();}
