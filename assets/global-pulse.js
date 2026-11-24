@@ -184,6 +184,7 @@
   };
   function rememberPublication(category,data){
     const previous=publications[category];
+    if(data?.status==='checking')return;
     if(['available','stale'].includes(data?.status)&&Array.isArray(data.reports)){
       if(previous?.checked_at_utc&&Date.parse(previous.checked_at_utc)>Date.parse(data.checked_at_utc))return;
       publications[category]=data;
@@ -206,6 +207,7 @@
       for(const category of Object.keys(categories)){
         // A dedicated check made after the summary began takes precedence.
         if((publicationUpdated[category]||0)>started)continue;
+        if(data.feeds[category]?.status==='checking')summaryDue=Math.min(summaryDue,Date.now()+30000);
         rememberPublication(category,data.feeds[category]);
       }
       render();
@@ -233,6 +235,7 @@
       publicationUpdated[category]=Date.now();
       rememberPublication(category,data);
       render();
+      if(data.status==='checking'){dedicatedStatus.textContent='Another source check is in progress. Please check again shortly.';lastCheck=Date.now()-270000;return;}
       const rows=Array.isArray(data.reports)?data.reports:[];
       const items=[];
       for(const report of rows.slice(0,12)){
@@ -299,6 +302,7 @@
       const response=await fetch('/api/intelligence-feed/sanctions',{signal:AbortSignal.timeout(12000),cache:'no-store'});
       if(!response.ok)throw Error('Unavailable');
       const data=await response.json();
+      if(data.status==='checking'){sanctionsStatus.textContent='Another source check is in progress. Try again shortly.';return;}
       if(!['available','stale'].includes(data.status)||!Array.isArray(data.reports))throw Error('Unavailable');
       const rows=[];
       for(const report of data.reports.slice(0,12)){
