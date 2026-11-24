@@ -19,6 +19,10 @@ def audit(browser, name, width, height):
             page.locator("#pulse-coverage").filter(has_text="of 7 automatic sources current").wait_for(timeout=45000)
         except Exception:
             pass
+        try:
+            page.locator('#earth-texture-credit').wait_for(state='visible', timeout=20000)
+        except Exception:
+            pass
         # Capture once the initial layout is present; no simulated data or login.
         page.screenshot(path=str(OUT / (name + ".png")), timeout=15000)
         metrics = page.evaluate("""() => ({
