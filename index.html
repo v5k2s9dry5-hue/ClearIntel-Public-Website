@@ -31,6 +31,7 @@
   <script src="/assets/country-card.js?v=evidence-disclosure" defer></script>
   <script src="/assets/app.js?v=20261122-result-controls" defer></script>
   <script src="/assets/replay.js" defer></script>
+  <script src="/assets/saved-queries.js" defer></script>
   <script src="/assets/context-help.js" defer></script>
   <script src="/assets/dashboard-sidebar.js" defer></script>
   <script src="/assets/dashboard-visual.js" defer></script>
@@ -309,6 +310,13 @@
         <div id="news-results" class="results" aria-live="polite">
           <div class="empty-state"><div class="empty-mark">⌕</div><strong>Ready to investigate a news topic</strong><p>Enter a location or subject above to search recent coverage. Results will appear here automatically.</p></div>
         </div>
+        <section class="replay-panel" id="saved-research" aria-labelledby="saved-research-heading">
+          <div class="replay-heading"><div><span class="replay-kicker">REUSABLE RESEARCH</span><h3 id="saved-research-heading">Saved searches</h3></div><span class="replay-local-tag">This browser only</span></div>
+          <p>Save the topic and search settings for reuse. No automatic searches, results, or personal notes are stored here. Do not save sensitive information.</p>
+          <div class="replay-actions"><button type="button" id="saved-query-save">Save current search settings</button><button type="button" id="saved-query-clear" disabled>Clear saved searches</button></div>
+          <p id="saved-query-status" role="status">Nothing saved automatically.</p>
+          <ul id="saved-query-list" class="saved-query-list"></ul>
+        </section>
         <section class="replay-panel" id="intelligence-replay" aria-labelledby="replay-heading">
           <div class="replay-heading">
             <div><span class="replay-kicker">INTELLIGENCE REPLAY / SAVED SEARCHES</span><h3 id="replay-heading">Observed research snapshots</h3></div>
