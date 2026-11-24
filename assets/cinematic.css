@@ -132,3 +132,5 @@
 @keyframes research-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.research-spinner{animation:none;border-color:#9ce9f6}}
 @media(max-width:760px){.research-workflow{gap:6px}.research-workflow span{flex-direction:column;align-items:flex-start;font-size:11px}.research-section .help-button,.research-section .citation-copy{min-height:44px;min-width:44px}.research-section .result-view-controls select{min-height:44px}}
+
+.cinematic-pulse .ci-title-help{margin-bottom:5px;align-items:center}.cinematic-pulse .ci-title-help h2{margin:0;min-width:0}.cinematic-pulse #ci-pulse-note{font-size:12px;line-height:1.5}
