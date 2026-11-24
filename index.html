@@ -39,6 +39,7 @@
   <script src="/assets/timeline.js?v=event-timeline" defer></script>
   <script src="/assets/map-refresh.js" defer></script>
   <script src="/assets/activity-pulse.js" defer></script>
+  <script src="/assets/global-pulse.js" defer></script>
   <script src="/assets/ukmto-briefing.js" defer></script>
   <script src="/assets/earth.js?v=20261122-lazy-regional" defer></script>
 </head>
@@ -135,13 +136,23 @@
               <span id="earth-map-credit">Map data: Natural Earth</span>
             </div>
           </section>
-          <section id="activity-pulse" class="activity-pulse" aria-label="Public earthquake observation chart">
-            <div class="activity-pulse-heading">
-              <div><span class="activity-pulse-kicker">LIVE SOURCE ACTIVITY</span><h2>Earthquake activity · last 24 hours</h2><p>Published USGS M4.5+ observations. Six 4-hour UTC intervals, updating with the existing source feed.</p></div>
-              <div class="activity-pulse-stat"><strong id="activity-pulse-total">—</strong><span>Recorded events</span></div>
+          <section id="global-pulse" class="activity-pulse cinematic-pulse" aria-labelledby="global-pulse-heading">
+            <span class="activity-pulse-kicker">SITUATION ROOM / SOURCE COVERAGE</span>
+            <h2 id="global-pulse-heading">Global Intelligence Pulse</h2>
+            <p class="pulse-caption">Last 24 hours where available. Counts are source observations, not a global risk score.</p>
+            <div class="pulse-categories" aria-label="Intelligence categories">
+              <button type="button" data-pulse-layer="countries"><span>Geopolitical</span><small>Country briefs on demand</small></button>
+              <button type="button" data-pulse-layer="maritime" data-pulse-feed><span>Maritime security</span><small>Manually reviewed UKMTO notices</small></button>
+              <button type="button" data-pulse-layer="earthquakes"><span>Earth observations</span><small id="pulse-quakes">USGS · Awaiting source</small></button>
+              <button type="button" data-pulse-layer="wildfires"><span>Wildfires</span><small id="pulse-fires">NASA · Not checked yet</small></button>
+              <a href="#research"><span>Cybersecurity</span><small>Research only · No dedicated feed</small></a>
+              <a href="#research"><span>Economic</span><small>Research only · No dedicated feed</small></a>
+              <a href="#research"><span>Humanitarian</span><small>Research only · No dedicated feed</small></a>
             </div>
-            <div id="activity-pulse-bars" class="activity-pulse-bars" role="img" aria-label="USGS hourly activity chart awaiting a feed check"></div>
-            <div class="activity-pulse-footer"><span id="activity-pulse-status" role="status">Waiting for USGS feed</span><span id="activity-pulse-check">No source observation yet</span><a href="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson" target="_blank" rel="noopener noreferrer">USGS source</a></div>
+            <h3>Latest developments</h3>
+            <p id="pulse-latest-status" class="pulse-caption" role="status">Waiting for observations from connected sources.</p>
+            <ul id="pulse-latest" class="pulse-latest" aria-label="Recent observations received in this session"></ul>
+            <p class="pulse-caption">Coverage is limited to sources checked in this session. Check original reports for context.</p>
           </section>
         </div>
         <p id="ci-workspace-note" class="ci-inline-help" hidden>Analyst mode shows extra source details and keeps evidence sections expanded. Use Show sidebar to open the optional desktop navigation. Layer chooses which public data or archived reports appear on the map; the military and naval layers are historical, not live tracking.</p>
@@ -172,6 +183,16 @@
             <strong>Military &amp; maritime</strong><span class="command-overview-detail">Source-linked, completed events — historical records, not live tracking</span>
             <span class="command-overview-foot">Explore historical reports <span aria-hidden="true">↗</span></span>
           </button>
+        </div>
+        <div id="earth-observations" aria-label="Earth observations analytics">
+          <section id="activity-pulse" class="activity-pulse" aria-label="Public earthquake observation chart">
+            <div class="activity-pulse-heading">
+              <div><span class="activity-pulse-kicker">LIVE SOURCE ACTIVITY</span><h2>Earthquake activity · last 24 hours</h2><p>Published USGS M4.5+ observations. Six 4-hour UTC intervals, updating with the existing source feed.</p></div>
+              <div class="activity-pulse-stat"><strong id="activity-pulse-total">—</strong><span>Recorded events</span></div>
+            </div>
+            <div id="activity-pulse-bars" class="activity-pulse-bars" role="img" aria-label="USGS hourly activity chart awaiting a feed check"></div>
+            <div class="activity-pulse-footer"><span id="activity-pulse-status" role="status">Waiting for USGS feed</span><span id="activity-pulse-check">No source observation yet</span><a href="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson" target="_blank" rel="noopener noreferrer">USGS source</a></div>
+          </section>
         </div>
         <details id="dashboard-source-guide" class="dashboard-source-guide">
           <summary>Sources &amp; update frequency</summary>
