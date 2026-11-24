@@ -120,7 +120,7 @@
                 <span aria-hidden="true"></span><b id="military-map-kind"></b><small>Past events</small>
               </div>
             </div>
-            <div class="incident-overview" aria-label="Incident severity overview"><p id="incident-coverage">Checking GDACS alerts…</p><div class="incident-counts"><span data-severity="green">Green <b id="incident-count-green">—</b></span><span data-severity="amber">Amber <b id="incident-count-amber">—</b></span><span data-severity="red">Red <b id="incident-count-red">—</b></span></div></div>
+            <div class="incident-overview" aria-label="Incident severity overview"><div id="incident-controls" class="quake-controls" hidden><label for="incident-severity">Severity <select id="incident-severity"><option value="all">All severity levels</option><option value="green">Green</option><option value="amber">Amber</option><option value="red">Red</option></select></label></div><p id="incident-coverage">Checking GDACS alerts…</p><div class="incident-counts"><span data-severity="green">Green <b id="incident-count-green">—</b></span><span data-severity="amber">Amber <b id="incident-count-amber">—</b></span><span data-severity="red">Red <b id="incident-count-red">—</b></span></div></div>
             <div class="dashboard-map-footer">
               <div class="globe-controls">
                 <div id="map-projection" class="map-projection" role="group" aria-label="Map projection" hidden>
@@ -242,7 +242,7 @@
                 </label>
                 <button type="button" id="quake-pause" class="globe-control" aria-pressed="false">Pause updates</button>
               </div>
-              <div id="incident-controls" class="quake-controls" hidden><label for="incident-severity">Severity <select id="incident-severity"><option value="all">All severity levels</option><option value="green">Green</option><option value="amber">Amber</option><option value="red">Red</option></select></label></div>
+              
               <div id="country-controls" class="quake-controls" hidden>
                 <label for="country-select">Country or territory
                   <select id="country-select"><option value="">Choose a country</option></select>
