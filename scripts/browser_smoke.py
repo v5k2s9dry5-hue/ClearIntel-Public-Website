@@ -169,6 +169,11 @@ def check_site(browser, width):
 
     page.locator('[data-pulse-category="economic"] small').filter(has_text="1 recent publications").wait_for(state="visible", timeout=10000)
     assert page.locator("#pulse-series polyline.economic").count() == 1
+    page.locator("#pulse-latest-filter").select_option("economic")
+    assert page.locator("#pulse-latest a").count() == 1
+    assert "Fixture automatic economic update" in page.locator("#pulse-latest a").inner_text()
+    page.locator("#pulse-latest-filter").select_option("all")
+    assert "of 7 automatic sources current" in page.locator("#pulse-coverage").inner_text()
     economic_legend = page.locator("#pulse-legend .economic")
     assert economic_legend.get_attribute("aria-pressed") == "true"
     economic_legend.click()

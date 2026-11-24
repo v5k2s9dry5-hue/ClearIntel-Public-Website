@@ -104,3 +104,11 @@
 .pulse-legend-item.wildfires{--series:#ffb773}.pulse-legend-item.geopolitical{--series:#9ae7b2}.pulse-legend-item.cyber{--series:#b4a2ff}.pulse-legend-item.economic{--series:#eac878}.pulse-legend-item.humanitarian{--series:#f0a2c1}.pulse-legend-item.travel{--series:#a4bfff}
 #pulse-peak{font-variant-numeric:tabular-nums;text-align:right;margin:4px 0}
 @media(max-width:860px){.pulse-legend-item{min-height:44px}}
+
+/* A readable, source-specific recent developments feed. */
+.pulse-coverage{color:#a8e6ef;font-size:11px;line-height:1.4;padding:7px 9px;margin:8px 0;border-left:2px solid #5298ad;background:#0b1c2b}
+.pulse-filter-label{display:flex;align-items:center;gap:7px;justify-content:space-between;color:#c6dce8;font:500 11px/1.3 system-ui,sans-serif}
+.pulse-filter-label select{min-width:0;max-width:70%;min-height:34px;padding:5px 8px;background:#0c1e2d;color:#e3f3fb;border:1px solid #36576c;border-radius:6px;font-size:12px}
+.pulse-more{width:100%;min-height:38px}
+.pulse-more[hidden]{display:none}
+@media(max-width:860px){.pulse-filter-label select,.pulse-more{min-height:44px}}
