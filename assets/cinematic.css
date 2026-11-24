@@ -116,7 +116,7 @@
 /* Static archival photography and NASA imagery; local vectors remain fallbacks. */
 .command-overview .command-overview-card{min-height:210px}
 .command-overview .command-overview-card[data-command-layer="earthquakes"]::before{background-image:linear-gradient(90deg,#081523fa 4%,#081523d9 39%,#08152322 100%),radial-gradient(ellipse at 85% 35%,#83b5d222,transparent 65%),url('/globe-texture.jpg'),url('/assets/card-earth.svg');background-size:cover,cover,180% auto,cover;background-position:center,center,45% 44%,center; background-repeat:no-repeat}
-.command-overview .command-overview-card[data-command-layer="countries"]::before{background-image:linear-gradient(90deg,#081523fa 4%,#081523d9 43%,#08152344 100%),url('/globe-texture.jpg'),url('/assets/card-country.svg');background-size:cover,cover,cover;background-position:center,75% 45%,center;background-repeat:no-repeat}
+.command-overview .command-overview-card[data-command-layer="countries"]::before{background-image:linear-gradient(90deg,#081523fa 4%,#081523b8 40%,#08152310 100%),url('/assets/card-country.svg');background-size:cover,cover;background-position:center,right center;background-repeat:no-repeat}
 .command-overview .command-overview-card[data-command-layer="aviation"]::before{background-image:linear-gradient(90deg,#081523fa 4%,#081523d9 43%,#10263844 100%),url('/archive-card.jpg'),url('/assets/card-archive.svg');background-size:cover;background-position:center,70% 50%,center;background-repeat:no-repeat}
 .command-overview .command-overview-card strong,.command-overview .command-overview-detail{position:relative;text-shadow:0 1px 6px #000}
 .command-art-credit{margin:4px 0 18px;color:#adc3d2;font-size:10px;line-height:1.5;text-align:right}
@@ -220,3 +220,19 @@
 .recent-reporting-list{list-style:none;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.recent-reporting-list li{display:grid;gap:5px;border:1px solid #304b60;border-radius:8px;padding:10px;background:#0a1827;overflow-wrap:anywhere}.recent-reporting-list a{font-size:13px;line-height:1.4}.recent-reporting-list small{font-size:11px;color:#aac5d6}
 .compact-dashboard .cinematic-hero .dashboard-lede,.compact-dashboard .cinematic-quick{display:none}.compact-dashboard .command-overview .command-overview-card{min-height:140px}.compact-dashboard .cinematic-hero{gap:9px}
 @media(max-width:860px){.pulse-mobile-nav{display:flex;gap:5px;margin:8px 0}.pulse-mobile-nav button{flex:1;min-height:44px;border:1px solid #36576c;border-radius:6px;background:#0b1929;color:#b9d9e7;font-size:12px}.pulse-mobile-nav button[aria-pressed=true]{background:#194159;color:#eafaff}.pulse-mobile-panels{display:flex;position:relative;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;scrollbar-width:thin;gap:0}.pulse-slide{flex:0 0 100%;min-width:0;scroll-snap-align:start}.recent-reporting-list{grid-template-columns:minmax(0,1fr)}.workspace-settings summary{min-height:44px}}
+
+/* Desktop briefing fills the empty intro column, without increasing globe height. */
+.desktop-briefing{display:none}
+@media(min-width:1180px){
+ .dashboard.sidebar-collapsed .cinematic-hero .dashboard-title{align-self:stretch;min-height:0;min-width:0;display:flex;flex-direction:column;contain:size}
+ .dashboard.sidebar-collapsed .desktop-briefing{display:flex;flex-direction:column;flex:1;min-height:0;margin-top:8px;padding:11px;border:1px solid #31576c;border-radius:9px;background:linear-gradient(145deg,#102437e8,#091522ed);overflow-y:auto;scrollbar-width:thin}
+ .desktop-briefing h2{font-size:15px;margin:4px 0;line-height:1.25;color:#e8f5ff}
+ #desktop-briefing-status{font-size:11px;color:#9ce9f6;margin:5px 0}
+ .desktop-briefing .pulse-latest{flex:1;gap:9px;align-content:start}
+ .desktop-briefing .pulse-latest li{padding-block:3px}
+ .desktop-briefing .pulse-latest a{display:block;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;line-height:1.45}
+ .desktop-briefing-note{font-size:10px;color:#b1c7d7;margin:4px 0}
+ .desktop-briefing>a{font-size:12px;color:#9ce9f6;padding:6px 0}
+ .desktop-briefing-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;padding-top:6px;border-top:1px solid #294459}
+ .desktop-briefing-links a{font-size:11px;color:#b9e9f5;padding:6px;border:1px solid #36576c;border-radius:5px}
+}
