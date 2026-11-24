@@ -159,7 +159,7 @@ def check_site(browser, width):
         "source": "UK NCSC", "status": "unavailable", "checked_at_utc": None, "reports": []
     }))
     page.locator('[data-pulse-category="cyber"]').click()
-    page.wait_for_function("document.querySelector('[data-pulse-category=cyber] small').textContent.includes('Unavailable')")
+    page.locator('[data-pulse-category="cyber"] small').filter(has_text="Unavailable").wait_for(state="visible", timeout=10000)
     assert page.locator("#pulse-series polyline.cyber").count() == 0
     page.locator('[data-pulse-category="cyber"]').click()
     assert not page.locator("#pulse-dedicated").is_visible()
