@@ -205,16 +205,31 @@ def _city_mention(title, code):
 
 
 def _publisher_reports(url, source, code, national):
-    channel = ET.fromstring(_get(url)).find('channel')
+    content = _get(url)
+    if b'<!DOCTYPE' in content.upper() or b'<!ENTITY' in content.upper() or b'\x00' in content:
+        raise ValueError('Unsafe publisher XML')
+    root = ET.fromstring(content)
+    channel = root.find('channel') if root.tag == 'rss' else None
     if channel is None:
         raise ValueError('Invalid publisher feed')
     if source == 'The Guardian' and urlsplit(channel.findtext('link', '')).path.rstrip('/') != urlsplit(url).path.removesuffix('/rss'):
         raise ValueError('Wrong country section')
-    return [{
-        'title': item.findtext('title', ''), 'url': item.findtext('link', ''),
-        'published': item.findtext('pubDate', ''), 'source': source, 'country_code': code,
-        'provider': source, 'publisher_rank': rank if national else None, 'time_basis': 'Publication time',
-    } for rank, item in enumerate(channel.findall('item'), 1)]
+    items = channel.findall('item')
+    rows = []
+    for rank, item in enumerate(items, 1):
+        title = item.findtext('title', '').strip()
+        link = item.findtext('link', '').strip()
+        stamp = item.findtext('pubDate', '').strip()
+        if not title or not _safe_link(link) or not _date(stamp):
+            continue
+        rows.append({
+            'title': title, 'url': link, 'published': stamp, 'source': source,
+            'country_code': code, 'provider': source,
+            'publisher_rank': rank if national else None, 'time_basis': 'Publication time',
+        })
+    if items and not rows:
+        raise ValueError('Publisher feed contains no usable dated reports')
+    return rows
 
 
 def guardian_reports(code, name):
