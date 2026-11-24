@@ -57,7 +57,7 @@
     </div>
     <nav id="mobile-nav" class="mobile-nav" hidden aria-label="Mobile navigation"><a href="#top">Home</a><a href="#dashboard-map">Map</a><a href="#research">Research desk</a><a href="#dashboard-source-guide">Sources</a><a href="/countries">Countries</a><a href="#services">Services</a><a href="#method">Method</a><a href="#contact">Make an enquiry</a><a href="#ci-start-guide">How to use ClearIntel</a></nav>
   </header>
-  <main id="main">
+  <main id="main" tabindex="-1">
     <section id="top" class="dashboard" aria-labelledby="dashboard-heading">
       <nav id="dashboard-sidebar" class="dashboard-nav" aria-label="Dashboard navigation">
         <div class="nav-section-label" aria-hidden="true">WORKSPACE</div>
@@ -114,8 +114,8 @@
             </label><span id="map-layer-kind" class="map-layer-kind">Live feed</span><button type="button" class="ci-help-dot" aria-label="Explain map markers" data-ci-note="ci-map-note" aria-expanded="false" aria-controls="ci-map-note">?</button></div></div>
             <p id="ci-map-note" class="ci-inline-help" hidden>Markers represent records from the chosen source. Country-news city pins indicate a place mentioned in a headline, not a confirmed incident location. Drag to rotate, select a marker or count, and use the Source feed for linked reporting. Live feed means periodic source checks, not independently verified events.</p>
             <div class="globe-canvas-wrap">
-              <canvas id="earth-canvas" role="img" aria-label="Interactive globe. You can also select events in the live feed."></canvas>
-              <div id="map-instructions" class="globe-coord-label">Drag to rotate · Select a pin or count</div>
+              <canvas id="earth-canvas" tabindex="0" role="img" aria-label="Interactive globe. Use arrow keys to move the map or select reports in the source feed." aria-describedby="map-instructions"></canvas>
+              <div id="map-instructions" class="globe-coord-label">Drag or use arrow keys to rotate · Select a pin or count</div>
               <div id="military-map-legend" class="military-map-legend" hidden>
                 <span aria-hidden="true"></span><b id="military-map-kind"></b><small>Past events</small>
               </div>

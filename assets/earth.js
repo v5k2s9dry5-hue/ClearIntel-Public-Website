@@ -430,6 +430,17 @@
     if (dashboard.dataset.mobileView === next) return;
     (next === 'feed' ? feedTab : mapTab).click();
   });
+  canvas.addEventListener('keydown',e=>{
+    if(e.altKey||e.ctrlKey||e.metaKey||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;
+    e.preventDefault();setRotation(false);
+    const step=e.shiftKey?15:5;
+    if(e.key==='ArrowLeft')rot=(rot+step)%360;
+    if(e.key==='ArrowRight')rot=(rot-step)%360;
+    if(e.key==='ArrowUp')tilt=clamp(tilt-step,-90,90);
+    if(e.key==='ArrowDown')tilt=clamp(tilt+step,-90,90);
+    if(flatMap)resetMap.disabled=false;
+    draw();
+  });
   canvas.addEventListener('pointerdown',e=>{
     if(!e.isPrimary||e.button!==0||dragPointer!==null)return;
     dragPointer=e.pointerId;dragDistance=0;px=e.clientX;py=e.clientY;
@@ -559,7 +570,7 @@
     canvas.setAttribute('aria-label',flatMap
       ? 'Interactive map of past public reports. Select a marker or use the feed.'
       : 'Interactive globe. You can also select events in the feed.');
-    mapInstructions.textContent=flatMap?'Drag to pan · Select a marker':'Drag to rotate · Select a pin or count';
+    mapInstructions.textContent=flatMap?'Drag or use arrow keys to pan · Select a marker':'Drag or use arrow keys to rotate · Select a pin or count';
     draw();
   }
   flatButton.addEventListener('click',()=>{preferFlat=true;updateProjection();});

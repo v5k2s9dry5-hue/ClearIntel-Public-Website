@@ -151,6 +151,17 @@ def check_site(browser, width):
         if(panel.querySelectorAll('.correlation-group').length!==3||panel.querySelector('a[href^="javascript:"]'))throw Error('Unsafe comparison rendering');
     }""")
     assert page.locator("#globe-layer").input_value() == "incidents"
+    canvas = page.locator("#earth-canvas")
+    assert canvas.get_attribute("tabindex") == "0"
+    canvas.focus()
+    canvas.press("ArrowRight")
+    assert canvas.evaluate("(e) => document.activeElement === e")
+    if mobile and page.locator("#menu-toggle").is_visible():
+        page.locator("#menu-toggle").click()
+        page.locator("#mobile-nav a").first.focus()
+        page.keyboard.press("Escape")
+        assert page.locator("#mobile-nav").is_hidden()
+        assert page.locator("#menu-toggle").evaluate("(e) => document.activeElement === e")
     assert page.locator("#earth-canvas").evaluate("(e) => e.width <= Math.ceil(e.clientWidth * 1.5)")
     page.locator("#incident-count-red").filter(has_text="1").wait_for(state="visible", timeout=10000)
     assert page.locator("#incident-count-green").inner_text() == "1"
