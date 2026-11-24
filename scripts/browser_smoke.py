@@ -245,6 +245,16 @@ def check_site(browser, width):
 
     page.locator('[data-pulse-category="economic"] small').filter(has_text="1 recent publications").wait_for(state="visible", timeout=10000)
     assert page.locator("#pulse-series polyline.economic").count() == 1
+    assert page.locator("#desktop-briefing-list a").count() > 0
+    art = page.locator('[data-command-layer="countries"]').evaluate("(e) => getComputedStyle(e, '::before').backgroundImage")
+    assert "card-country.svg" in art and "globe-texture.jpg" not in art
+    if width >= 1180 and page.locator("#top").evaluate("(e) => e.classList.contains('sidebar-collapsed')"):
+        assert page.locator("#desktop-briefing").is_visible()
+        brief = page.locator("#desktop-briefing").bounding_box()
+        globe = page.locator("#dashboard-map").bounding_box()
+        assert brief["height"] > 70 and brief["y"] + brief["height"] <= globe["y"] + globe["height"] + 10
+    if mobile:
+        assert page.locator("#desktop-briefing").is_hidden()
     page.locator("#pulse-latest-filter").select_option("economic")
     assert page.locator("#pulse-latest a").count() == 1
     assert "Fixture automatic economic update" in page.locator("#pulse-latest a").inner_text()
