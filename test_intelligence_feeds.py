@@ -65,3 +65,23 @@ class DedicatedFeedTests(unittest.TestCase):
     def test_pulse_does_not_start_overlapping_aggregate(self):
         with f._pulse_lock:
             self.assertEqual(f.pulse(), {"status": "checking", "feeds": {}})
+
+    def test_incident_alerts_use_explicit_provider_levels_only(self):
+        xml = b"""<rss xmlns:gdacs="http://www.gdacs.org" xmlns:georss="http://www.georss.org/georss"><channel>
+        <item><title>Flood notification</title><link>https://www.gdacs.org/report.aspx?eventid=1</link><pubDate>Tue, 24 Nov 2026 08:00:00 GMT</pubDate><gdacs:alertlevel>Orange</gdacs:alertlevel><gdacs:eventtype>FL</gdacs:eventtype><gdacs:country>France</gdacs:country><georss:point>46 2</georss:point></item>
+        <item><title>Red in headline alone</title><link>https://www.gdacs.org/report.aspx?eventid=2</link><pubDate>Tue, 24 Nov 2026 08:00:00 GMT</pubDate></item>
+        </channel></rss>"""
+        with patch.object(f, "_download", return_value=xml) as request:
+            result = f.incident_alerts()
+            self.assertEqual(result["status"], "available")
+            self.assertEqual(len(result["events"]), 1)
+            self.assertEqual(result["events"][0]["severity"], "amber")
+            self.assertEqual(result["events"][0]["country"], "France")
+            f.feed("humanitarian")
+            request.assert_called_once()
+
+    def test_incident_alerts_unavailable_not_successful_empty_feed(self):
+        with patch.object(f, "_download", side_effect=OSError):
+            result = f.incident_alerts()
+            self.assertEqual(result["status"], "unavailable")
+            self.assertIsNone(result["checked_at_ms"])
