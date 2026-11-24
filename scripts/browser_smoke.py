@@ -140,6 +140,14 @@ def check_site(browser, width):
     page.locator("#incident-count-red").filter(has_text="1").wait_for(state="visible", timeout=10000)
     assert page.locator("#incident-count-green").inner_text() == "1"
     assert page.locator("#incident-count-amber").inner_text() == "1"
+    page.locator('.incident-counts button[data-severity="amber"]').click()
+    assert page.locator("#incident-severity").input_value() == "amber"
+    assert page.locator('.incident-counts button[data-severity="amber"]').get_attribute("aria-pressed") == "true"
+    page.locator('.incident-counts button[data-severity="amber"]').click()
+    assert page.locator("#incident-severity").input_value() == "all"
+    page.locator("#incident-window").select_option("7")
+    assert page.locator("#quake-window").input_value() == "7"
+    page.locator("#incident-window").select_option("1")
     page.locator("#incident-severity").select_option("red")
     assert page.locator("#quake-list button").count() == 1
     assert page.locator("#quake-list button").first.get_attribute("data-severity") == "red"
