@@ -57,7 +57,8 @@
 
   function makeReport(PDF, font, report) {
     const pdf = new PDF({ unit: 'pt', format: 'a4', compress: true, putOnlyUsedFonts: true });
-    pdf.setProperties({ title: 'ClearIntel public news report', creator: 'ClearIntel' });
+    const country=report.kind==='country';
+    pdf.setProperties({ title: country?'ClearIntel country intelligence briefing':'ClearIntel public news report', creator: 'ClearIntel Atlas' });
     pdf.addFileToVFS('ClearIntelReport.ttf', font);
     pdf.addFont('ClearIntelReport.ttf', 'ClearIntelReport', 'normal');
     pdf.setFont('ClearIntelReport');
@@ -72,7 +73,7 @@
       pdf.setFillColor(10, 27, 45);
       pdf.rect(0, 0, width, 52, 'F');
       pdf.setFontSize(14).setTextColor(236, 248, 255).text('ClearIntel', margin, 32);
-      pdf.setFontSize(9).setTextColor(138, 208, 228).text('PUBLIC NEWS RESEARCH', width - margin, 32, { align: 'right' });
+      pdf.setFontSize(9).setTextColor(138, 208, 228).text(country?'COUNTRY INTELLIGENCE':'PUBLIC NEWS RESEARCH', width - margin, 32, { align: 'right' });
       y = 79;
     }
 
@@ -146,14 +147,15 @@
       pdf.setFontSize(9).setTextColor(blue).text(label, margin, y);
       pdf.link(margin, y - 10, pdf.getTextWidth(label), 13, { url });
       y += 17;
+      textBlock(url,8,muted,4);
     }
 
     pageHeader();
-    textBlock('Public news report', 23, ink, 12);
-    textBlock('Search: ' + report.query, 13);
-    textBlock('Feed window: ' + formatUtc(report.windowStart) + ' to ' + formatUtc(report.windowEnd), 10, muted);
+    textBlock(country?'Country intelligence briefing':'Public news report', 23, ink, 12);
+    textBlock((country?'Country: ':'Search: ') + report.query, 13);
+    textBlock(country?'Source snapshot checked: '+formatUtc(report.checkedAt):'Feed window: ' + formatUtc(report.windowStart) + ' to ' + formatUtc(report.windowEnd), 10, muted);
     textBlock('Exported: ' + formatUtc(report.exportedAt), 10, muted);
-    textBlock((report.incidentOnly ? 'Incident-related headlines' : 'All matching headlines') +
+    textBlock((country?'Eligible original linked reports':report.incidentOnly ? 'Incident-related headlines' : 'All matching headlines') +
       ' · ' + report.findings.length + ' of ' + report.total + ' findings included', 10, muted);
     textBlock('Sources queried: ' + (report.sources.join(', ') || 'None reported'), 10, muted);
     if (report.providerErrors.length) textBlock('Feed limitations: ' + report.providerErrors.join('; '), 10, '#825220');
@@ -194,7 +196,7 @@
   async function download(report) {
     const [PDF, font] = await loadResources();
     const day = new Date(report.exportedAt).toISOString().slice(0, 10);
-    makeReport(PDF, font, report).save('ClearIntel-news-report-' + day + '.pdf');
+    makeReport(PDF, font, report).save('ClearIntel-'+(report.kind==='country'?'country-briefing':'news-report')+'-' + day + '.pdf');
   }
 
   window.ClearIntelReport = { download };
