@@ -32,6 +32,7 @@
   <script src="/assets/app.js?v=20261122-result-controls" defer></script>
   <script src="/assets/replay.js" defer></script>
   <script src="/assets/saved-queries.js" defer></script>
+  <script src="/assets/evidence-collection.js" defer></script>
   <script src="/assets/context-help.js" defer></script>
   <script src="/assets/dashboard-sidebar.js" defer></script>
   <script src="/assets/dashboard-visual.js" defer></script>
@@ -319,6 +320,12 @@
         <div id="news-results" class="results" aria-live="polite">
           <div class="empty-state"><div class="empty-mark">⌕</div><strong>Ready to investigate a news topic</strong><p>Enter a location or subject above to search recent coverage. Results will appear here automatically.</p></div>
         </div>
+        <section class="replay-panel" id="evidence-collection" aria-labelledby="collection-heading">
+          <div class="replay-heading"><div><span class="replay-kicker">SAVED EVIDENCE</span><h3 id="collection-heading">Research collection</h3></div><span class="replay-local-tag">This browser only</span></div>
+          <p>Explicitly save useful original news links from search results. Up to 50 public reporting leads, with their recorded source dates. Do not save sensitive personal information. Saved links are not independently verified.</p>
+          <p id="collection-status" role="status">Nothing saved automatically.</p><ul id="collection-list" class="saved-query-list"></ul>
+          <div class="replay-actions"><button id="collection-export" type="button" disabled>Export collection JSON</button><button id="collection-clear" type="button" disabled>Clear collection</button></div>
+        </section>
         <section class="replay-panel" id="saved-research" aria-labelledby="saved-research-heading">
           <div class="replay-heading"><div><span class="replay-kicker">REUSABLE RESEARCH</span><h3 id="saved-research-heading">Saved searches</h3></div><span class="replay-local-tag">This browser only</span></div>
           <p>Save the topic and search settings for reuse. No automatic searches, results, or personal notes are stored here. Do not save sensitive information.</p>
