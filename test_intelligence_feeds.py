@@ -88,3 +88,11 @@ class DedicatedFeedTests(unittest.TestCase):
             result = f.incident_alerts()
             self.assertEqual(result["status"], "unavailable")
             self.assertIsNone(result["checked_at_ms"])
+
+    def test_concurrent_initial_gdacs_check_is_not_an_outage(self):
+        with f._locks["humanitarian"]:
+            with patch.object(f, "_download") as request:
+                result = f.incident_alerts()
+                self.assertEqual(result["status"], "checking")
+                self.assertIsNone(result["checked_at_ms"])
+                request.assert_not_called()
