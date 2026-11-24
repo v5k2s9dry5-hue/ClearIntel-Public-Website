@@ -129,7 +129,7 @@ def check_site(browser, width):
     assert page.get_by_role("heading", name="Intelligence at a glance.").is_visible()
     assert page.locator(".command-overview-card").count() == 3
     assert page.locator("#activity-pulse").is_visible()
-    hero_graph = page.locator("#activity-pulse").bounding_box()
+    hero_graph = page.locator("#global-pulse").bounding_box()
     guide_box = page.locator("#ci-start-guide").bounding_box()
     category_box = page.locator(".command-overview").bounding_box()
     assert hero_graph and guide_box and category_box
@@ -143,6 +143,8 @@ def check_site(browser, width):
           stale:false
         }}));
     }""")
+    assert page.locator("#pulse-quakes").inner_text() == "USGS · 2 earthquakes · Last 24h"
+    assert "Not checked yet" in page.locator("#pulse-fires").inner_text()
     assert page.locator("#activity-pulse-total").inner_text() == "2"
     assert page.locator("#activity-pulse-bars .activity-pulse-bin").count() == 6
     assert page.locator("#activity-pulse-status").inner_text() == "USGS feed checked"
@@ -629,7 +631,7 @@ def check_wide_hero_layout(browser):
     page.goto(ROOT, wait_until="domcontentloaded")
     page.wait_for_function("() => document.querySelector('#activity-pulse-total')?.textContent === '1'",
                            timeout=15000)
-    chart = page.locator("#activity-pulse").bounding_box()
+    chart = page.locator("#global-pulse").bounding_box()
     title = page.locator(".dashboard-heading-group").bounding_box()
     guide = page.locator("#ci-start-guide").bounding_box()
     cards = page.locator(".command-overview").bounding_box()
@@ -645,7 +647,12 @@ def check_wide_hero_layout(browser):
     assert chart["y"] < guide["y"] and chart["y"] < cards["y"]
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     assert page.locator("#activity-pulse-status").inner_text() == "USGS feed checked"
-    print("Desktop 1574px hero layout and USGS-driven chart passed")
+    assert "1 earthquakes" in page.locator("#pulse-quakes").inner_text()
+    assert page.locator("#pulse-latest a").count() == 1
+    assert "Fixture location" in page.locator("#pulse-latest a").inner_text()
+    assert page.locator("#pulse-latest a").get_attribute("href") == observation["events"][0]["url"]
+    assert page.locator("#earth-observations #activity-pulse").count() == 1
+    print("Desktop 1574px global pulse, globe-first layout and USGS-driven chart passed")
     context.close()
 
 
