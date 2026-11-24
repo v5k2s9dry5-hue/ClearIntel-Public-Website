@@ -86,6 +86,18 @@ def check_site(browser, width):
     )
     page = context.new_page()
     page.route("**/globe-texture.jpg", lambda route: route.fulfill(status=503))
+    # Keep the source snapshot stable while testing the chart and category UI.
+    def quake_fixture(route):
+        now = int(time.time() * 1000)
+        return route_json(route, {"generated_at_ms": now, "events": [
+            {"id": "fixture-a", "occurred_at_ms": now - 3600000, "magnitude": 5.1,
+             "place": "Fixture A", "latitude": 20, "longitude": 10,
+             "url": "https://earthquake.usgs.gov/earthquakes/eventpage/fixture-a"},
+            {"id": "fixture-b", "occurred_at_ms": now - 9000000, "magnitude": 4.8,
+             "place": "Fixture B", "latitude": -10, "longitude": 30,
+             "url": "https://earthquake.usgs.gov/earthquakes/eventpage/fixture-b"}
+        ]})
+    page.route("**/api/earthquakes", quake_fixture)
     # Runs in every document, including reloads. The previous test defined an
     # uninvoked function and therefore never installed the clipboard stub.
     page.add_init_script("""Object.defineProperty(navigator, 'clipboard', {
