@@ -57,3 +57,5 @@
 .replay-wording-detail[open] summary{border-bottom:1px solid #2d4b5d}
 .replay-wording-detail .replay-articles{padding-right:12px;max-height:230px}
 .replay-wording-detail .replay-articles li{margin-right:5px}
+
+.saved-query-list{list-style:none;padding:0;margin:.8rem 0;display:grid;gap:.5rem}.saved-query-list li{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;padding:.6rem;border:1px solid #263b4c;border-radius:8px}.saved-query-list li span{flex:1 1 12rem;overflow-wrap:anywhere}.saved-query-list button{min-height:44px}.result-view-field input{width:100%;min-width:0;max-width:100%}
