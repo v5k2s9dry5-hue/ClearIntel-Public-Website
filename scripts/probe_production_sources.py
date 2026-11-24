@@ -29,9 +29,9 @@ def probe(category):
     except (OSError, ValueError, TypeError, KeyError, AttributeError) as exc:
         return category, type(exc).__name__, 0
 
-def texture():
+def texture(path="/globe-texture.jpg"):
     try:
-        with urlopen(Request(BASE + "/globe-texture.jpg", headers={"User-Agent": "ClearIntel-ProductionProbe/1.0"}), timeout=25) as response:
+        with urlopen(Request(BASE + path, headers={"User-Agent": "ClearIntel-ProductionProbe/1.0"}), timeout=25) as response:
             signature = response.read(2)
             valid = response.headers.get_content_type() == "image/jpeg" and signature == b"\xff\xd8"
             return "JPEG received" if valid else "unexpected image response"
@@ -45,4 +45,5 @@ if __name__ == "__main__":
         for category, status, count in pool.map(probe, CATEGORIES):
             print(f"{category}: {status}; {count} returned records", flush=True)
     print("NASA texture: " + texture(), flush=True)
+    print("Archive photograph: " + texture("/archive-card.jpg"), flush=True)
     print("Availability is a point-in-time observation, not a CI pass/fail condition.")
