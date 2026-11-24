@@ -307,16 +307,19 @@
     const width=canvas.clientWidth, height=canvas.clientHeight;
     if(!width||!height)return;
     ctx.clearRect(0,0,width,height);
-    if(flatMap){drawFlatMap(width,height);return;}
+    const textureCredit=document.getElementById('earth-texture-credit');
+    if(flatMap){if(textureCredit)textureCredit.hidden=true;drawFlatMap(width,height);return;}
     const cx=width/2, cy=height/2-4, r=Math.min(width*0.435,height*0.455)*zoom;
     const halo=ctx.createRadialGradient(cx,cy,r*.8,cx,cy,r*1.4);
-    halo.addColorStop(0,'rgba(73,169,225,.18)');halo.addColorStop(.5,'rgba(37,98,155,.08)');halo.addColorStop(1,'rgba(31,72,130,0)');
+    halo.addColorStop(0,'rgba(73,169,225,.32)');halo.addColorStop(.5,'rgba(37,98,155,.12)');halo.addColorStop(1,'rgba(31,72,130,0)');
     ctx.fillStyle=halo;ctx.beginPath();ctx.arc(cx,cy,r*1.4,0,Math.PI*2);ctx.fill();
     const ocean=ctx.createRadialGradient(cx-r*.36,cy-r*.4,r*.04,cx,cy,r*1.15);
     ocean.addColorStop(0,'#10293d');ocean.addColorStop(.65,'#091b2d');ocean.addColorStop(1,'#030a13');
     ctx.fillStyle=ocean;ctx.strokeStyle='#6799b6';ctx.lineWidth=1.15;
     ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);ctx.fill();ctx.stroke();
     ctx.save();ctx.beginPath();ctx.arc(cx,cy,r-.4,0,Math.PI*2);ctx.clip();
+    const textured=zoom===1&&Boolean(window.ClearIntelGlobeSurface?.draw(ctx,cx,cy,r,rot,tilt));
+    if(textureCredit)textureCredit.hidden=!textured;
     ctx.strokeStyle='rgba(137,186,222,.13)';ctx.lineWidth=.65;
     for(const line of meridians)strokeTrack(line,cx,cy,r);
     for(const line of parallels)strokeTrack(line,cx,cy,r);
@@ -349,8 +352,11 @@
     ctx.restore();
     if(zoom===1){
       // A subtle rim follows the globe; no decorative orbital path implying a track.
-      ctx.strokeStyle='rgba(114,198,235,.19)';ctx.lineWidth=1;
-      ctx.beginPath();ctx.arc(cx,cy,r+3,0,2*Math.PI);ctx.stroke();
+      ctx.save();ctx.shadowColor='#65cfff';ctx.shadowBlur=13;
+      ctx.strokeStyle='rgba(111,210,255,.65)';ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.arc(cx,cy,r+.5,0,2*Math.PI);ctx.stroke();ctx.restore();
+      ctx.strokeStyle='rgba(114,198,235,.18)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(cx,cy,r+4,0,2*Math.PI);ctx.stroke();
     }
     pins=reportLayers[layer.value]?drawReportPins(cx,cy,r):[];
     ctx.fillStyle='#9ebbd6';ctx.font='9px system-ui';
@@ -868,6 +874,7 @@
     draw();
   }
   layer.addEventListener('change',changeLayer);
+  window.ClearIntelGlobeSurface?.load(()=>draw());
   fetch('/assets/world-map.json').then(response=>{
     if(!response.ok)throw Error('World map unavailable');
     return response.json();
