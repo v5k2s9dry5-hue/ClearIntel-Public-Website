@@ -7,6 +7,44 @@
   let due = 0;
   let pending = false;
   let timer;
+  const exportPanel=document.getElementById('country-briefing-export');
+  const evidence=document.getElementById('country-briefing-evidence');
+  const summary=document.getElementById('country-briefing-summary');
+  const download=document.getElementById('country-briefing-download');
+  const exportStatus=document.getElementById('country-briefing-status');
+  let selected=new Set(), findings=[], snapshot=null, stale=false, exporting=false;
+  function drawBriefing(entry){
+    const data=entry?.data;
+    if(!data)return;
+    snapshot=data;stale=Boolean(entry.failed);
+    const before=new Set(findings.map(a=>a.url));
+    const links=new Map();
+    for(const group of data.stories||[])for(const article of group.reports||[]){
+      // Editorial digests have separate attribution requirements; omit them from this export.
+      if(!article||article.editorial||typeof article.title!=='string')continue;
+      try{const u=new URL(article.url);if(u.protocol!=='https:'||u.username||u.password)continue;u.hash='';if(!links.has(u.href)&&links.size<30)links.set(u.href,{...article,url:u.href});}catch(_){}
+    }
+    findings=[...links.values()];
+    selected=new Set(findings.filter(a=>selected.has(a.url)||!before.has(a.url)).map(a=>a.url));
+    const update=()=>{download.disabled=exporting||!selected.size;summary.textContent=selected.size+' of '+findings.length+' eligible original reports selected · '+(data.sources_checked||[]).length+' completed source checks'+(stale?' · Older snapshot':'')+'.';};
+    const focused=document.activeElement?.dataset.evidenceUrl;
+    evidence.replaceChildren();
+    for(const article of findings){
+      const label=document.createElement('label'),box=document.createElement('input'),text=document.createElement('span');
+      box.type='checkbox';box.checked=selected.has(article.url);box.dataset.evidenceUrl=article.url;
+      text.textContent=article.title.slice(0,300)+' · '+String(article.source||'Unknown').slice(0,100);
+      box.addEventListener('change',()=>{if(box.checked)selected.add(article.url);else selected.delete(article.url);update();});
+      label.append(box,text);evidence.append(label);if(focused===article.url)box.focus({preventScroll:true});
+    }
+    exportPanel.hidden=false;update();
+  }
+  download.addEventListener('click',async()=>{
+    if(!snapshot||!selected.size||exporting)return;
+    exporting=true;download.disabled=true;exportStatus.textContent='Preparing PDF…';
+    const report={kind:'country',query:country.place,windowStart:null,windowEnd:null,checkedAt:snapshot.checked_at_utc,exportedAt:new Date().toISOString(),incidentOnly:false,total:findings.length,findings:findings.filter(a=>selected.has(a.url)),sources:snapshot.sources_checked||[],providerErrors:snapshot.provider_errors||[],notice:(stale?'Latest refresh failed; this is an older snapshot. ':'')+'Selected original country-news reports, not verified events or independent corroboration. Editorial digests are excluded. Coverage is limited to queried sources.',notes:document.getElementById('country-briefing-notes').value.slice(0,2000)};
+    try{await window.ClearIntelReport.download(report);exportStatus.textContent='PDF prepared.';}catch(_){exportStatus.textContent='PDF export unavailable. Try again.';}finally{exporting=false;download.disabled=!selected.size;}
+  });
+  function render(entry){renderCountryCard(panel,country,entry);drawBriefing(entry);}
   renderCountryCard(panel, country, null);
 
   function schedule() {
@@ -25,15 +63,15 @@
       if (response.status === 429) {
         const retry = Number(response.headers.get('Retry-After'));
         if (Number.isFinite(retry) && retry > 0) delay = Math.max(interval, retry * 1000);
-        renderCountryCard(panel, country, {data: lastData, failed: true, message: 'Country headlines are rate limited. ' + retryMessage(response)});
+        render({data: lastData, failed: true, message: 'Country headlines are rate limited. ' + retryMessage(response)});
       } else {
         if (!response.ok) throw new Error();
         const result = countryRefreshResult(lastData, await response.json());
         lastData = result.data;
-        renderCountryCard(panel, country, result);
+        render(result);
       }
     } catch {
-      renderCountryCard(panel, country, {data: lastData, failed: true});
+      render({data: lastData, failed: true});
     } finally {
       clearTimeout(timeout);
       pending = false;
