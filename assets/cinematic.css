@@ -134,3 +134,21 @@
 @media(max-width:760px){.research-workflow{gap:6px}.research-workflow span{flex-direction:column;align-items:flex-start;font-size:11px}.research-section .help-button,.research-section .citation-copy{min-height:44px;min-width:44px}.research-section .result-view-controls select{min-height:44px}}
 
 .cinematic-pulse .ci-title-help{margin-bottom:5px;align-items:center}.cinematic-pulse .ci-title-help h2{margin:0;min-width:0}.cinematic-pulse #ci-pulse-note{font-size:12px;line-height:1.5}
+
+/* Desktop dashboard: bound the Pulse to the natural globe/intro row height.
+   The feed must never make the rest of the workspace a giant empty area. */
+@media(min-width:1180px){
+ .dashboard.sidebar-collapsed .cinematic-hero{align-items:start}
+ .dashboard.sidebar-collapsed .cinematic-hero>.cinematic-pulse{align-self:stretch;contain:size;min-height:0;min-width:0;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-width:thin;scrollbar-color:#4b788d #0a1725}
+ .dashboard.sidebar-collapsed .cinematic-hero>.cinematic-pulse:focus-visible{outline:2px solid #9ce9f6;outline-offset:3px}
+ .dashboard.sidebar-collapsed .cinematic-hero>.cinematic-pulse .pulse-chart svg{max-height:108px}
+ .dashboard.sidebar-collapsed .cinematic-hero .dashboard-title{padding-top:clamp(12px,2vw,32px)}
+}
+/* At medium desktop widths avoid a tall chart/map spanning row with an empty column. */
+@media(min-width:861px) and (max-width:1179px){
+ .dashboard .cinematic-hero{grid-template-areas:"tools tools" "intro map" "chart chart"}
+ .dashboard .cinematic-hero>.cinematic-pulse{min-width:0}
+}
+@media(min-width:861px){
+ .dashboard:not(.sidebar-collapsed) .cinematic-hero{grid-template-areas:"tools tools" "intro map" "chart chart"}
+}
