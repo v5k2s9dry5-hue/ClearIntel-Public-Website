@@ -703,6 +703,12 @@ def check_site(browser, width):
     page.get_by_role("link", name="Country directory").click()
     page.get_by_role("link", name="Netherlands", exact=True).wait_for()
     assert page.locator(".directory-code").first.is_visible()
+    assert page.locator(".country-workspace-hero").is_visible()
+    page.locator("#country-filter").fill("Netherlands")
+    assert page.locator("#filter-count").inner_text() == "1 match"
+    page.locator("#country-filter-clear").click()
+    assert page.locator("#country-filter").input_value() == ""
+    assert page.locator("#country-filter-clear").is_hidden()
     page.get_by_label("Find a country or territory").fill("UK")
     assert page.get_by_role("link", name="United Kingdom", exact=True).is_visible()
     assert not page.get_by_role("link", name="Netherlands", exact=True).is_visible()
