@@ -795,6 +795,13 @@
         }:{unavailable:true};
         window.dispatchEvent(new CustomEvent('clearintel:earthquake-snapshot',{detail:snapshot}));
       }
+      if(active===reportLayers.wildfires){
+        const snapshot=active.feed?{
+          events:active.feed.events, checked_at_ms:active.feed.checked_at_ms,
+          stale:Boolean(active.feed.stale), unavailable:Boolean(active.failed),
+        }:{unavailable:true};
+        window.dispatchEvent(new CustomEvent('clearintel:wildfire-snapshot',{detail:snapshot}));
+      }
       if(reportLayers[layer.value]===active){renderReports();draw();}
     }
   }
