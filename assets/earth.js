@@ -804,6 +804,11 @@
         militaryArchive=loadReportFeed(active.endpoint).catch(error=>{militaryArchive=null;throw error;});
       }
       const latest=await (active.mode==='archive'?militaryArchive:loadReportFeed(active.endpoint));
+      if(key==='incidents'&&latest.status==='checking'){
+        active.retryAt=Date.now()+5000;
+        active.failed=false;
+        return;
+      }
       if(!Array.isArray(latest.events)||(!active.mode&&!Number.isFinite(latest[active.feedTime])))throw Error('Invalid report data');
       if(active.mode==='countries'){
         for(const event of latest.events)countrySelect.add(new Option(event.place,event.id));
