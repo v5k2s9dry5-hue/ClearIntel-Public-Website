@@ -278,12 +278,13 @@
       </div>
     </section>
     <section id="research" class="section container research-section">
-      <div class="section-heading"><div><h2>Public news research</h2><p>Search recent reporting and open the original sources.</p></div><button type="button" class="ci-help-dot" aria-label="Explain public news search" data-ci-note="ci-research-note" aria-expanded="false" aria-controls="ci-research-note">?</button></div>
+      <div class="section-heading"><div><span class="section-index">01 / RESEARCH WORKSPACE</span><h2>Public news research</h2><p>Search recent reporting and open the original sources.</p></div><button type="button" class="ci-help-dot" aria-label="Explain public news search" data-ci-note="ci-research-note" aria-expanded="false" aria-controls="ci-research-note">?</button></div>
       <p id="ci-research-note" class="ci-inline-help" hidden>Search for a country, subject or developing story and choose the last 24 hours or 7 days. Results are published headlines with source links, not confirmed events. A country brief and a filtered topic search run separately; either may be unavailable or rate-limited.</p>
       <div class="research-panel">
-        <form id="news-form" class="news-form">
+        <form id="news-form" class="news-form" aria-busy="false">
+          <div class="research-workflow" aria-label="Research steps"><span><b>01</b> Choose a topic</span><span><b>02</b> Set filters</span><span><b>03</b> Review sources</span></div>
           <div class="field-head"><label for="news-query">What are you researching?</label><div class="help-wrapper"><button type="button" class="help-button" aria-label="Help with news searches" aria-expanded="false" data-help="Search for a location or topic, for example ‘Iran bombing today’. ClearIntel shows published headlines within the time window. Headlines are not independently verified incidents.">?</button></div></div>
-          <div class="search-input-row"><div class="search-input"><span class="search-symbol" aria-hidden="true">⌕</span><input id="news-query" type="search" required maxlength="140" minlength="2" placeholder="e.g. Iran bombing today" autocomplete="off"></div><button class="button button-primary search-submit" type="submit" id="news-submit">Search recent reports <span aria-hidden="true">→</span></button></div>
+          <div class="search-input-row"><div class="search-input"><span class="search-symbol" aria-hidden="true">⌕</span><input id="news-query" type="search" required maxlength="140" minlength="2" placeholder="e.g. UK economy or Netherlands" autocomplete="off"></div><button class="button button-primary search-submit" type="submit" id="news-submit">Search recent reports <span aria-hidden="true">→</span></button></div>
           <div class="filter-row"><div class="filter-field"><label for="news-window">Feed date window</label><select id="news-window"><option value="24h">Last 24 hours (UTC)</option><option value="7d">Last 7 days (UTC)</option></select></div><label class="checkbox-line"><input id="incident-only" type="checkbox"><span>Incident-related headlines only</span></label><div class="help-wrapper"><button type="button" class="help-button" aria-label="Help with incident filtering" aria-expanded="false" data-help="Filters out many opinion, prediction and political-commentary headlines that do not describe a reported attack, strike or explosion. It may also miss valid reports. A match is not proof an incident occurred.">?</button></div></div>
           <p class="input-note">Publicly available reporting only. Never enter sensitive personal information. Feed dates may reflect publication or first-seen time, not the date an incident happened.</p>
         </form>
@@ -294,7 +295,7 @@
         </div>
         <section class="replay-panel" id="intelligence-replay" aria-labelledby="replay-heading">
           <div class="replay-heading">
-            <div><span class="replay-kicker">INTELLIGENCE REPLAY / R0 + COMPARISON</span><h3 id="replay-heading">Observed research snapshots</h3></div>
+            <div><span class="replay-kicker">INTELLIGENCE REPLAY / SAVED SEARCHES</span><h3 id="replay-heading">Observed research snapshots</h3></div>
             <div class="ci-heading-actions"><span class="replay-local-tag">This browser only</span><button type="button" class="ci-help-dot" aria-label="Explain Intelligence Replay" data-ci-note="ci-replay-note" aria-expanded="false" aria-controls="ci-replay-note">?</button></div>
           </div>
           <p id="ci-replay-note" class="ci-inline-help" hidden>Replay is a history you create yourself. First run a public news search, then choose Save current snapshot. Save the same search again later to compare what ClearIntel observed. It cannot rewind to dates when no snapshot was saved; browser-local data can be cleared anytime.</p>

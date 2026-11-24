@@ -122,3 +122,13 @@
 .command-art-credit{margin:4px 0 18px;color:#adc3d2;font-size:10px;line-height:1.5;text-align:right}
 .command-art-credit a{color:#ade1eb}
 @media(max-width:860px){.command-overview .command-overview-card{min-height:184px}.command-art-credit{text-align:left}}
+
+/* Research workspace: clear sequence, visible loading, reduced motion. */
+.research-workflow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #294459}
+.research-workflow span{display:flex;align-items:center;gap:7px;color:#bdd4e3;font-size:12px;line-height:1.4}
+.research-workflow b{color:#8ee4f4;border:1px solid #3a6074;border-radius:6px;padding:5px;background:#102436;font-size:10px}
+.research-section .state-note.loading{position:relative;padding-left:52px;min-height:80px;border:1px solid #315a71;background:#0c2030;border-radius:8px}
+.research-spinner{position:absolute;left:17px;top:20px;width:20px;height:20px;border:2px solid #36596e;border-top-color:#9ce9f6;border-radius:50%;animation:research-spin .9s linear infinite}
+@keyframes research-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.research-spinner{animation:none;border-color:#9ce9f6}}
+@media(max-width:760px){.research-workflow{gap:6px}.research-workflow span{flex-direction:column;align-items:flex-start;font-size:11px}.research-section .help-button,.research-section .citation-copy{min-height:44px;min-width:44px}.research-section .result-view-controls select{min-height:44px}}

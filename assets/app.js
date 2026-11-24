@@ -150,7 +150,11 @@ $('year').textContent=new Date().getFullYear();
 
 function fillStatus(title,description,kind='info'){
   const area=$('news-results');area.replaceChildren();
-  const state=el('div','state-note '+kind);state.append(el('strong','',title),el('p','',description));area.append(state);
+  const state=el('div','state-note '+kind);
+  if(kind==='loading'){
+    const progress=el('span','research-spinner');progress.setAttribute('aria-hidden','true');state.append(progress);
+  }
+  state.append(el('strong','',title),el('p','',description));area.append(state);
 }
 function reportExport(payload,search){
   const controls=el('section','report-export');
@@ -403,6 +407,7 @@ function pauseFilteredSearch(response) {
   searchRetryTimer = setTimeout(() => {
     searchRetryTimer = undefined;
     searchSubmit.disabled = false;
+    searchSubmit.textContent='Search recent reports →';
     fillStatus('Ready to search again', 'Choose Search recent reports to retry with your current filters.');
   }, delay * 1000);
 }
@@ -419,8 +424,10 @@ $('news-form').addEventListener('submit',async e=>{
   const incidentOnly=$('incident-only').checked;
   const timeWindow=$('news-window').value;
   searchSubmit.disabled=true;
+  searchSubmit.textContent='Searching…';
+  $('news-form').setAttribute('aria-busy','true');
   document.dispatchEvent(new Event('clearintel:search-start'));
-  fillStatus('Checking recent news feeds…','Looking for published headlines that actually match the time window and subject.');
+  fillStatus('Checking recent news feeds…','Looking for published headlines that match the selected time window and subject.','loading');
   $('news-results').scrollIntoView({behavior:'smooth',block:'nearest'});
   let timeout;
   try{
@@ -450,5 +457,9 @@ $('news-form').addEventListener('submit',async e=>{
       (err.name==='AbortError'?'The sources did not respond within the time limit. Try again.':err.message)+
       ' Any country briefing above is separate; it is not a result from this failed search.','error');
   }
-  finally{clearTimeout(timeout);searchSubmit.disabled = searchRetryTimer !== undefined;}
+  finally{
+    clearTimeout(timeout);searchSubmit.disabled = searchRetryTimer !== undefined;
+    searchSubmit.textContent=searchRetryTimer!==undefined?'Search temporarily paused':'Search recent reports →';
+    $('news-form').setAttribute('aria-busy','false');
+  }
 });

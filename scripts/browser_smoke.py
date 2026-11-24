@@ -599,6 +599,8 @@ def check_site(browser, width):
     page.locator("#search-country .country-top-stories li").wait_for()
     page.get_by_text("Ready to search again").wait_for(timeout=8000)
     assert page.locator("#news-submit").is_enabled()
+    assert page.locator("#news-form").get_attribute("aria-busy") == "false"
+    assert page.locator(".research-workflow span").count() == 3
     assert not retry_requests, retry_requests
     page.remove_listener("request", track_search)
 
