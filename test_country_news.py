@@ -251,3 +251,18 @@ class CountryNewsTests(TestCase):
         self.assertEqual(result[0]['country_code'], 'GB')
         self.assertIsNone(result[0]['publisher_rank'])
         self.assertEqual(result[0]['source'], 'Regional desk')
+
+    def test_invalid_publisher_items_fail_coverage_check(self):
+        from country_news import _publisher_reports
+        malformed = b"<rss><channel><item><title>Missing date and link</title></item></channel></rss>"
+        with patch('country_news._get', return_value=malformed):
+            with self.assertRaises(ValueError):
+                _publisher_reports('https://example.org/rss', 'Fixture', 'GB', True)
+        with patch('country_news._get', return_value=b"<rss><channel/></rss>"):
+            self.assertEqual(_publisher_reports('https://example.org/rss', 'Fixture', 'GB', True), [])
+
+    def test_publisher_xml_rejects_entities(self):
+        from country_news import _publisher_reports
+        with patch('country_news._get', return_value=b'<!DOCTYPE rss><rss><channel/></rss>'):
+            with self.assertRaises(ValueError):
+                _publisher_reports('https://example.org/rss', 'Fixture', 'GB', True)
