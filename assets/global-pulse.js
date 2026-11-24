@@ -5,6 +5,12 @@
   const layer=document.getElementById('globe-layer');
   const list=document.getElementById('pulse-latest');
   const status=document.getElementById('pulse-latest-status');
+  const latestFilter=document.getElementById('pulse-latest-filter');
+  const latestMore=document.getElementById('pulse-latest-more');
+  const coverage=document.getElementById('pulse-coverage');
+  let expandedLatest=false;
+  latestFilter.addEventListener('change',()=>{expandedLatest=false;render();});
+  latestMore.addEventListener('click',()=>{expandedLatest=!expandedLatest;render();});
   const snapshots={};
   const publications={};
   const publicationNames={geopolitical:'FCDO',cyber:'NCSC',economic:'ECB',humanitarian:'GDACS',travel:'FCDO travel'};
@@ -90,7 +96,7 @@
         const url=safeUrl(e.url);
         if(!url)continue;
         const title=key==='earthquakes'?'M'+String(e.magnitude)+' earthquake — '+String(e.place):String(e.title);
-        recent.push({time:e[source.field],title:title.slice(0,180),url,source:source.label,stale});
+        recent.push({key,time:e[source.field],title:title.slice(0,180),url,source:source.label,stale});
       }
     }
     for(const [key,snap] of Object.entries(publications)){
@@ -109,21 +115,37 @@
       for(const row of rows){
         const time=Date.parse(row.published_at_utc);
         bins[Math.min(5,Math.floor((time-(now-86400000))/14400000))]++;
-        recent.push({time,title:String(row.title).slice(0,180),url:safeUrl(row.url),source:name+' publication',stale});
+        recent.push({key,time,title:String(row.title).slice(0,180),url:safeUrl(row.url),source:name+' publication',stale});
       }
       series.push({key,label:name+' publications',bins,stale});
     }
     drawChart(series,now);
+    const fresh=series.filter(s=>!s.stale).length;
+    const older=series.length-fresh;
+    const checked=Object.keys(snapshots).length+Object.keys(publications).length;
+    coverage.textContent=fresh+' of 7 automatic sources current'+(older?' · '+older+' older':'')+(checked>series.length?' · '+(checked-series.length)+' unavailable':'');
     recent.sort((a,b)=>b.time-a.time);
     const seen=new Set();
+    const selected=latestFilter.value;
+    const matches=recent.filter(row=>{
+      if(selected!=='all'&&row.key!==selected)return false;
+      if(seen.has(row.url))return false;
+      seen.add(row.url);return true;
+    });
+    const limit=expandedLatest?12:3;
+    const focusedUrl=list.contains(document.activeElement)?document.activeElement.href:null;
     list.replaceChildren();
-    for(const row of recent.filter(row=>{if(seen.has(row.url))return false;seen.add(row.url);return true;}).slice(0,3)){
+    for(const row of matches.slice(0,limit)){
       const li=document.createElement('li'), link=document.createElement('a'), meta=document.createElement('small');
       link.href=row.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=row.title;
       meta.textContent=row.source+' · '+new Date(row.time).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'short',timeStyle:'short'})+' UTC'+(row.stale?' · Older snapshot':'');
       li.append(link,meta);list.append(li);
+      if(focusedUrl===link.href)link.focus({preventScroll:true});
     }
-    status.textContent=recent.length?'Recent source observations and publications; coverage is not exhaustive.':(Object.keys(snapshots).length||Object.keys(publications).length)?'No recent linked observations received; coverage may be incomplete.':'Waiting for observations from connected sources.';
+    latestMore.hidden=matches.length<=3;
+    latestMore.textContent=expandedLatest?'Show fewer':'Show more ('+Math.min(12,matches.length)+' reports)';
+    latestMore.setAttribute('aria-expanded',String(expandedLatest));
+    status.textContent=matches.length?'Recent source observations and publications; coverage is not exhaustive.':(Object.keys(snapshots).length||Object.keys(publications).length)?'No linked reports for this selection in the last 24 hours. Coverage may be incomplete.':'Waiting for observations from connected sources.';
   }
   for(const key of Object.keys(sources)){
     window.addEventListener('clearintel:'+ (key==='earthquakes'?'earthquake':'wildfire')+'-snapshot',event=>{
