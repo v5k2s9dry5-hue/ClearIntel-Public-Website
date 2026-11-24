@@ -128,7 +128,22 @@ def check_site(browser, width):
             return route_json(route, {**NEWS, "provider_errors": ["gdelt: timeout"]})
         return route_json(route, NEWS)
     page.route("**/api/news", news_fixture)
+    page.route("**/api/incident-alerts", lambda route: route_json(route, {
+        "status": "available", "checked_at_ms": int(time.time()*1000),
+        "events": [{"id": "fixture-"+level, "severity": level, "title": "Fixture hazard "+level,
+                    "reported_at_ms": int(time.time()*1000)-3600000, "latitude": 12, "longitude": 20,
+                    "url": "https://www.gdacs.org/report.aspx?eventid="+str(index)}
+                   for index, level in enumerate(("green", "amber", "red"))]
+    }))
     page.goto(ROOT, wait_until="domcontentloaded")
+    assert page.locator("#globe-layer").input_value() == "incidents"
+    page.locator("#incident-count-red").filter(has_text="1").wait_for(state="visible", timeout=10000)
+    assert page.locator("#incident-count-green").inner_text() == "1"
+    assert page.locator("#incident-count-amber").inner_text() == "1"
+    page.locator("#incident-severity").select_option("red")
+    assert page.locator("#quake-list button").count() == 1
+    assert page.locator("#quake-list button").first.get_attribute("data-severity") == "red"
+    page.locator("#globe-layer").select_option("earthquakes")
     page.evaluate("""() => {
         const response = new Response(null, {status: 429, headers: {'Retry-After': '180'}});
         if (ClearIntelMapRefresh.retryAt(response, 1000) !== 181000) throw Error('Retry-After ignored');
@@ -751,6 +766,7 @@ def check_wide_hero_layout(browser):
     page.route("**/api/earthquakes", lambda route: route_json(route, observation))
     page.route("**/api/wildfires", lambda route: route.fulfill(status=503))
     page.route("**/api/intelligence-pulse", lambda route: route_json(route, {"status": "checking", "feeds": {}}))
+    page.route("**/api/incident-alerts", lambda route: route.fulfill(status=503))
     page.goto(ROOT, wait_until="domcontentloaded")
     page.wait_for_function("() => document.querySelector('#activity-pulse-total')?.textContent === '1'",
                            timeout=15000)
