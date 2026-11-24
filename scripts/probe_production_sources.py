@@ -1,6 +1,6 @@
 """Bounded production feed and static texture checks; no secrets or report contents."""
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 import json
@@ -40,10 +40,47 @@ def texture(path="/globe-texture.jpg"):
     except OSError as exc:
         return type(exc).__name__
 
+def summary():
+    """Check the actual aggregated dashboard API rather than only individual feeds."""
+    try:
+        with urlopen(Request(BASE + "/api/intelligence-pulse", headers={"User-Agent": "ClearIntel-ProductionProbe/1.0"}), timeout=35) as response:
+            data = response.read(MAX + 1)
+        if len(data) > MAX:
+            return "oversized response"
+        payload = json.loads(data)
+        if payload.get("status") == "checking":
+            return "another source check in progress"
+        feeds = payload.get("feeds", {})
+        if set(feeds) != set(CATEGORIES):
+            return "incomplete schema"
+        return ", ".join(f"{key}={feeds[key].get('status', 'unknown')}" for key in CATEGORIES)
+    except (OSError, ValueError, TypeError, AttributeError) as exc:
+        return type(exc).__name__
+
+def observation(path, time_field):
+    try:
+        with urlopen(Request(BASE + path, headers={"User-Agent": "ClearIntel-ProductionProbe/1.0"}), timeout=25) as response:
+            data = response.read(MAX + 1)
+        if len(data) > MAX:
+            return "oversized response"
+        payload = json.loads(data)
+        rows = payload.get("events")
+        stamp = payload.get(time_field)
+        if not isinstance(rows, list) or not isinstance(stamp, (int, float)):
+            return "invalid schema"
+        age = datetime.now(timezone.utc).timestamp() - stamp / 1000
+        state = "older snapshot" if payload.get("stale") or age > 300 else "current"
+        return f"{state}; {len(rows)} returned observations"
+    except (OSError, ValueError, TypeError, AttributeError) as exc:
+        return type(exc).__name__
+
 if __name__ == "__main__":
     with ThreadPoolExecutor(max_workers=2) as pool:
         for category, status, count in pool.map(probe, CATEGORIES):
             print(f"{category}: {status}; {count} returned records", flush=True)
+    print("Aggregate Pulse: " + summary(), flush=True)
+    print("USGS observations: " + observation("/api/earthquakes", "generated_at_ms"), flush=True)
+    print("NASA wildfire observations: " + observation("/api/wildfires", "checked_at_ms"), flush=True)
     print("NASA texture: " + texture(), flush=True)
     print("Archive photograph: " + texture("/archive-card.jpg"), flush=True)
     print("Availability is a point-in-time observation, not a CI pass/fail condition.")
