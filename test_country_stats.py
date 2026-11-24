@@ -16,6 +16,9 @@ class StatsTests(unittest.TestCase):
         self.assertEqual(len(result),1)
         self.assertEqual(result[0]["value"],200)
         self.assertEqual(result[0]["year"],"2023")
+    def test_negative_growth_is_valid(self):
+        result=parse_indicators([{},[{"country":{"id":"GB"},"indicator":{"id":"NY.GDP.MKTP.KD.ZG"},"date":"2023","value":-1.2}]],"GB")
+        self.assertEqual(result[0]["value"],-1.2)
     def test_empty_and_invalid(self):
         self.assertEqual(parse_indicators([{},[]],"GB"),[])
         with self.assertRaises(ValueError):
