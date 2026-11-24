@@ -112,7 +112,7 @@
             y:cy-r*(Math.sin(b)*Math.cos(t)-Math.cos(b)*Math.cos(a)*Math.sin(t)), front};
   };
   function fit() {
-    const ratio=Math.min(window.devicePixelRatio||1,2);
+    const ratio=Math.min(window.devicePixelRatio||1,mobileDashboard.matches?1.5:2);
     const width=Math.max(1,Math.floor(canvas.clientWidth*ratio));
     const height=Math.max(1,Math.floor(canvas.clientHeight*ratio));
     if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
@@ -391,7 +391,8 @@
     if(!lastTick)lastTick=now;
     const delta=Math.min(now-lastTick,80);lastTick=now;
     rot=(rot+delta*.0033/zoom)%360;
-    if(now-lastDraw>35){draw();lastDraw=now;}
+    // Limit passive rotation redraws on small screens; direct manipulation still draws immediately.
+    if(now-lastDraw>(mobileDashboard.matches?65:35)){draw();lastDraw=now;}
     syncRotation();
   }
   function showDashboardView(view){
