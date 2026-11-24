@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/probe_production_sources.py'
       - '.github/workflows/production-source-probe.yml'
+      - 'intelligence_feeds.py'
 permissions:
   contents: read
 jobs:
@@ -18,3 +19,7 @@ jobs:
           python-version: '3.12'
       - name: Check deployed source availability (informational)
         run: python scripts/probe_production_sources.py
+      - name: Install feed parser dependencies
+        run: pip install -r requirements.txt
+      - name: Verify candidate GDACS parser (informational)
+        run: python scripts/probe_gdacs_parser.py
