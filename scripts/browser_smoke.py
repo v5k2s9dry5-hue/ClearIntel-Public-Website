@@ -641,6 +641,19 @@ def check_site(browser, width):
     page.get_by_role("button", name="Reset view").click()
     assert page.locator("#result-publisher").input_value() == ""
     assert page.locator("#result-order").input_value() == "original"
+    page.locator("#result-wording").fill("no-such-fixture-phrase")
+    assert page.locator(".result-view-count").inner_text() == "Showing 0 of 1 headlines"
+    page.get_by_role("button", name="Reset view").click()
+    assert page.locator("#result-wording").input_value() == ""
+    saved_topic = page.locator("#news-query").input_value()
+    page.locator("#saved-query-save").click()
+    assert page.locator("#saved-query-list li").count() == 1
+    page.locator("#news-query").fill("Different search")
+    page.locator("#saved-query-list button").first.click()
+    assert page.locator("#news-query").input_value() == saved_topic
+    assert page.locator("#saved-query-status").inner_text().startswith("Settings loaded.")
+    page.locator("#saved-query-list button").last.click()
+    assert page.locator("#saved-query-list li").count() == 0
     assert page.locator("#news-results .report-include input").first.is_checked()
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     page.locator("#search-country .country-top-stories li").wait_for()
