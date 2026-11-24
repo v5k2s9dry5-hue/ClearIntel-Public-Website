@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException
 
 router = APIRouter()
 SOURCES = {
+    "humanitarian": ("GDACS disaster alerts", "https://www.gdacs.org/xml/rss.xml", "https://www.gdacs.org/alerts/", {"www.gdacs.org", "gdacs.org"}),
     "geopolitical": ("FCDO", "https://www.gov.uk/government/organisations/foreign-commonwealth-development-office.atom", "https://www.gov.uk/government/organisations/foreign-commonwealth-development-office", {"www.gov.uk"}),
     "cyber": ("UK NCSC", "https://www.ncsc.gov.uk/api/1/services/v1/news-rss-feed.xml", "https://www.ncsc.gov.uk/information/rss-feeds", {"www.ncsc.gov.uk", "ncsc.gov.uk"}),
     "economic": ("European Central Bank", "https://www.ecb.europa.eu/rss/press.html", "https://www.ecb.europa.eu/home/html/rss.en.html", {"www.ecb.europa.eu"}),
