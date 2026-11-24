@@ -389,11 +389,12 @@
     viewControls.hidden=false;
     showDashboardView('map');
   }
-  const panels = dashboard.querySelector('.dashboard-panels');
+  const panels = dashboard.querySelector('.dashboard-workspace');
   let swipeStart = null;
   panels.addEventListener('pointerdown', event => {
     swipeStart = null;
     if (!mobileDashboard.matches || event.pointerType !== 'touch' || !event.isPrimary) return;
+    if (!event.target.closest('#dashboard-map, #dashboard-feed')) return;
     if (event.target.closest('canvas, a, button, input, select, textarea, label, [role="group"]')) return;
     swipeStart = {id: event.pointerId, x: event.clientX, y: event.clientY};
   });
