@@ -91,6 +91,7 @@
   const dedicatedSource=document.getElementById('pulse-dedicated-source');
   let selectedCategory=null, generation=0, lastCheck=0;
   const categories={
+    humanitarian:['GDACS disaster alerts','https://www.gdacs.org/alerts/'],
     geopolitical:['FCDO official publications','https://www.gov.uk/government/organisations/foreign-commonwealth-development-office'],
     cyber:['NCSC cybersecurity news','https://www.ncsc.gov.uk/information/rss-feeds'],
     economic:['ECB economic releases','https://www.ecb.europa.eu/home/html/rss.en.html'],
@@ -120,7 +121,7 @@
       dedicatedList.replaceChildren(...items);
       const checked=Date.parse(data.checked_at_utc);
       const label=Number.isFinite(checked)?' · Checked '+new Date(checked).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'short',timeStyle:'short'})+' UTC':'';
-      dedicatedStatus.textContent=(data.status==='available'?'Latest available publications':data.status==='stale'?'Older cached publications — refresh unavailable':'Source unavailable')+label+(items.length?'':' · No linked publications returned');
+      dedicatedStatus.textContent=(data.status==='available'?'Latest available publications':data.status==='stale'?'Older cached publications — refresh unavailable':'Source unavailable')+label+(items.length?'':' · No linked publications returned')+(category==='humanitarian'?' · Sudden-onset disaster coverage only; broader ReliefWeb coverage awaits approval.':'');
     }catch{
       if(revision!==generation)return;
       dedicatedStatus.textContent='Feed check unavailable. Open the official source for current information.';
@@ -131,6 +132,9 @@
     btn.setAttribute('aria-expanded','false');
     btn.addEventListener('click',()=>{
       const category=btn.dataset.pulseCategory;
+      if(selectedCategory===category&&!dedicated.hidden){
+        generation++;selectedCategory=null;dedicated.hidden=true;btn.setAttribute('aria-expanded','false');return;
+      }
       for(const other of root.querySelectorAll('[data-pulse-category]'))other.setAttribute('aria-expanded',String(other===btn));
       selectedCategory=category; dedicated.hidden=false;
       dedicatedTitle.textContent=categories[category][0];
