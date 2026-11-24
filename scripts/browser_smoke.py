@@ -165,7 +165,7 @@ def check_site(browser, width):
     assert page.locator("#earth-canvas").evaluate("(e) => e.width <= Math.ceil(e.clientWidth * 1.5)")
     page.locator("#incident-count-red").filter(has_text="1").wait_for(state="visible", timeout=10000)
     assert page.locator(".incident-counts").bounding_box()["y"] < page.locator("#earth-canvas").bounding_box()["y"]
-    assert page.locator(".site-header .brand img").get_attribute("src").startswith("/assets/favicon.svg")
+    assert page.locator(".site-header .header-monogram").evaluate("(e) => getComputedStyle(e).backgroundImage.includes('data:image/webp;base64,')")
     assert page.locator(".pulse-category-icon").count() == 8
     page.locator("#workspace-settings summary").click()
     page.locator("#compact-dashboard").check()
