@@ -79,3 +79,17 @@
 .pulse-categories button[aria-expanded="true"]{border-color:#85e0ef;background:#143448}
 #pulse-dedicated-list{max-height:310px;overflow-y:auto;overscroll-behavior:contain}
 #pulse-dedicated-source{display:inline-block;padding-block:8px;font-size:12px;color:#a6e8f5}
+
+/* Architectural command-room atmosphere. Decorative SVG, not a data display. */
+.dashboard .cinematic-hero{position:relative;isolation:isolate}
+.dashboard .cinematic-hero::before{content:"";position:absolute;z-index:-1;inset:0 -12px 0;border-radius:18px;pointer-events:none;background-image:linear-gradient(90deg,#080f1bea,#080f1b40 52%,#080f1bd9),url('/assets/command-room.svg');background-size:cover;background-position:center top;opacity:.85}
+.dashboard .cinematic-hero .dashboard-title{align-self:start;padding-top:clamp(24px,5vw,76px)}
+.dashboard .cinematic-hero .dashboard-title h1{letter-spacing:-.055em}
+.dashboard .cinematic-hero .dashboard-map{border-radius:12px;overflow:hidden}
+.dashboard .cinematic-hero .cinematic-pulse{border:1px solid #36576c;border-radius:12px;background:linear-gradient(160deg,#132a3ce8,#07121fec);padding:14px;box-shadow:0 12px 40px #0005}
+.dashboard .cinematic-hero .pulse-categories button,.dashboard .cinematic-hero .pulse-categories a{min-height:58px;padding:8px;line-height:1.25}
+.dashboard .cinematic-hero .pulse-categories small{font-size:10px}
+.dashboard .cinematic-hero .pulse-latest a{text-decoration:none}
+.dashboard .cinematic-hero .pulse-latest a:hover{text-decoration:underline}
+@media(min-width:1180px) and (max-width:1379px){.dashboard.sidebar-collapsed .cinematic-hero{grid-template-columns:minmax(220px,.8fr) minmax(330px,1.35fr) minmax(264px,1fr);grid-template-areas:"tools tools tools" "intro map chart";gap:14px}.dashboard.sidebar-collapsed .cinematic-hero h1{font-size:clamp(36px,3.6vw,48px)}.dashboard.sidebar-collapsed .cinematic-hero .globe-canvas-wrap{height:clamp(320px,30vw,410px)}.dashboard.sidebar-collapsed #dashboard-search{flex-wrap:wrap}.dashboard.sidebar-collapsed #dashboard-search input{flex-basis:100%}}
+@media(max-width:860px){.dashboard .cinematic-hero::before{inset:0 -4px;opacity:.48;background-position:50% 0;background-size:auto 640px;background-repeat:no-repeat}.dashboard .cinematic-hero .dashboard-title{padding-block:8px}.dashboard .cinematic-hero .cinematic-pulse{padding:12px}.dashboard .cinematic-hero .pulse-categories{grid-template-columns:repeat(2,minmax(0,1fr))}}
