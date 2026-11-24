@@ -19,6 +19,7 @@
   if (!save || !clear || !status || !history || !select || !detail ||
       !compareButton || !compareHint || !comparePanel || !compareResult) return;
 
+  let comparison=null;
   let latest = null;
   let snapshots = [];
   let storageReadable = true;
@@ -106,6 +107,7 @@
     return li;
   }
   function drawComparison(older,newer) {
+    comparison={older,newer};
     compareResult.replaceChildren();
     const changes=calculateChanges(older,newer);
     compareResult.append(
@@ -164,6 +166,7 @@
       compareResult.append(node('p','replay-no-change','No headline or publisher differences found in these saved results.'));
   }
   function updateComparison(snapshot){
+    comparison=null;
     comparePanel.hidden=true;
     compareResult.replaceChildren();
     const index=snapshots.indexOf(snapshot);
@@ -356,7 +359,17 @@
     }
   });
   select.addEventListener('change', drawSnapshot);
-  compareEarlier.addEventListener('change',()=>{comparePanel.hidden=true;compareResult.replaceChildren();});
+  compareEarlier.addEventListener('change',()=>{comparison=null;comparePanel.hidden=true;compareResult.replaceChildren();});
+  $('replay-export-comparison').addEventListener('click',()=>{
+    if(!comparison||comparePanel.hidden)return;
+    const {older,newer}=comparison;
+    const clean=a=>({title:short(a.title,240),publisher:short(a.source,100),provider:short(a.provider,80),source_url:sourceLink(a.url),source_time_utc:short(a.feed_time_utc,50),time_basis:short(a.time_basis,40)});
+    const describe=s=>({observed_at_utc:s.observed_at_utc,total_results:s.total_results,saved_count:s.articles.length,sources_checked:s.sources_checked||[],provider_errors:s.provider_errors||[]});
+    const changes=calculateChanges(older,newer);
+    const manifest={schema:'clearintel.replay-comparison.v1',exported_at_utc:new Date().toISOString(),query:short(newer.query,140),window:newer.window,incident_only:Boolean(newer.incident_only),earlier:describe(older),later:describe(newer),limitations:'Differences in saved, potentially incomplete search results; not evidence of article publication or deletion, independent corroboration, or real-world event changes.',newly_present:changes.added.map(clean),no_longer_present:changes.removed.map(clean),changed:changes.changed.map(x=>({earlier:clean(x.prior),later:clean(x.article)})),unchanged:changes.unchanged.map(clean)};
+    const url=URL.createObjectURL(new Blob([JSON.stringify(manifest,null,2)+'\\n'],{type:'application/json'}));
+    const link=node('a');link.href=url;link.download='ClearIntel-replay-comparison-'+manifest.exported_at_utc.slice(0,10)+'.json';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  });
   compareButton.addEventListener('click',()=>{
     const selected=snapshots.find(s=>s.id===select.value);
     const older=selected&&snapshots.find(s=>s.id===compareEarlier.value&&snapshots.indexOf(s)>snapshots.indexOf(selected)&&searchMatches(s,selected));
