@@ -50,7 +50,7 @@
   <header class="site-header">
     <div class="container nav-bar">
       <a class="brand" href="/" aria-label="ClearIntel Atlas homepage">
-        <span class="brand-mark header-monogram" aria-hidden="true"></span>
+        <img class="brand-mark" src="/assets/favicon.svg" alt="" width="42" height="42">
         <span>Clear<span class="brand-secondary">Intel</span> Atlas<small>PUBLIC-SOURCE RESEARCH</small></span>
       </a>
       <nav class="main-nav" aria-label="Primary navigation"><a href="#top">Home</a><a href="#dashboard-map">Map</a><a href="#research">Research</a><a href="/countries">Countries</a><a href="#dashboard-source-guide">Sources</a><a href="#contact" class="nav-contact">Make an enquiry <span aria-hidden="true">↗</span></a></nav>
@@ -73,15 +73,15 @@
         <div id="dashboard-view-controls" class="dashboard-view-controls" role="group" aria-label="Dashboard shortcuts" hidden>
           <button type="button" id="dashboard-map-tab" aria-controls="dashboard-map" aria-pressed="true"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg><span>Map</span></button>
           <button type="button" id="dashboard-feed-tab" aria-controls="dashboard-feed" aria-pressed="false"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h14M5 12h14M5 18h9"/></svg><span>Feed</span></button>
-          <button type="button" id="dashboard-search-tab"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><span>Search</span></button>
+          <button type="button" id="dashboard-search-tab" aria-pressed="false"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><span>Search</span></button>
           <a href="/countries"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h13v18H5zM8 8h7M8 12h7M8 16h5"/></svg><span>Countries</span></a>
         </div>
         <div class="dashboard-toolbar cinematic-hero">
           <div class="dashboard-title">
-            <div class="dashboard-heading-group"><span class="workspace-kicker">CLEARINTEL ATLAS / GLOBAL SITUATION ROOM</span><h1 id="dashboard-heading">Intelligence <span class="dashboard-headline-accent">at a glance.</span></h1><p class="dashboard-lede">ClearIntel Atlas is a free public-source intelligence dashboard for exploring a global news map, country briefs and source-linked observations. Reports are research leads, not independently verified incidents.</p></div>
+            <div class="dashboard-heading-group"><span class="workspace-kicker">CLEARINTEL ATLAS / GLOBAL SITUATION ROOM</span><h1 id="dashboard-heading">Intelligence <span class="dashboard-headline-accent">at a glance.</span></h1><p class="dashboard-lede">Explore public intelligence, country briefs and source-linked reporting.<span class="desktop-lede"> Reports are research leads, not independently verified incidents.</span></p></div>
         <form id="dashboard-search" role="search" aria-label="Dashboard search" hidden>
           <label for="dashboard-query" class="visually-hidden">Search countries, map layers and news</label>
-          <input type="search" id="dashboard-query" minlength="2" maxlength="140" required placeholder="Find a country, map layer or news topic">
+          <input type="search" id="dashboard-query" minlength="2" maxlength="140" required placeholder="Country, topic or layer">
           <button class="globe-control" type="submit">Search</button>
         </form>
         <p id="dashboard-search-status" role="status" class="visually-hidden"></p>
@@ -114,6 +114,7 @@
               </select>
             </label><span id="map-layer-kind" class="map-layer-kind">Live feed</span><button type="button" class="ci-help-dot" aria-label="Explain map markers" data-ci-note="ci-map-note" aria-expanded="false" aria-controls="ci-map-note">?</button></div></div>
             <p id="ci-map-note" class="ci-inline-help" hidden>Markers represent records from the chosen source. Country-news city pins indicate a place mentioned in a headline, not a confirmed incident location. Drag to rotate, select a marker or count, and use the Source feed for linked reporting. Live feed means periodic source checks, not independently verified events.</p>
+            <div class="incident-overview" aria-label="Incident severity overview"><div id="incident-controls" class="quake-controls" hidden><label for="incident-severity">Severity <select id="incident-severity"><option value="all">All severity levels</option><option value="green">Green</option><option value="amber">Amber</option><option value="red">Red</option></select></label></div><p id="incident-coverage" role="status">Checking GDACS alerts…</p><div class="incident-counts" role="group" aria-label="Filter alerts by severity"><button type="button" data-severity="green" aria-pressed="false">Green <b id="incident-count-green">—</b></button><button type="button" data-severity="amber" aria-pressed="false">Amber <b id="incident-count-amber">—</b></button><button type="button" data-severity="red" aria-pressed="false">Red <b id="incident-count-red">—</b></button></div><div class="incident-summary-actions"><label for="incident-window">Published within <select id="incident-window"><option value="1">24 hours</option><option value="7">7 days</option></select></label><button type="button" id="incident-open-feed" class="globe-control">View alert reports →</button></div></div>
             <div class="globe-canvas-wrap">
               <canvas id="earth-canvas" tabindex="0" role="img" aria-label="Interactive globe. Use arrow keys to move the map or select reports in the source feed." aria-describedby="map-instructions"></canvas>
               <div id="map-instructions" class="globe-coord-label">Drag or use arrow keys to rotate · Select a pin or count</div>
@@ -121,7 +122,6 @@
                 <span aria-hidden="true"></span><b id="military-map-kind"></b><small>Past events</small>
               </div>
             </div>
-            <div class="incident-overview" aria-label="Incident severity overview"><div id="incident-controls" class="quake-controls" hidden><label for="incident-severity">Severity <select id="incident-severity"><option value="all">All severity levels</option><option value="green">Green</option><option value="amber">Amber</option><option value="red">Red</option></select></label></div><p id="incident-coverage" role="status">Checking GDACS alerts…</p><div class="incident-counts" role="group" aria-label="Filter alerts by severity"><button type="button" data-severity="green" aria-pressed="false">Green <b id="incident-count-green">—</b></button><button type="button" data-severity="amber" aria-pressed="false">Amber <b id="incident-count-amber">—</b></button><button type="button" data-severity="red" aria-pressed="false">Red <b id="incident-count-red">—</b></button></div><div class="incident-summary-actions"><label for="incident-window">Published within <select id="incident-window"><option value="1">24 hours</option><option value="7">7 days</option></select></label><button type="button" id="incident-open-feed" class="globe-control">View alert reports →</button></div></div>
             <div class="dashboard-map-footer">
               <div class="globe-controls">
                 <div id="map-projection" class="map-projection" role="group" aria-label="Map projection" hidden>
