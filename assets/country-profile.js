@@ -11,6 +11,7 @@
   const evidence=document.getElementById('country-briefing-evidence');
   const summary=document.getElementById('country-briefing-summary');
   const download=document.getElementById('country-briefing-download');
+  const manifest=document.getElementById('country-briefing-manifest');
   const exportStatus=document.getElementById('country-briefing-status');
   let selected=new Set(), findings=[], snapshot=null, stale=false, exporting=false;
   function drawBriefing(entry){
@@ -26,7 +27,7 @@
     }
     findings=[...links.values()];
     selected=new Set(findings.filter(a=>selected.has(a.url)||!before.has(a.url)).map(a=>a.url));
-    const update=()=>{download.disabled=exporting||!selected.size;summary.textContent=selected.size+' of '+findings.length+' eligible original reports selected · '+(data.sources_checked||[]).length+' completed source checks'+(stale?' · Older snapshot':'')+'.';};
+    const update=()=>{download.disabled=exporting||!selected.size;manifest.disabled=download.disabled;summary.textContent=selected.size+' of '+findings.length+' eligible original reports selected · '+(data.sources_checked||[]).length+' completed source checks'+(stale?' · Older snapshot':'')+'.';};
     const focused=document.activeElement?.dataset.evidenceUrl;
     evidence.replaceChildren();
     for(const article of findings){
@@ -38,11 +39,13 @@
     }
     exportPanel.hidden=false;update();
   }
+  function reportData(){return {kind:'country',query:country.place,windowStart:null,windowEnd:null,checkedAt:snapshot.checked_at_utc,exportedAt:new Date().toISOString(),incidentOnly:false,total:findings.length,findings:findings.filter(a=>selected.has(a.url)),sources:snapshot.sources_checked||[],providerErrors:snapshot.provider_errors||[],notice:(stale?'Latest refresh failed; this is an older snapshot. ':'')+'Selected original country-news reports, not verified events or independent corroboration. Editorial digests are excluded. Coverage is limited to queried sources.',notes:document.getElementById('country-briefing-notes').value.slice(0,2000)};}
+  manifest.addEventListener('click',()=>{if(!snapshot||!selected.size)return;try{window.ClearIntelReport.downloadManifest(reportData());exportStatus.textContent='Evidence file download started.';}catch(_){exportStatus.textContent='Evidence export unavailable.';}});
   download.addEventListener('click',async()=>{
     if(!snapshot||!selected.size||exporting)return;
-    exporting=true;download.disabled=true;exportStatus.textContent='Preparing PDF…';
-    const report={kind:'country',query:country.place,windowStart:null,windowEnd:null,checkedAt:snapshot.checked_at_utc,exportedAt:new Date().toISOString(),incidentOnly:false,total:findings.length,findings:findings.filter(a=>selected.has(a.url)),sources:snapshot.sources_checked||[],providerErrors:snapshot.provider_errors||[],notice:(stale?'Latest refresh failed; this is an older snapshot. ':'')+'Selected original country-news reports, not verified events or independent corroboration. Editorial digests are excluded. Coverage is limited to queried sources.',notes:document.getElementById('country-briefing-notes').value.slice(0,2000)};
-    try{await window.ClearIntelReport.download(report);exportStatus.textContent='PDF prepared.';}catch(_){exportStatus.textContent='PDF export unavailable. Try again.';}finally{exporting=false;download.disabled=!selected.size;}
+    exporting=true;download.disabled=true;manifest.disabled=true;exportStatus.textContent='Preparing PDF…';
+    const report=reportData();
+    try{await window.ClearIntelReport.download(report);exportStatus.textContent='PDF prepared.';}catch(_){exportStatus.textContent='PDF export unavailable. Try again.';}finally{exporting=false;download.disabled=!selected.size;manifest.disabled=download.disabled;}
   });
   function render(entry){renderCountryCard(panel,country,entry);drawBriefing(entry);}
   renderCountryCard(panel, country, null);
