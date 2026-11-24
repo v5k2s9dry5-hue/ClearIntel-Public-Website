@@ -157,8 +157,27 @@ def check_site(browser, width):
     assert page.locator(".command-overview-card").count() == 3
     assert page.locator("#activity-pulse").is_visible()
     assert page.locator(".pulse-categories > *").count() == 8
+    assert page.request.get(ROOT + "/assets/command-room.svg").ok
+    assert page.evaluate("() => getComputedStyle(document.querySelector('.cinematic-hero'), '::before').backgroundImage.includes('command-room.svg')")
+    if width == 1280:
+        hero_title = page.locator(".dashboard-title").bounding_box()
+        hero_map = page.locator("#dashboard-map").bounding_box()
+        hero_pulse = page.locator("#global-pulse").bounding_box()
+        assert hero_title and hero_map and hero_pulse
+        assert hero_map["x"] >= hero_title["x"] + hero_title["width"] - 2
+        assert hero_pulse["x"] >= hero_map["x"] + hero_map["width"] - 2
+
     page.locator('[data-pulse-category="economic"] small').filter(has_text="1 recent publications").wait_for(state="visible", timeout=10000)
     assert page.locator("#pulse-series polyline.economic").count() == 1
+    economic_legend = page.locator("#pulse-legend .economic")
+    assert economic_legend.get_attribute("aria-pressed") == "true"
+    economic_legend.click()
+    assert economic_legend.get_attribute("aria-pressed") == "false"
+    assert page.locator("#pulse-series polyline.economic").count() == 0
+    economic_legend.click()
+    assert page.locator("#pulse-series polyline.economic").count() == 1
+    assert "Scale: 0" in page.locator("#pulse-peak").inner_text()
+
     assert page.locator("#pulse-dedicated").is_hidden()
 
     from datetime import datetime, timezone

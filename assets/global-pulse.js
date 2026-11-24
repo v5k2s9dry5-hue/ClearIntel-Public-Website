@@ -20,8 +20,33 @@
   const chartAxis=document.getElementById('pulse-axis');
   const chartNote=document.getElementById('pulse-chart-note');
   const NS='http://www.w3.org/2000/svg';
+  const legend=document.getElementById('pulse-legend');
+  const hiddenSeries=new Set();
+  const legendButtons=new Map();
   function drawChart(series,now){
-    const peak=Math.max(1,...series.flatMap(s=>s.bins));
+    const active=series.filter(s=>!hiddenSeries.has(s.key));
+    const peak=Math.max(1,...active.flatMap(s=>s.bins));
+    for(const s of series){
+      let button=legendButtons.get(s.key);
+      if(!button){
+        button=document.createElement('button');
+        button.type='button';button.className='pulse-legend-item '+s.key;
+        const swatch=document.createElement('span');swatch.className='pulse-swatch';swatch.setAttribute('aria-hidden','true');
+        const label=document.createElement('span');
+        button.append(swatch,label);
+        button.addEventListener('click',()=>{
+          if(hiddenSeries.has(s.key))hiddenSeries.delete(s.key);else hiddenSeries.add(s.key);
+          render();
+        });
+        legendButtons.set(s.key,button);legend.append(button);
+      }
+      const count=s.bins.reduce((sum,n)=>sum+n,0);
+      button.lastElementChild.textContent=s.label.replace(' publications','')+' · '+count+(s.stale?' (older)':'');
+      button.setAttribute('aria-pressed',String(!hiddenSeries.has(s.key)));
+      button.setAttribute('aria-label',s.label+', '+count+' records in last 24 hours'+(s.stale?', older snapshot':'')+'. Toggle chart series.');
+    }
+    for(const [key,button] of legendButtons)if(!series.some(s=>s.key===key)){button.remove();legendButtons.delete(key);}
+    document.getElementById('pulse-peak').textContent=active.length?'Scale: 0–'+peak+' records per interval':'No series selected';
     chartSeries.replaceChildren();
     chartAxis.replaceChildren();
     const x=i=>8+i*284/5, y=n=>78-n*66/peak;
@@ -31,7 +56,7 @@
       tick.textContent=format(now-(6-i)*14400000);
       chartAxis.append(tick);
     }
-    for(const s of series){
+    for(const s of active){
       const line=document.createElementNS(NS,'polyline');
       line.setAttribute('points',s.bins.map((n,i)=>x(i)+','+y(n)).join(' '));
       line.setAttribute('class','pulse-series '+s.key+(s.stale?' stale':''));
@@ -43,9 +68,9 @@
         chartSeries.append(dot);
       }
     }
-    const details=series.map(s=>s.label+(s.stale?' (older snapshot)':'')+': '+s.bins.join(', '));
+    const details=active.map(s=>s.label+(s.stale?' (older snapshot)':'')+': '+s.bins.join(', '));
     chart.setAttribute('aria-label','Six four-hour UTC intervals. '+(details.join('; ')||'No source data yet.'));
-    chartNote.textContent=series.length?details.join(' · ')+' | Counts per 4h UTC bin; source publications and observations are distinct, not risk measures.':'Waiting for source data. Unchecked sources are not plotted.';
+    chartNote.textContent=series.length?'Tap a source below to show or hide its line. Four-hour UTC intervals; counts are not risk measures.':'Waiting for source data. Unchecked sources are not plotted.';
   }
   function render(){
     const now=Date.now(), recent=[], series=[];
