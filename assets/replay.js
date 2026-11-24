@@ -10,6 +10,7 @@
   const history = $('replay-history');
   const select = $('replay-select');
   const detail = $('replay-detail');
+  const queryFilter=$('replay-query-filter'),periodFilter=$('replay-period-filter'),filterCount=$('replay-filter-count');
   const compareButton = $('replay-compare-button');
   const compareHint = $('replay-compare-hint');
   const comparePanel = $('replay-compare');
@@ -267,13 +268,18 @@
     history.hidden = snapshots.length === 0;
     clear.disabled = snapshots.length === 0 || !storageReadable;
     select.replaceChildren();
-    snapshots.forEach((s, index) => {
+    const query=queryFilter.value.trim().toLowerCase();
+    const cutoff=periodFilter.value==='all'?-Infinity:Date.now()-Number(periodFilter.value)*86400000;
+    const filtered=snapshots.filter(s=>String(s.query||'').toLowerCase().includes(query)&&Date.parse(s.observed_at_utc)>=cutoff);
+    filterCount.textContent=filtered.length+' of '+snapshots.length+' saved snapshots shown.';
+    select.disabled=!filtered.length;
+    filtered.forEach((s, index) => {
       const option = new Option(utc(s.observed_at_utc) + ' · ' + short(s.query, 60) +
         ' · ' + (Array.isArray(s.articles) ? s.articles.length : 0) + ' headlines', s.id);
       select.add(option);
     });
-    if (snapshots.length) {
-      select.value = snapshots.some(s => s.id === selectedId) ? selectedId : snapshots[0].id;
+    if (filtered.length) {
+      select.value = filtered.some(s => s.id === selectedId) ? selectedId : filtered[0].id;
       drawSnapshot();
     } else {
       detail.replaceChildren();
@@ -315,6 +321,8 @@
     status.textContent = 'Search complete. Save a snapshot manually if you want to remember these source results.';
   });
 
+  queryFilter.addEventListener('input',()=>render(select.value));
+  periodFilter.addEventListener('change',()=>render(select.value));
   save.addEventListener('click', () => {
     if (!latest) return;
     const snapshot = makeSnapshot();
@@ -323,6 +331,7 @@
       localStorage.setItem(KEY, JSON.stringify(updated));
       storageReadable = true;
       snapshots = updated;
+      queryFilter.value='';periodFilter.value='all';
       render(snapshot.id);
       status.textContent = 'Snapshot saved to this browser (' + snapshots.length + '/' + MAX_SNAPSHOTS + '). No server upload.';
     } catch (_) {
