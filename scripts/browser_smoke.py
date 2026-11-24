@@ -80,7 +80,7 @@ def check_site(browser, width):
     mobile = width <= 760
     context = browser.new_context(
         viewport={"width": width, "height": 850},
-        device_scale_factor=1,
+        device_scale_factor=3 if mobile else 1,
         accept_downloads=True,
         reduced_motion="reduce",
     )
@@ -151,6 +151,7 @@ def check_site(browser, width):
         if(panel.querySelectorAll('.correlation-group').length!==3||panel.querySelector('a[href^="javascript:"]'))throw Error('Unsafe comparison rendering');
     }""")
     assert page.locator("#globe-layer").input_value() == "incidents"
+    assert page.locator("#earth-canvas").evaluate("(e) => e.width <= Math.ceil(e.clientWidth * 1.5)")
     page.locator("#incident-count-red").filter(has_text="1").wait_for(state="visible", timeout=10000)
     assert page.locator("#incident-count-green").inner_text() == "1"
     assert page.locator("#incident-count-amber").inner_text() == "1"
