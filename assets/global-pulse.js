@@ -84,6 +84,66 @@
       render();
     });
   }
+  const dedicated=document.getElementById('pulse-dedicated');
+  const dedicatedTitle=document.getElementById('pulse-dedicated-title');
+  const dedicatedStatus=document.getElementById('pulse-dedicated-status');
+  const dedicatedList=document.getElementById('pulse-dedicated-list');
+  const dedicatedSource=document.getElementById('pulse-dedicated-source');
+  let selectedCategory=null, generation=0, lastCheck=0;
+  const categories={
+    humanitarian:['GDACS disaster alerts','https://www.gdacs.org/alerts/'],
+    geopolitical:['FCDO official publications','https://www.gov.uk/government/organisations/foreign-commonwealth-development-office'],
+    cyber:['NCSC cybersecurity news','https://www.ncsc.gov.uk/information/rss-feeds'],
+    economic:['ECB economic releases','https://www.ecb.europa.eu/home/html/rss.en.html'],
+    travel:['FCDO travel advice updates','https://www.gov.uk/foreign-travel-advice']
+  };
+  async function loadDedicated(category){
+    const config=categories[category];
+    if(!config)return;
+    const revision=++generation;
+    lastCheck=Date.now();
+    dedicatedStatus.textContent='Checking official feed…';
+    try{
+      const response=await fetch('/api/intelligence-feed/'+category,{signal:AbortSignal.timeout(12000)});
+      if(!response.ok)throw Error('Unavailable');
+      const data=await response.json();
+      if(revision!==generation)return;
+      const rows=Array.isArray(data.reports)?data.reports:[];
+      const items=[];
+      for(const report of rows.slice(0,12)){
+        const url=safeUrl(report.url), time=Date.parse(report.published_at_utc);
+        if(!url||!Number.isFinite(time))continue;
+        const li=document.createElement('li'), link=document.createElement('a'), meta=document.createElement('small');
+        link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=String(report.title).slice(0,240);
+        meta.textContent=new Date(time).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'})+' UTC · Source publication/update';
+        li.append(link,meta);items.push(li);
+      }
+      dedicatedList.replaceChildren(...items);
+      const checked=Date.parse(data.checked_at_utc);
+      const label=Number.isFinite(checked)?' · Checked '+new Date(checked).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'short',timeStyle:'short'})+' UTC':'';
+      dedicatedStatus.textContent=(data.status==='available'?'Latest available publications':data.status==='stale'?'Older cached publications — refresh unavailable':'Source unavailable')+label+(items.length?'':' · No linked publications returned')+(category==='humanitarian'?' · Sudden-onset disaster coverage only; broader ReliefWeb coverage awaits approval.':'');
+    }catch{
+      if(revision!==generation)return;
+      dedicatedStatus.textContent='Feed check unavailable. Open the official source for current information.';
+    }
+  }
+  for(const btn of root.querySelectorAll('[data-pulse-category]')){
+    btn.setAttribute('aria-controls','pulse-dedicated');
+    btn.setAttribute('aria-expanded','false');
+    btn.addEventListener('click',()=>{
+      const category=btn.dataset.pulseCategory;
+      if(selectedCategory===category&&!dedicated.hidden){
+        generation++;selectedCategory=null;dedicated.hidden=true;btn.setAttribute('aria-expanded','false');return;
+      }
+      for(const other of root.querySelectorAll('[data-pulse-category]'))other.setAttribute('aria-expanded',String(other===btn));
+      selectedCategory=category; dedicated.hidden=false;
+      dedicatedTitle.textContent=categories[category][0];
+      dedicatedSource.href=categories[category][1];
+      dedicatedList.replaceChildren(); dedicatedTitle.focus({preventScroll:true});
+      loadDedicated(category);
+    });
+  }
+  setInterval(()=>{if(!document.hidden&&selectedCategory&&Date.now()-lastCheck>=300000)loadDedicated(selectedCategory);},30000);
   for(const btn of root.querySelectorAll('[data-pulse-layer]')){
     btn.addEventListener('click',()=>{
       layer.value=btn.dataset.pulseLayer;

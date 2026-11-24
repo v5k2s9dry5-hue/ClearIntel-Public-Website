@@ -86,6 +86,18 @@ def check_site(browser, width):
     )
     page = context.new_page()
     page.route("**/globe-texture.jpg", lambda route: route.fulfill(status=503))
+    # Keep the source snapshot stable while testing the chart and category UI.
+    def quake_fixture(route):
+        now = int(time.time() * 1000)
+        return route_json(route, {"generated_at_ms": now, "events": [
+            {"id": "fixture-a", "occurred_at_ms": now - 3600000, "magnitude": 5.1,
+             "place": "Fixture A", "latitude": 20, "longitude": 10,
+             "url": "https://earthquake.usgs.gov/earthquakes/eventpage/fixture-a"},
+            {"id": "fixture-b", "occurred_at_ms": now - 9000000, "magnitude": 4.8,
+             "place": "Fixture B", "latitude": -10, "longitude": 30,
+             "url": "https://earthquake.usgs.gov/earthquakes/eventpage/fixture-b"}
+        ]})
+    page.route("**/api/earthquakes", quake_fixture)
     # Runs in every document, including reloads. The previous test defined an
     # uninvoked function and therefore never installed the clipboard stub.
     page.add_init_script("""Object.defineProperty(navigator, 'clipboard', {
@@ -130,6 +142,15 @@ def check_site(browser, width):
     assert page.get_by_role("heading", name="Intelligence at a glance.").is_visible()
     assert page.locator(".command-overview-card").count() == 3
     assert page.locator("#activity-pulse").is_visible()
+    assert page.locator(".pulse-categories > *").count() == 8
+    page.route("**/api/intelligence-feed/travel", lambda route: route_json(route, {
+        "source": "FCDO travel advice", "status": "available", "checked_at_utc": STAMP,
+        "reports": [{"title": "Fixture travel update", "url": "https://www.gov.uk/foreign-travel-advice/france", "published_at_utc": STAMP}]
+    }))
+    page.locator('[data-pulse-category="travel"]').click()
+    assert page.locator("#pulse-dedicated-list a").first.inner_text(timeout=10000) == "Fixture travel update"
+    assert page.locator("#pulse-dedicated-list a").first.get_attribute("href") == "https://www.gov.uk/foreign-travel-advice/france"
+
     hero_graph = page.locator("#global-pulse").bounding_box()
     guide_box = page.locator("#ci-start-guide").bounding_box()
     category_box = page.locator(".command-overview").bounding_box()

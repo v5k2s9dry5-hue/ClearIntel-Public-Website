@@ -29,6 +29,7 @@ from country_news import COUNTRIES, search_country_news, search_research as sear
 from earthquakes import router as earthquake_router
 from wildfires import router as wildfire_router
 from globe_texture import router as globe_texture_router
+from intelligence_feeds import router as intelligence_feed_router
 
 ROOT = Path(__file__).resolve().parent
 PUBLIC_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
@@ -39,6 +40,7 @@ app.mount("/assets", StaticFiles(directory=ROOT / "assets"), name="assets")
 app.include_router(earthquake_router)
 app.include_router(wildfire_router)
 app.include_router(globe_texture_router)
+app.include_router(intelligence_feed_router)
 MAX_SEARCH_BODY_BYTES = 2048
 SEARCH_CACHE_SECONDS = 20
 SEARCH_CACHE_ENTRIES = 128

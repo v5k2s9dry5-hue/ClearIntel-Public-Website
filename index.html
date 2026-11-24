@@ -150,14 +150,21 @@
             </div>
             <p id="pulse-chart-note" class="pulse-caption">Waiting for source data. Unchecked sources are not plotted.</p>
             <div class="pulse-categories" aria-label="Intelligence categories">
-              <button type="button" data-pulse-layer="countries"><span>Geopolitical</span><small>Country briefs on demand</small></button>
+              <button type="button" data-pulse-category="geopolitical"><span>Geopolitical</span><small>FCDO · official updates</small></button>
               <button type="button" data-pulse-layer="maritime" data-pulse-feed><span>Maritime security</span><small>Manually reviewed UKMTO notices</small></button>
               <button type="button" data-pulse-layer="earthquakes"><span>Earth observations</span><small id="pulse-quakes">USGS · Awaiting source</small></button>
               <button type="button" data-pulse-layer="wildfires"><span>Wildfires</span><small id="pulse-fires">NASA · Not checked yet</small></button>
-              <a href="#research"><span>Cybersecurity</span><small>Research only · No dedicated feed</small></a>
-              <a href="#research"><span>Economic</span><small>Research only · No dedicated feed</small></a>
-              <a href="#research"><span>Humanitarian</span><small>Research only · No dedicated feed</small></a>
+              <button type="button" data-pulse-category="cyber"><span>Cybersecurity</span><small>UK NCSC · news</small></button>
+              <button type="button" data-pulse-category="economic"><span>Economic</span><small>ECB · official releases</small></button>
+              <button type="button" data-pulse-category="humanitarian"><span>Humanitarian</span><small>GDACS · disaster alerts</small></button>
+              <button type="button" data-pulse-category="travel"><span>Travel &amp; security</span><small>FCDO · travel advice</small></button>
             </div>
+            <section id="pulse-dedicated" hidden aria-label="Dedicated intelligence feed">
+              <h3 id="pulse-dedicated-title" tabindex="-1">Official publications</h3>
+              <p id="pulse-dedicated-status" class="pulse-caption" role="status"></p>
+              <ul id="pulse-dedicated-list" class="pulse-latest"></ul>
+              <a id="pulse-dedicated-source" target="_blank" rel="noopener noreferrer">Open official source</a>
+            </section>
             <h3>Latest developments</h3>
             <p id="pulse-latest-status" class="pulse-caption" role="status">Waiting for observations from connected sources.</p>
             <ul id="pulse-latest" class="pulse-latest" aria-label="Recent observations received in this session"></ul>
