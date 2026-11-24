@@ -158,6 +158,12 @@ def check_site(browser, width):
     assert page.locator(".command-overview-card").count() == 3
     assert page.locator("#activity-pulse").is_visible()
     assert page.locator(".pulse-categories > *").count() == 8
+    pulse_help = page.get_by_role("button", name="Explain Global Intelligence Pulse")
+    pulse_help.click()
+    assert page.locator("#ci-pulse-note").is_visible()
+    assert pulse_help.get_attribute("aria-expanded") == "true"
+    pulse_help.click()
+    assert page.locator("#ci-pulse-note").is_hidden()
     assert page.request.get(ROOT + "/assets/command-room.svg").ok
     assert page.evaluate("() => getComputedStyle(document.querySelector('[data-command-layer=aviation]'), '::before').backgroundImage.includes('archive-card.jpg')")
     assert page.locator(".command-art-credit a").count() == 2

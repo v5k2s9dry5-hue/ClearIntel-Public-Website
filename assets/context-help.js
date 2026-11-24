@@ -21,6 +21,9 @@
     ['#quake-pause','Pause or resume automatic source refreshes for supported map layers. Manual controls remain available.'],
     ['#country-select','Choose the country whose source-linked headlines you want to inspect. Coverage varies by provider and region.'],
     ['#report-timeline .timeline-column','Show events and reports in this time bucket; select all times to remove the filter.'],
+    ['#pulse-latest-filter','Filter reports already received by source category. This does not make another provider request.'],
+    ['#pulse-latest-more','Expand or shorten the latest report list using reports already retrieved.'],
+    ['#pulse-coverage','Current means a recent source check, not confirmation that all events worldwide are covered.'],
     ['#news-query','Enter a country, location or topic. Search results are reporting leads, not confirmed events. Avoid sensitive personal information.'],
     ['#news-window','Choose whether the filtered search checks the last 24 hours or last seven days.'],
     ['#incident-only','Restrict results to incident-related headlines. This is a fallible text filter and may miss relevant reporting.'],
@@ -48,6 +51,9 @@
     }
   }
   const dynamicDefinitions = [
+    ['#pulse-legend button','Show or hide this source on the chart. Counts reflect the last 24 hours, not a risk score.'],
+    ['.pulse-categories button','Open this category to see linked reports and its source coverage.'],
+    ['#pulse-latest a','Open the original source report. Publication or observation time is not necessarily incident time.'],
     ['.timeline-column', 'Filter the globe and source feed to this UTC time period; timestamps depend on each provider.'],
     ['#quake-list button', 'Select this report to read linked public-source details. Markers do not independently verify an incident.'],
     ['.result-card .citation-copy', 'Copy this headline, publisher, feed time, original URL and source caution as a citation.']
@@ -87,7 +93,7 @@
     tooltip.style.top=(below+height<=window.innerHeight-10?below:above>=10?above:Math.max(10,window.innerHeight-height-10))+'px';
   }
   function showTooltip(anchor) {
-    if(!anchor || anchor.hidden || !anchor.dataset.ciExplain) return;
+    if(!anchor || anchor.hidden || !anchor.dataset.ciExplain || window.matchMedia('(max-width:760px)').matches) return;
     if(activeTarget && activeTarget!==anchor) hideTooltip();
     activeTarget=anchor;
     tooltip.textContent=anchor.dataset.ciExplain;
