@@ -112,14 +112,27 @@ window.addEventListener('pageshow', event => {
   });
 });
 
-// Mobile navigation.
-$('menu-toggle').addEventListener('click',()=>{
-  const expanded=$('menu-toggle').getAttribute('aria-expanded')==='true';
-  $('menu-toggle').setAttribute('aria-expanded',String(!expanded));
-  $('mobile-nav').hidden=expanded;
+// Mobile navigation: disclosure with Escape and meaningful focus recovery.
+const mobileNav=$('mobile-nav'),menuToggle=$('menu-toggle');
+function closeMobileMenu(returnFocus=false){
+  mobileNav.hidden=true;menuToggle.setAttribute('aria-expanded','false');
+  if(returnFocus)menuToggle.focus({preventScroll:true});
+}
+menuToggle.addEventListener('click',()=>{
+  if(!mobileNav.hidden){closeMobileMenu();return;}
+  mobileNav.hidden=false;menuToggle.setAttribute('aria-expanded','true');
+});
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&!mobileNav.hidden&&(mobileNav.contains(document.activeElement)||document.activeElement===menuToggle)){
+    event.preventDefault();closeMobileMenu(true);
+  }
 });
 document.querySelectorAll('#mobile-nav a').forEach(a=>a.addEventListener('click',()=>{
-  $('mobile-nav').hidden=true;$('menu-toggle').setAttribute('aria-expanded','false');
+  closeMobileMenu();
+  if(a.hash&&a.pathname===location.pathname){
+    const target=document.getElementById(a.hash.slice(1));
+    if(target){if(!target.hasAttribute('tabindex'))target.tabIndex=-1;target.focus({preventScroll:true});}
+  }
 }));
 
 const details={
