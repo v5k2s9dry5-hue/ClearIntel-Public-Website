@@ -120,6 +120,43 @@
     economic:['ECB economic releases','https://www.ecb.europa.eu/home/html/rss.en.html'],
     travel:['FCDO travel advice updates','https://www.gov.uk/foreign-travel-advice']
   };
+  function rememberPublication(category,data){
+    const previous=publications[category];
+    if(['available','stale'].includes(data?.status)&&Array.isArray(data.reports)){
+      if(previous?.checked_at_utc&&Date.parse(previous.checked_at_utc)>Date.parse(data.checked_at_utc))return;
+      publications[category]=data;
+    }else{
+      publications[category]=previous?.reports?{...previous,status:'stale'}:{status:'unavailable'};
+    }
+  }
+  let summaryBusy=false, summaryDue=0;
+  async function refreshSummary(){
+    if(document.hidden||summaryBusy||Date.now()<summaryDue)return;
+    summaryBusy=true;
+    const started=Date.now();
+    summaryDue=started+300000;
+    try{
+      const response=await fetch('/api/intelligence-pulse',{signal:AbortSignal.timeout(35000),cache:'no-store'});
+      if(!response.ok)throw Error('Unavailable');
+      const data=await response.json();
+      if(data.status==='checking'){summaryDue=Date.now()+30000;return;}
+      if(data.status!=='checked'||!data.feeds)throw Error('Invalid summary');
+      for(const category of Object.keys(categories)){
+        // A dedicated check made after the summary began takes precedence.
+        if((publicationUpdated[category]||0)>started)continue;
+        rememberPublication(category,data.feeds[category]);
+      }
+      render();
+    }catch{
+      summaryDue=Date.now()+60000;
+      for(const category of Object.keys(categories)){
+        if((publicationUpdated[category]||0)>started)continue;
+        rememberPublication(category,null);
+      }
+      render();
+    }finally{summaryBusy=false;}
+  }
+  const publicationUpdated={};
   async function loadDedicated(category){
     const config=categories[category];
     if(!config)return;
@@ -131,11 +168,8 @@
       if(!response.ok)throw Error('Unavailable');
       const data=await response.json();
       if(revision!==generation)return;
-      if(['available','stale'].includes(data.status)&&Array.isArray(data.reports)){
-        publications[category]=data;
-      }else{
-        publications[category]=publications[category]?.reports?{...publications[category],status:'stale'}:{status:'unavailable'};
-      }
+      publicationUpdated[category]=Date.now();
+      rememberPublication(category,data);
       render();
       const rows=Array.isArray(data.reports)?data.reports:[];
       const items=[];
@@ -153,7 +187,8 @@
       dedicatedStatus.textContent=(data.status==='available'?'Latest available publications':data.status==='stale'?'Older cached publications — refresh unavailable':'Source unavailable')+label+(items.length?'':' · No linked publications returned')+(category==='humanitarian'?' · Sudden-onset disaster coverage only; broader ReliefWeb coverage awaits approval.':'');
     }catch{
       if(revision!==generation)return;
-      publications[category]=publications[category]?.reports?{...publications[category],status:'stale'}:{status:'unavailable'};
+      publicationUpdated[category]=Date.now();
+      rememberPublication(category,null);
       render();
       dedicatedStatus.textContent='Feed check unavailable. Open the official source for current information.';
     }
@@ -190,5 +225,7 @@
       if(matchMedia('(max-width:860px)').matches)document.getElementById(link.hash==='#dashboard-feed'?'dashboard-feed-tab':'dashboard-map-tab').click();
     });
   }
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)render();});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){render();refreshSummary();}});
+  setInterval(refreshSummary,30000);
+  refreshSummary();
 })();
