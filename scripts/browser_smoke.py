@@ -166,6 +166,12 @@ def check_site(browser, width):
     page.locator("#incident-count-red").filter(has_text="1").wait_for(state="visible", timeout=10000)
     assert page.locator(".incident-counts").bounding_box()["y"] < page.locator("#earth-canvas").bounding_box()["y"]
     assert page.locator(".site-header .brand img").get_attribute("src").startswith("/assets/favicon.svg")
+    assert page.locator(".pulse-category-icon").count() == 8
+    page.locator("#workspace-settings summary").click()
+    page.locator("#compact-dashboard").check()
+    assert page.locator("body").evaluate("(e) => e.classList.contains('compact-dashboard')")
+    page.locator("#compact-dashboard").uncheck()
+    page.locator("#workspace-settings summary").click()
     assert page.locator("#incident-count-green").inner_text() == "1"
     assert page.locator("#incident-count-amber").inner_text() == "1"
     page.locator('.incident-counts button[data-severity="amber"]').click()
