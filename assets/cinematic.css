@@ -69,3 +69,13 @@
 .dashboard .cinematic-hero .map-panel-heading{background:linear-gradient(110deg,#102335,#091725)}
 #earth-texture-credit{font-size:10px;line-height:1.4;color:#a9c7dc}
 #earth-texture-credit a{color:#8fe3f4}
+
+/* Each series identifies its source category, not a severity level. */
+.pulse-series.geopolitical{stroke:#9ae7b2}.pulse-point.geopolitical{fill:#9ae7b2}
+.pulse-series.cyber{stroke:#b4a2ff}.pulse-point.cyber{fill:#b4a2ff}
+.pulse-series.economic{stroke:#eac878}.pulse-point.economic{fill:#eac878}
+.pulse-series.humanitarian{stroke:#f0a2c1}.pulse-point.humanitarian{fill:#f0a2c1}
+.pulse-series.travel{stroke:#a4bfff}.pulse-point.travel{fill:#a4bfff}
+.pulse-categories button[aria-expanded="true"]{border-color:#85e0ef;background:#143448}
+#pulse-dedicated-list{max-height:310px;overflow-y:auto;overscroll-behavior:contain}
+#pulse-dedicated-source{display:inline-block;padding-block:8px;font-size:12px;color:#a6e8f5}

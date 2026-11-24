@@ -143,13 +143,27 @@ def check_site(browser, width):
     assert page.locator(".command-overview-card").count() == 3
     assert page.locator("#activity-pulse").is_visible()
     assert page.locator(".pulse-categories > *").count() == 8
+    from datetime import datetime, timezone
+    recent_stamp = datetime.now(timezone.utc).isoformat()
     page.route("**/api/intelligence-feed/travel", lambda route: route_json(route, {
-        "source": "FCDO travel advice", "status": "available", "checked_at_utc": STAMP,
-        "reports": [{"title": "Fixture travel update", "url": "https://www.gov.uk/foreign-travel-advice/france", "published_at_utc": STAMP}]
+        "source": "FCDO travel advice", "status": "available", "checked_at_utc": recent_stamp,
+        "reports": [{"title": "Fixture travel update", "url": "https://www.gov.uk/foreign-travel-advice/france", "published_at_utc": recent_stamp}]
     }))
     page.locator('[data-pulse-category="travel"]').click()
     assert page.locator("#pulse-dedicated-list a").first.inner_text(timeout=10000) == "Fixture travel update"
     assert page.locator("#pulse-dedicated-list a").first.get_attribute("href") == "https://www.gov.uk/foreign-travel-advice/france"
+    assert "1 recent publications" in page.locator('[data-pulse-category="travel"] small').inner_text()
+    assert page.locator("#pulse-series polyline.travel").count() == 1
+    assert page.locator("#pulse-latest a").filter(has_text="Fixture travel update").count() == 1
+    page.route("**/api/intelligence-feed/cyber", lambda route: route_json(route, {
+        "source": "UK NCSC", "status": "unavailable", "checked_at_utc": None, "reports": []
+    }))
+    page.locator('[data-pulse-category="cyber"]').click()
+    page.locator('[data-pulse-category="cyber"] small').filter(has_text="Unavailable").wait_for(state="visible", timeout=10000)
+    assert page.locator("#pulse-series polyline.cyber").count() == 0
+    page.locator('[data-pulse-category="cyber"]').click()
+    assert not page.locator("#pulse-dedicated").is_visible()
+
 
     hero_graph = page.locator("#global-pulse").bounding_box()
     guide_box = page.locator("#ci-start-guide").bounding_box()

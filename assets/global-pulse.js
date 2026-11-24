@@ -6,6 +6,8 @@
   const list=document.getElementById('pulse-latest');
   const status=document.getElementById('pulse-latest-status');
   const snapshots={};
+  const publications={};
+  const publicationNames={geopolitical:'FCDO',cyber:'NCSC',economic:'ECB',humanitarian:'GDACS',travel:'FCDO travel'};
   const sources={
     earthquakes:{label:'USGS',field:'occurred_at_ms',id:'pulse-quakes',unit:'earthquakes',time:'generated_at_ms'},
     wildfires:{label:'NASA EONET',field:'observed_at_ms',id:'pulse-fires',unit:'wildfire observations',time:'checked_at_ms'}
@@ -43,7 +45,7 @@
     }
     const details=series.map(s=>s.label+(s.stale?' (older snapshot)':'')+': '+s.bins.join(', '));
     chart.setAttribute('aria-label','Six four-hour UTC intervals. '+(details.join('; ')||'No source data yet.'));
-    chartNote.textContent=series.length?details.join(' · ')+' | Counts per 4h UTC bin; different source types are not comparable risk measures.':'Waiting for source data. Unchecked sources are not plotted.';
+    chartNote.textContent=series.length?details.join(' · ')+' | Counts per 4h UTC bin; source publications and observations are distinct, not risk measures.':'Waiting for source data. Unchecked sources are not plotted.';
   }
   function render(){
     const now=Date.now(), recent=[], series=[];
@@ -66,16 +68,37 @@
         recent.push({time:e[source.field],title:title.slice(0,180),url,source:source.label,stale});
       }
     }
+    for(const [key,snap] of Object.entries(publications)){
+      const name=publicationNames[key];
+      const tile=root.querySelector('[data-pulse-category="'+key+'"] small');
+      if(!tile)continue;
+      if(!Array.isArray(snap.reports)){tile.textContent=name+' · Unavailable';continue;}
+      const age=now-Date.parse(snap.checked_at_utc);
+      const stale=snap.status!=='available'||!Number.isFinite(age)||age>300000||age< -60000;
+      const rows=snap.reports.filter(r=>{
+        const time=Date.parse(r?.published_at_utc);
+        return Number.isFinite(time)&&time>=now-86400000&&time<=now&&safeUrl(r.url);
+      });
+      tile.textContent=name+' · '+rows.length+' recent publications'+(stale?' · Older snapshot':' · Last 24h');
+      const bins=Array(6).fill(0);
+      for(const row of rows){
+        const time=Date.parse(row.published_at_utc);
+        bins[Math.min(5,Math.floor((time-(now-86400000))/14400000))]++;
+        recent.push({time,title:String(row.title).slice(0,180),url:safeUrl(row.url),source:name+' publication',stale});
+      }
+      series.push({key,label:name+' publications',bins,stale});
+    }
     drawChart(series,now);
     recent.sort((a,b)=>b.time-a.time);
+    const seen=new Set();
     list.replaceChildren();
-    for(const row of recent.slice(0,3)){
+    for(const row of recent.filter(row=>{if(seen.has(row.url))return false;seen.add(row.url);return true;}).slice(0,3)){
       const li=document.createElement('li'), link=document.createElement('a'), meta=document.createElement('small');
       link.href=row.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=row.title;
       meta.textContent=row.source+' · '+new Date(row.time).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'short',timeStyle:'short'})+' UTC'+(row.stale?' · Older snapshot':'');
       li.append(link,meta);list.append(li);
     }
-    status.textContent=recent.length?'Recent source observations (not a global news feed).':Object.keys(snapshots).length?'No recent linked observations received; coverage may be incomplete.':'Waiting for observations from connected sources.';
+    status.textContent=recent.length?'Recent source observations and publications; coverage is not exhaustive.':(Object.keys(snapshots).length||Object.keys(publications).length)?'No recent linked observations received; coverage may be incomplete.':'Waiting for observations from connected sources.';
   }
   for(const key of Object.keys(sources)){
     window.addEventListener('clearintel:'+ (key==='earthquakes'?'earthquake':'wildfire')+'-snapshot',event=>{
@@ -108,6 +131,12 @@
       if(!response.ok)throw Error('Unavailable');
       const data=await response.json();
       if(revision!==generation)return;
+      if(['available','stale'].includes(data.status)&&Array.isArray(data.reports)){
+        publications[category]=data;
+      }else{
+        publications[category]=publications[category]?.reports?{...publications[category],status:'stale'}:{status:'unavailable'};
+      }
+      render();
       const rows=Array.isArray(data.reports)?data.reports:[];
       const items=[];
       for(const report of rows.slice(0,12)){
@@ -124,6 +153,8 @@
       dedicatedStatus.textContent=(data.status==='available'?'Latest available publications':data.status==='stale'?'Older cached publications — refresh unavailable':'Source unavailable')+label+(items.length?'':' · No linked publications returned')+(category==='humanitarian'?' · Sudden-onset disaster coverage only; broader ReliefWeb coverage awaits approval.':'');
     }catch{
       if(revision!==generation)return;
+      publications[category]=publications[category]?.reports?{...publications[category],status:'stale'}:{status:'unavailable'};
+      render();
       dedicatedStatus.textContent='Feed check unavailable. Open the official source for current information.';
     }
   }
