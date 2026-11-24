@@ -33,12 +33,15 @@ def audit(browser, name, width, height):
             textureCreditVisible: !!document.querySelector('#earth-texture-credit:not([hidden])'),
             archivePhotoConfigured: getComputedStyle(document.querySelector('[data-command-layer=aviation]'), '::before').backgroundImage.includes('archive-card.jpg')
         })""")
-        metrics.update({"incidentDefault": page.locator('#globe-layer').input_value() == 'incidents',
+        headers = response.headers if response else {}
+        metrics.update({"contentEncoding":headers.get('content-encoding','identity'),
+                        "resourcePolicy":headers.get('cross-origin-resource-policy','not present'),
+                        "incidentDefault": page.locator('#globe-layer').input_value() == 'incidents',
                         "incidentControlsVisible": page.locator('#incident-severity').is_visible(),
                         "incidentCoverage": page.locator('#incident-coverage').inner_text(),
                         "sourceHealthRows": page.locator('#pulse-health-list li').count(),
                         "sanctionsOnDemand": 'Not checked' in page.locator('#sanctions-status').inner_text(),
-                        "navigationTiming": page.evaluate("() => {const n=performance.getEntriesByType('navigation')[0];return n?{ttfb_ms:Math.round(n.responseStart),dom_ready_ms:Math.round(n.domContentLoadedEventEnd),transfer_bytes:n.transferSize}:null;}"),
+                        "navigationTiming": page.evaluate("() => {const n=performance.getEntriesByType('navigation')[0];return n?{ttfb_ms:Math.round(n.responseStart),dom_ready_ms:Math.round(n.domContentLoadedEventEnd),transfer_bytes:n.transferSize,encoded_body_bytes:n.encodedBodySize,decoded_body_bytes:n.decodedBodySize}:null;}"),
                         "http": response.status if response else None, "browserErrors": len(errors), "viewport": [width,height]})
         print(name + ": " + json.dumps(metrics), flush=True)
         (OUT / (name + ".json")).write_text(json.dumps(metrics, indent=2), encoding="utf-8")

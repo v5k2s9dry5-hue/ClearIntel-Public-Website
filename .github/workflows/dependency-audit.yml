@@ -1,0 +1,35 @@
+name: Dependency vulnerability audit
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'requirements.txt'
+      - '.github/workflows/dependency-audit.yml'
+  schedule:
+    - cron: '30 8 * * 1'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Resolve application dependencies in isolated environment
+        run: |
+          python -m venv /tmp/clearintel-audit
+          /tmp/clearintel-audit/bin/python -m pip install -r requirements.txt
+          /tmp/clearintel-audit/bin/python -m pip freeze > /tmp/clearintel-resolved.txt
+      - name: Check resolved application versions against vulnerability database
+        run: |
+          python -m pip install pip-audit
+          python -m pip_audit -r /tmp/clearintel-resolved.txt --no-deps --disable-pip --format json --output dependency-audit.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-audit
+          path: dependency-audit.json
+          retention-days: 7
