@@ -50,6 +50,8 @@
   let selectedCityMention = null;
   let militaryArchive = null;
   const incidentFilter=document.getElementById('incident-severity');
+  const incidentWindow=document.getElementById('incident-window');
+  const severityButtons=[...document.querySelectorAll('.incident-counts button')];
   const incidentControls=document.getElementById('incident-controls');
   const severityColors={green:'#55d58e',amber:'#f1bd55',red:'#ff6b72'};
   const severityRank={green:1,amber:2,red:3};
@@ -725,7 +727,11 @@
     if(isIncident){
       for(const event of allReports)if(Object.hasOwn(counts,event.severity))counts[event.severity]++;
       for(const level of Object.keys(counts))document.getElementById('incident-count-'+level).textContent=active.feed?String(counts[level]):'—';
-      document.getElementById('incident-coverage').textContent=active.failed||active.feed?.stale?'Feed unavailable or older snapshot.':active.feed?'Natural-hazard alerts from GDACS. Not a global conflict or verified incident count.':'Checking GDACS alerts…';
+      for(const button of severityButtons)button.setAttribute('aria-pressed',String(incidentFilter.value===button.dataset.severity));
+      incidentWindow.value=reportWindow.value;
+      const coverage=active.feed?`${allReports.length} GDACS alerts published in the last ${reportWindow.value==='1'?'24 hours':'7 days'} · Checked ${utcTime.format(active.feed.checked_at_ms)} UTC`:'Checking GDACS alerts…';
+      const old=active.failed||active.feed?.stale;
+      document.getElementById('incident-coverage').textContent=(reportsPaused?'Paused · ':'')+(old?(active.feed?'Older snapshot · ':'Feed unavailable · '):'')+(old&&!active.feed?'No counts available.':coverage)+' Natural hazards only; not a global incident count.';
     }
     const filteredReports=isIncident&&incidentFilter.value!=='all'?allReports.filter(event=>event.severity===incidentFilter.value):allReports;
     const step=Number(reportWindow.value)===1?7200000:86400000;
@@ -852,6 +858,15 @@
     renderReports();draw();
     (reportList.querySelector('button')||(layer.value==='countries'?countrySelect:reportWindow)).focus({preventScroll:true});
   });
+  for(const button of severityButtons)button.addEventListener('click',()=>{
+    incidentFilter.value=incidentFilter.value===button.dataset.severity?'all':button.dataset.severity;
+    incidentFilter.dispatchEvent(new Event('change'));
+  });
+  incidentWindow.addEventListener('change',()=>{reportWindow.value=incidentWindow.value;reportWindow.dispatchEvent(new Event('change'));});
+  document.getElementById('incident-open-feed').addEventListener('click',()=>{
+    if(mobileDashboard.matches)showDashboardView('feed');
+    feedHeading.focus({preventScroll:true});feedHeading.scrollIntoView({block:'center'});
+  });
   incidentFilter.addEventListener('change',()=>{clusterIds=null;timelineStart=null;selectedReport=null;renderReports();draw();});
   reportWindow.addEventListener('change',()=>{
     reportLayers[layer.value].window=reportWindow.value;
@@ -875,7 +890,7 @@
     if(archiveActive)militaryKind.textContent=active.kind;
     clusterIds=null;selectedReport=null;selectedCityMention=null;timelineStart=null;visibleReports=[];countryBrief=null;
     reportPanel.hidden=!active;issPanel.hidden=Boolean(active);
-    feedHeading.textContent=active?.mode?active.name:'Live feed';
+    feedHeading.textContent=layer.value==='incidents'?'Incident alert reports':active?.mode?active.name:'Live feed';
     countryControls.hidden=active?.mode!=='countries';
     incidentControls.hidden=layer.value!=='incidents';
     reportControls.hidden=Boolean(active?.mode);
