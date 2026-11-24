@@ -86,6 +86,7 @@ def check_site(browser, width):
     )
     page = context.new_page()
     page.route("**/globe-texture.jpg", lambda route: route.fulfill(status=503))
+    page.route("**/archive-card.jpg", lambda route: route.fulfill(status=503))
     # Keep the source snapshot stable while testing the chart and category UI.
     def quake_fixture(route):
         now = int(time.time() * 1000)
@@ -158,6 +159,9 @@ def check_site(browser, width):
     assert page.locator("#activity-pulse").is_visible()
     assert page.locator(".pulse-categories > *").count() == 8
     assert page.request.get(ROOT + "/assets/command-room.svg").ok
+    assert page.evaluate("() => getComputedStyle(document.querySelector('[data-command-layer=aviation]'), '::before').backgroundImage.includes('archive-card.jpg')")
+    assert page.locator(".command-art-credit a").count() == 2
+    assert "Not live imagery" in page.locator(".command-art-credit").inner_text()
     assert page.evaluate("() => getComputedStyle(document.querySelector('.cinematic-hero'), '::before').backgroundImage.includes('command-room.svg')")
     if width == 1280:
         hero_title = page.locator(".dashboard-title").bounding_box()

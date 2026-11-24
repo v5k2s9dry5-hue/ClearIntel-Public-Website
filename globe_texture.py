@@ -19,8 +19,8 @@ class NoRedirect(HTTPRedirectHandler):
         return None
 
 
-def _download():
-    request = Request(SOURCE, headers={"User-Agent": "ClearIntel Atlas static Earth imagery", "Accept": "image/jpeg"})
+def _download(source=SOURCE):
+    request = Request(source, headers={"User-Agent": "ClearIntel Atlas static Earth imagery", "Accept": "image/jpeg"})
     with build_opener(NoRedirect()).open(request, timeout=8) as response:
         if response.headers.get_content_type() != "image/jpeg":
             raise ValueError("Not a JPEG")
@@ -48,3 +48,28 @@ def texture():
         return Response(_texture, media_type="image/jpeg")
     finally:
         _lock.release()
+
+# Historical decorative photograph, not a live observation or an event report.
+ARCHIVE_SOURCE = "https://upload.wikimedia.org/wikipedia/commons/c/c3/USS_George_Washington_%28CVN-73%29_underway_in_September_2015.JPG"
+_archive_lock = Lock()
+_archive_photo = None
+_archive_retry = 0.0
+
+@router.get("/archive-card.jpg", include_in_schema=False)
+def archive_card():
+    global _archive_photo, _archive_retry
+    if _archive_photo is not None:
+        return Response(_archive_photo, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=86400"})
+    if monotonic() < _archive_retry or not _archive_lock.acquire(blocking=False):
+        return Response(status_code=503)
+    try:
+        if _archive_photo is None and monotonic() >= _archive_retry:
+            try:
+                _archive_photo = _download(ARCHIVE_SOURCE)
+            except (OSError, ValueError):
+                _archive_retry = monotonic() + RETRY_SECONDS
+        if _archive_photo is None:
+            return Response(status_code=503)
+        return Response(_archive_photo, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=86400"})
+    finally:
+        _archive_lock.release()

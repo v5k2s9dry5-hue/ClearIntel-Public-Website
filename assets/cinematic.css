@@ -112,3 +112,13 @@
 .pulse-more{width:100%;min-height:38px}
 .pulse-more[hidden]{display:none}
 @media(max-width:860px){.pulse-filter-label select,.pulse-more{min-height:44px}}
+
+/* Static archival photography and NASA imagery; local vectors remain fallbacks. */
+.command-overview .command-overview-card{min-height:210px}
+.command-overview .command-overview-card[data-command-layer="earthquakes"]::before{background-image:linear-gradient(90deg,#081523fa 4%,#081523d9 39%,#08152322 100%),radial-gradient(ellipse at 85% 35%,#83b5d222,transparent 65%),url('/globe-texture.jpg'),url('/assets/card-earth.svg');background-size:cover,cover,180% auto,cover;background-position:center,center,45% 44%,center; background-repeat:no-repeat}
+.command-overview .command-overview-card[data-command-layer="countries"]::before{background-image:linear-gradient(90deg,#081523fa 4%,#081523d9 43%,#08152344 100%),url('/globe-texture.jpg'),url('/assets/card-country.svg');background-size:cover,cover,cover;background-position:center,75% 45%,center;background-repeat:no-repeat}
+.command-overview .command-overview-card[data-command-layer="aviation"]::before{background-image:linear-gradient(90deg,#081523fa 4%,#081523d9 43%,#10263844 100%),url('/archive-card.jpg'),url('/assets/card-archive.svg');background-size:cover;background-position:center,70% 50%,center;background-repeat:no-repeat}
+.command-overview .command-overview-card strong,.command-overview .command-overview-detail{position:relative;text-shadow:0 1px 6px #000}
+.command-art-credit{margin:4px 0 18px;color:#adc3d2;font-size:10px;line-height:1.5;text-align:right}
+.command-art-credit a{color:#ade1eb}
+@media(max-width:860px){.command-overview .command-overview-card{min-height:184px}.command-art-credit{text-align:left}}
