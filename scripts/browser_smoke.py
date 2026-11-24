@@ -164,6 +164,8 @@ def check_site(browser, width):
         assert page.locator("#menu-toggle").evaluate("(e) => document.activeElement === e")
     assert page.locator("#earth-canvas").evaluate("(e) => e.width <= Math.ceil(e.clientWidth * 1.5)")
     page.locator("#incident-count-red").filter(has_text="1").wait_for(state="visible", timeout=10000)
+    assert page.locator(".incident-counts").bounding_box()["y"] < page.locator("#earth-canvas").bounding_box()["y"]
+    assert page.locator(".site-header .brand img").get_attribute("src").startswith("/assets/favicon.svg")
     assert page.locator("#incident-count-green").inner_text() == "1"
     assert page.locator("#incident-count-amber").inner_text() == "1"
     page.locator('.incident-counts button[data-severity="amber"]').click()
@@ -437,6 +439,7 @@ def check_site(browser, width):
     if mobile:
         page.locator("#dashboard-search-tab").click()
         assert query.evaluate("(field) => field === document.activeElement")
+        assert page.locator("#dashboard-search-tab").get_attribute("aria-pressed") == "true"
     query.fill("UK")
     query.press("Enter")
     profile_link = page.locator("#dashboard-matches").get_by_role("link", name="United Kingdom · Country profile")
