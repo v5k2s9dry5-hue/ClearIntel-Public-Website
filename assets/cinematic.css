@@ -93,3 +93,14 @@
 .dashboard .cinematic-hero .pulse-latest a:hover{text-decoration:underline}
 @media(min-width:1180px) and (max-width:1379px){.dashboard.sidebar-collapsed .cinematic-hero{grid-template-columns:minmax(220px,.8fr) minmax(330px,1.35fr) minmax(264px,1fr);grid-template-areas:"tools tools tools" "intro map chart";gap:14px}.dashboard.sidebar-collapsed .cinematic-hero h1{font-size:clamp(36px,3.6vw,48px)}.dashboard.sidebar-collapsed .cinematic-hero .globe-canvas-wrap{height:clamp(320px,30vw,410px)}.dashboard.sidebar-collapsed #dashboard-search{flex-wrap:wrap}.dashboard.sidebar-collapsed #dashboard-search input{flex-basis:100%}}
 @media(max-width:860px){.dashboard .cinematic-hero::before{inset:0 -4px;opacity:.48;background-position:50% 0;background-size:auto 640px;background-repeat:no-repeat}.dashboard .cinematic-hero .dashboard-title{padding-block:8px}.dashboard .cinematic-hero .cinematic-pulse{padding:12px}.dashboard .cinematic-hero .pulse-categories{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Explicit chart legend; source colours are identification only. */
+.pulse-legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;margin:8px 0 12px}
+.pulse-legend-item{--series:#8be9f8;display:flex;gap:6px;align-items:center;min-width:0;min-height:32px;text-align:left;padding:4px 6px;border:1px solid #2b4357;border-radius:5px;background:#0b1b2a;color:#e0edf6;font:500 10px/1.25 system-ui,sans-serif}
+.pulse-legend-item span:last-child{overflow-wrap:anywhere}
+.pulse-legend-item[aria-pressed="false"]{opacity:.6;background:#080f1b}
+.pulse-legend-item:focus-visible{outline:2px solid #8be9f8;outline-offset:2px}
+.pulse-swatch{width:10px;height:3px;flex:none;background:var(--series);border-radius:2px}
+.pulse-legend-item.wildfires{--series:#ffb773}.pulse-legend-item.geopolitical{--series:#9ae7b2}.pulse-legend-item.cyber{--series:#b4a2ff}.pulse-legend-item.economic{--series:#eac878}.pulse-legend-item.humanitarian{--series:#f0a2c1}.pulse-legend-item.travel{--series:#a4bfff}
+#pulse-peak{font-variant-numeric:tabular-nums;text-align:right;margin:4px 0}
+@media(max-width:860px){.pulse-legend-item{min-height:44px}}
