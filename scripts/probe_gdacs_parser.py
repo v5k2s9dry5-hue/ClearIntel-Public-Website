@@ -15,3 +15,12 @@ if __name__ == "__main__":
         print("Unrated publications: " + str(sum("severity" not in row for row in rows)))
     except Exception as error:
         print("Candidate GDACS parser: unavailable (" + type(error).__name__ + ")")
+    for label, endpoint, hosts in (
+        ('OFSI publications', 'https://www.gov.uk/government/organisations/office-of-financial-sanctions-implementation.atom', {'www.gov.uk'}),
+        ('IAEA institutional news', 'https://www.iaea.org/feeds/news', {'www.iaea.org', 'iaea.org'}),
+    ):
+        try:
+            rows = parse_feed(_download(endpoint), hosts)
+            print(f'{label} candidate: {len(rows)} valid dated publications')
+        except Exception as error:
+            print(f'{label} candidate: unavailable ({type(error).__name__})')
