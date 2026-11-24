@@ -219,14 +219,16 @@ def check_site(browser, width):
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     toggle = page.locator("#sidebar-toggle")
     if width > 1080:
-        assert toggle.locator(".workspace-control-text").inner_text() == "Hide sidebar"
-        toggle.click()
         assert toggle.locator(".workspace-control-text").inner_text() == "Show sidebar"
+        assert not page.locator("#dashboard-sidebar").is_visible()
+        toggle.click()
+        assert toggle.get_attribute("aria-expanded") == "true"
+        assert page.locator("#dashboard-sidebar").is_visible()
+        page.reload(wait_until="domcontentloaded")
+        assert page.locator("#dashboard-sidebar").is_visible()
+        page.get_by_role("button", name="Hide sidebar").click()
         assert toggle.get_attribute("aria-expanded") == "false"
         assert not page.locator("#dashboard-sidebar").is_visible()
-        page.reload(wait_until="domcontentloaded")
-        page.get_by_role("button", name="Show sidebar").click()
-        assert page.locator("#dashboard-sidebar").is_visible()
     else:
         assert not toggle.is_visible()
     controls = page.locator(".dashboard-toolbar-tools").bounding_box()
@@ -634,6 +636,12 @@ def check_wide_hero_layout(browser):
     assert chart and title and guide and cards
     assert chart["x"] >= title["x"] + title["width"] - 35, (chart, title)
     assert chart["y"] < 430, "Chart should be visible in the initial desktop viewport"
+    globe = page.locator("#dashboard-map").bounding_box()
+    search = page.locator("#dashboard-search").bounding_box()
+    assert globe and search
+    assert globe["x"] >= title["x"] + title["width"] - 2
+    assert chart["x"] >= globe["x"] + globe["width"] - 2
+    assert globe["y"] < 430 and search["y"] < 650
     assert chart["y"] < guide["y"] and chart["y"] < cards["y"]
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     assert page.locator("#activity-pulse-status").inner_text() == "USGS feed checked"
