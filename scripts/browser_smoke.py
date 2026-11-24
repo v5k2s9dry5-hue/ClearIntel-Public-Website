@@ -129,7 +129,7 @@ def check_site(browser, width):
     assert page.get_by_role("heading", name="Intelligence at a glance.").is_visible()
     assert page.locator(".command-overview-card").count() == 3
     assert page.locator("#activity-pulse").is_visible()
-    hero_graph = page.locator("#activity-pulse").bounding_box()
+    hero_graph = page.locator("#global-pulse").bounding_box()
     guide_box = page.locator("#ci-start-guide").bounding_box()
     category_box = page.locator(".command-overview").bounding_box()
     assert hero_graph and guide_box and category_box
@@ -143,6 +143,8 @@ def check_site(browser, width):
           stale:false
         }}));
     }""")
+    assert page.locator("#pulse-quakes").inner_text() == "USGS · 2 earthquakes · Last 24h"
+    assert "Not checked yet" in page.locator("#pulse-fires").inner_text()
     assert page.locator("#activity-pulse-total").inner_text() == "2"
     assert page.locator("#activity-pulse-bars .activity-pulse-bin").count() == 6
     assert page.locator("#activity-pulse-status").inner_text() == "USGS feed checked"
@@ -219,14 +221,16 @@ def check_site(browser, width):
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     toggle = page.locator("#sidebar-toggle")
     if width > 1080:
-        assert toggle.locator(".workspace-control-text").inner_text() == "Hide sidebar"
-        toggle.click()
         assert toggle.locator(".workspace-control-text").inner_text() == "Show sidebar"
+        assert not page.locator("#dashboard-sidebar").is_visible()
+        toggle.click()
+        assert toggle.get_attribute("aria-expanded") == "true"
+        assert page.locator("#dashboard-sidebar").is_visible()
+        page.reload(wait_until="domcontentloaded")
+        assert page.locator("#dashboard-sidebar").is_visible()
+        page.get_by_role("button", name="Hide sidebar").click()
         assert toggle.get_attribute("aria-expanded") == "false"
         assert not page.locator("#dashboard-sidebar").is_visible()
-        page.reload(wait_until="domcontentloaded")
-        page.get_by_role("button", name="Show sidebar").click()
-        assert page.locator("#dashboard-sidebar").is_visible()
     else:
         assert not toggle.is_visible()
     controls = page.locator(".dashboard-toolbar-tools").bounding_box()
@@ -627,17 +631,28 @@ def check_wide_hero_layout(browser):
     page.goto(ROOT, wait_until="domcontentloaded")
     page.wait_for_function("() => document.querySelector('#activity-pulse-total')?.textContent === '1'",
                            timeout=15000)
-    chart = page.locator("#activity-pulse").bounding_box()
+    chart = page.locator("#global-pulse").bounding_box()
     title = page.locator(".dashboard-heading-group").bounding_box()
     guide = page.locator("#ci-start-guide").bounding_box()
     cards = page.locator(".command-overview").bounding_box()
     assert chart and title and guide and cards
     assert chart["x"] >= title["x"] + title["width"] - 35, (chart, title)
     assert chart["y"] < 430, "Chart should be visible in the initial desktop viewport"
+    globe = page.locator("#dashboard-map").bounding_box()
+    search = page.locator("#dashboard-search").bounding_box()
+    assert globe and search
+    assert globe["x"] >= title["x"] + title["width"] - 2
+    assert chart["x"] >= globe["x"] + globe["width"] - 2
+    assert globe["y"] < 430 and search["y"] < 650
     assert chart["y"] < guide["y"] and chart["y"] < cards["y"]
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     assert page.locator("#activity-pulse-status").inner_text() == "USGS feed checked"
-    print("Desktop 1574px hero layout and USGS-driven chart passed")
+    assert "1 earthquakes" in page.locator("#pulse-quakes").inner_text()
+    assert page.locator("#pulse-latest a").count() == 1
+    assert "Fixture location" in page.locator("#pulse-latest a").inner_text()
+    assert page.locator("#pulse-latest a").get_attribute("href") == observation["events"][0]["url"]
+    assert page.locator("#earth-observations #activity-pulse").count() == 1
+    print("Desktop 1574px global pulse, globe-first layout and USGS-driven chart passed")
     context.close()
 
 
