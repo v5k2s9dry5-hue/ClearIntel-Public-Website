@@ -290,4 +290,29 @@
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){render();refreshSummary();}});
   setInterval(refreshSummary,30000);
   refreshSummary();
+  const sanctionsButton=document.getElementById('sanctions-load');
+  const sanctionsStatus=document.getElementById('sanctions-status');
+  const sanctionsResults=document.getElementById('sanctions-results');
+  sanctionsButton.addEventListener('click',async()=>{
+    sanctionsButton.disabled=true;sanctionsStatus.textContent='Checking official publications…';
+    try{
+      const response=await fetch('/api/intelligence-feed/sanctions',{signal:AbortSignal.timeout(12000),cache:'no-store'});
+      if(!response.ok)throw Error('Unavailable');
+      const data=await response.json();
+      if(!['available','stale'].includes(data.status)||!Array.isArray(data.reports))throw Error('Unavailable');
+      const rows=[];
+      for(const report of data.reports.slice(0,12)){
+        const url=safeUrl(report.url),stamp=Date.parse(report.published_at_utc);
+        if(!url||!Number.isFinite(stamp))continue;
+        const li=document.createElement('li'),link=document.createElement('a'),meta=document.createElement('small');
+        link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=String(report.title).slice(0,240);
+        meta.textContent=new Date(stamp).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'})+' UTC · OFSI publication/update';
+        li.append(link,meta);rows.push(li);
+      }
+      sanctionsResults.replaceChildren(...rows);
+      const checked=Date.parse(data.checked_at_utc);
+      sanctionsStatus.textContent=(data.status==='stale'?'Older snapshot · ':'Latest available publications · ')+rows.length+' displayed'+(Number.isFinite(checked)?' · Checked '+new Date(checked).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'short',timeStyle:'short'})+' UTC':'');
+    }catch(_){sanctionsStatus.textContent=sanctionsResults.children.length?'Refresh unavailable; retained earlier results.':'Source unavailable. Open OFSI directly.';}
+    finally{sanctionsButton.disabled=false;}
+  });
 })();

@@ -19,6 +19,9 @@ SOURCES = {
     "economic": ("European Central Bank", "https://www.ecb.europa.eu/rss/press.html", "https://www.ecb.europa.eu/home/html/rss.en.html", {"www.ecb.europa.eu"}),
     "travel": ("FCDO travel advice", "https://www.gov.uk/foreign-travel-advice.atom", "https://www.gov.uk/foreign-travel-advice", {"www.gov.uk"}),
 }
+PULSE_CATEGORIES = tuple(SOURCES)
+# Optional, user-initiated sanctions publications; not an extra Pulse poll.
+SOURCES['sanctions'] = ('UK OFSI', 'https://www.gov.uk/government/organisations/office-of-financial-sanctions-implementation.atom', 'https://www.gov.uk/government/organisations/office-of-financial-sanctions-implementation', {'www.gov.uk'})
 TTL = 300
 MAX_BYTES = 1024 * 1024
 _cache = {}
@@ -139,8 +142,8 @@ def pulse():
         return {"status": "checking", "feeds": {}}
     try:
         with ThreadPoolExecutor(max_workers=2) as pool:
-            results = list(pool.map(feed, SOURCES))
-        return {"status": "checked", "feeds": dict(zip(SOURCES, results))}
+            results = list(pool.map(feed, PULSE_CATEGORIES))
+        return {"status": "checked", "feeds": dict(zip(PULSE_CATEGORIES, results))}
     finally:
         _pulse_lock.release()
 

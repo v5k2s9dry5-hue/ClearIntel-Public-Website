@@ -12,6 +12,7 @@
   const detail = $('replay-detail');
   const queryFilter=$('replay-query-filter'),periodFilter=$('replay-period-filter'),filterCount=$('replay-filter-count');
   const compareButton = $('replay-compare-button');
+  const compareEarlier=$('replay-compare-earlier');
   const compareHint = $('replay-compare-hint');
   const comparePanel = $('replay-compare');
   const compareResult = $('replay-compare-result');
@@ -165,10 +166,14 @@
   function updateComparison(snapshot){
     comparePanel.hidden=true;
     compareResult.replaceChildren();
-    const older=snapshot&&previousFor(snapshot);
+    const index=snapshots.indexOf(snapshot);
+    const candidates=index<0?[]:snapshots.slice(index+1).filter(s=>searchMatches(s,snapshot));
+    compareEarlier.replaceChildren(...candidates.map(s=>new Option(utc(s.observed_at_utc)+' · '+s.articles.length+' headlines',s.id)));
+    compareEarlier.disabled=!candidates.length;
+    const older=candidates[0];
     compareButton.disabled=!older;
     compareHint.textContent=older?
-      'Compare this snapshot with an earlier observation of the same search and filters.':
+      'Choose an earlier saved observation of the same search and filters.':
       'Save this exact search again to compare; no earlier matching snapshot is available.';
   }
 
@@ -351,9 +356,10 @@
     }
   });
   select.addEventListener('change', drawSnapshot);
+  compareEarlier.addEventListener('change',()=>{comparePanel.hidden=true;compareResult.replaceChildren();});
   compareButton.addEventListener('click',()=>{
     const selected=snapshots.find(s=>s.id===select.value);
-    const older=selected&&previousFor(selected);
+    const older=selected&&snapshots.find(s=>s.id===compareEarlier.value&&snapshots.indexOf(s)>snapshots.indexOf(selected)&&searchMatches(s,selected));
     if(!older)return;
     drawComparison(older,selected);
     comparePanel.hidden=false;
