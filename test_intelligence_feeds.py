@@ -41,3 +41,14 @@ class DedicatedFeedTests(unittest.TestCase):
     def test_no_arbitrary_categories(self):
         with self.assertRaises(HTTPException):
             f.feed("https://example.com")
+
+    def test_gdacs_legacy_links_are_upgraded(self):
+        xml = b"""<rss><channel><item><title>Disaster alert</title><link>http://www.gdacs.org/report.aspx?eventtype=FL&amp;eventid=123</link><pubDate>Tue, 24 Nov 2026 08:00:00 GMT</pubDate></item></channel></rss>"""
+        rows = f.parse_feed(xml, {"www.gdacs.org", "gdacs.org"})
+        self.assertEqual(rows[0]["url"], "https://www.gdacs.org/report.aspx?eventtype=FL&eventid=123")
+
+    def test_rejected_items_not_reported_as_empty_success(self):
+        xml = b"""<rss><channel><item><title>Invalid link</title><link>http://example.org/report</link><pubDate>Tue, 24 Nov 2026 08:00:00 GMT</pubDate></item></channel></rss>"""
+        with self.assertRaises(ValueError):
+            f.parse_feed(xml, {"www.gdacs.org"})
+        self.assertEqual(f.parse_feed(b"<rss><channel/></rss>", {"www.gdacs.org"}), [])

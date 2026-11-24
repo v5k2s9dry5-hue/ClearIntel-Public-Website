@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from threading import Lock
 from time import monotonic
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 from xml.etree import ElementTree as ET
 from fastapi import APIRouter, HTTPException
@@ -51,11 +51,13 @@ def parse_feed(data, hosts):
     if root.tag.rsplit("}", 1)[-1] not in {"rss", "feed", "RDF"}:
         raise ValueError("Not a feed")
     rows = {}
+    item_count = 0
     for node in root.iter():
         if node.tag.rsplit("}", 1)[-1] not in {"entry", "item"}:
             continue
+        item_count += 1
         title = _text(node, "title")
-        stamp = _date(_text(node, "published", "pubDate", "updated", "date"))
+        stamp = next((date for field in ("published", "pubDate", "updated", "date") if (date := _date(_text(node, field))) is not None), None)
         link = _text(node, "link")
         for child in node:
             if child.tag.rsplit("}", 1)[-1] == "link" and child.get("rel", "alternate") == "alternate" and child.get("href"):
@@ -63,11 +65,20 @@ def parse_feed(data, hosts):
                 break
         try:
             url = urlsplit(link)
+            # GDACS RSS has historically published HTTP report links. Upgrade only
+            # the known provider host, never arbitrary links or credentials.
+            if (url.scheme == "http" and url.hostname in {"www.gdacs.org", "gdacs.org"}
+                    and url.hostname in hosts and not url.username and not url.password
+                    and url.port in (None, 80)):
+                link = urlunsplit(("https", url.hostname, url.path, url.query, url.fragment))
+                url = urlsplit(link)
             valid = url.scheme == "https" and url.hostname in hosts and not url.username and not url.password and url.port in (None, 443)
         except ValueError:
             valid = False
         if title and stamp and valid and len(link) <= 2048 and not any(ord(c) < 33 or c == "\\" for c in link):
             rows[link] = {"title": title[:240], "url": link, "published_at_utc": stamp}
+    if item_count and not rows:
+        raise ValueError("Feed contains items but no valid dated source links")
     return sorted(rows.values(), key=lambda x: x["published_at_utc"], reverse=True)[:30]
 
 def _download(url):
