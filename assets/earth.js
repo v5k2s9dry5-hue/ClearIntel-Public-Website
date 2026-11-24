@@ -768,8 +768,8 @@
     }
   }
 
-  async function refreshReports(){
-    const active=reportLayers[layer.value];
+  async function refreshReports(key=layer.value){
+    const active=reportLayers[key];
     if(!active||active.loading||Date.now()<(active.retryAt||0)||(!active.mode&&reportsPaused)||(active.mode&&active.feed))return;
     active.loading=true;
     const started=Date.now();
@@ -787,7 +787,7 @@
           ? {events:latest.events.filter(event=>event.category===active.category)}
           : latest;
         active.failed=false;
-        active.retryAt=started+55000;
+        active.retryAt=started+(key==='wildfires'?115000:55000);
       }
     }catch(error){if(active.mode||!reportsPaused){active.failed=true;active.retryAt=Math.max(Date.now()+30000,error.retryAt||0);}}
     finally{
@@ -842,7 +842,7 @@
     reportPause.setAttribute('aria-pressed',String(reportsPaused));
     renderReports();
     draw();
-    if(!reportsPaused)refreshReports();
+    if(!reportsPaused){refreshReports();refreshPulseObservations();}
   });
   function changeLayer(){
     document.getElementById('ukmto-bulletins').hidden=layer.value!=='maritime';
@@ -912,12 +912,19 @@
     });
     observer.observe(canvas);
   }
+  function refreshPulseObservations(){
+    if(document.hidden||reportsPaused)return;
+    refreshReports('earthquakes');
+    refreshReports('wildfires');
+  }
   fit();draw();
   changeLayer();
+  refreshPulseObservations();
   syncRotation();
   document.addEventListener('visibilitychange',()=>{
     syncRotation();
     if(document.hidden)return;
+    refreshPulseObservations();
     if(layer.value==='iss')refreshISS();
     else if(!reportsPaused||reportLayers[layer.value]?.mode)refreshReports();
   });
@@ -926,6 +933,7 @@
     if(!document.hidden&&layer.value==='countries')refreshCountryBrief();
   },countryRefreshMs);
   setInterval(()=>{
+    refreshPulseObservations();
     if(document.hidden||!reportLayers[layer.value])return;
     if(reportLayers[layer.value].mode){
       if(!reportLayers[layer.value].feed)refreshReports();
