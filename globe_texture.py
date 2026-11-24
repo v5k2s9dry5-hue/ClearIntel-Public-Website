@@ -1,4 +1,5 @@
 """Optional, static NASA Earth texture. No user-controlled URLs or tracking."""
+import logging
 from threading import Lock
 from time import monotonic
 from urllib.request import Request, build_opener, HTTPRedirectHandler
@@ -6,6 +7,7 @@ from fastapi import APIRouter
 from fastapi.responses import Response
 
 router = APIRouter()
+logger = logging.getLogger("clearintel.artwork")
 SOURCE = "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography-bathymetry/january/world.topo.bathy.200401.3x5400x2700.jpg"
 MAX_BYTES = 12 * 1024 * 1024
 RETRY_SECONDS = 1800
@@ -20,7 +22,7 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 def _download(source=SOURCE):
-    request = Request(source, headers={"User-Agent": "ClearIntel Atlas static Earth imagery", "Accept": "image/jpeg"})
+    request = Request(source, headers={"User-Agent": "ClearIntelAtlas/1.0 (https://clearintel-public.onrender.com/; contactclearintel@protonmail.me)", "Accept": "image/jpeg"})
     with build_opener(NoRedirect()).open(request, timeout=8) as response:
         if response.headers.get_content_type() != "image/jpeg":
             raise ValueError("Not a JPEG")
@@ -34,7 +36,7 @@ def _download(source=SOURCE):
 def texture():
     global _texture, _retry_at
     if _texture is not None:
-        return Response(_texture, media_type="image/jpeg")
+        return Response(_texture, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=86400"})
     if monotonic() < _retry_at or not _lock.acquire(blocking=False):
         return Response(status_code=503)
     try:
@@ -45,7 +47,7 @@ def texture():
                 _retry_at = monotonic() + RETRY_SECONDS
         if _texture is None:
             return Response(status_code=503)
-        return Response(_texture, media_type="image/jpeg")
+        return Response(_texture, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=86400"})
     finally:
         _lock.release()
 
@@ -66,7 +68,8 @@ def archive_card():
         if _archive_photo is None and monotonic() >= _archive_retry:
             try:
                 _archive_photo = _download(ARCHIVE_SOURCE)
-            except (OSError, ValueError):
+            except (OSError, ValueError) as error:
+                logger.warning("Archive artwork unavailable: %s (HTTP %s)", type(error).__name__, getattr(error, "code", "n/a"))
                 _archive_retry = monotonic() + RETRY_SECONDS
         if _archive_photo is None:
             return Response(status_code=503)

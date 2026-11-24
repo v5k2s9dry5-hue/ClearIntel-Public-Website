@@ -8,13 +8,18 @@ window.ClearIntelGlobeSurface = (() => {
   const paint=surface.getContext('2d');
   const frame=paint?.createImageData(SIZE,SIZE);
   const col=new Int16Array(SIZE*SIZE), row=new Int32Array(SIZE*SIZE), light=new Float32Array(SIZE*SIZE);
-  let texture=null, lastTilt=NaN, lastRot=NaN, loading=false;
+  let texture=null, lastTilt=NaN, lastRot=NaN, loading=false, attempts=0;
   function load(onReady){
-    if(!frame||loading||texture)return;
-    loading=true;
+    if(!frame||loading||texture||attempts>=2)return;
+    loading=true;attempts++;
     const image=new Image();
     image.decoding='async';
+    image.onerror=()=>{
+      loading=false;
+      if(attempts<2)setTimeout(()=>{if(!document.hidden)load(onReady);},15000);
+    };
     image.onload=()=>{
+      loading=false;
       if(image.naturalWidth<256||image.naturalHeight<128||Math.abs(image.naturalWidth/image.naturalHeight-2)>.02)return;
       const tmp=document.createElement('canvas');tmp.width=TW;tmp.height=TH;
       const ctx=tmp.getContext('2d',{willReadFrequently:true});
