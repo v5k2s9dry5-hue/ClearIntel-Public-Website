@@ -85,6 +85,7 @@ def check_site(browser, width):
         reduced_motion="reduce",
     )
     page = context.new_page()
+    page.route("**/globe-texture.jpg", lambda route: route.fulfill(status=503))
     # Runs in every document, including reloads. The previous test defined an
     # uninvoked function and therefore never installed the clipboard stub.
     page.add_init_script("""Object.defineProperty(navigator, 'clipboard', {
@@ -637,6 +638,9 @@ def check_wide_hero_layout(browser):
     context = browser.new_context(viewport={"width": width, "height": 870},
                                   reduced_motion="reduce")
     page = context.new_page()
+    # A synthetic 2:1 surface tests the renderer offline, without relying on NASA.
+    page.route("**/globe-texture.jpg", lambda route: route.fulfill(status=200,
+        content_type="image/svg+xml", body='<svg xmlns="http://www.w3.org/2000/svg" width="512" height="256"><rect width="512" height="256" fill="#355f83"/><rect x="256" width="256" height="256" fill="#b3a17c"/></svg>'))
     now = int(time.time() * 1000)
     observation = {"generated_at_ms": now, "events": [{
         "id": "test-earthquake", "occurred_at_ms": now - 3600000,
@@ -663,6 +667,8 @@ def check_wide_hero_layout(browser):
     assert chart["y"] < guide["y"] and chart["y"] < cards["y"]
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     assert page.locator("#activity-pulse-status").inner_text() == "USGS feed checked"
+    page.wait_for_selector("#earth-texture-credit", state="visible", timeout=10000)
+    assert "NASA Earth Observatory" in page.locator("#earth-texture-credit").inner_text()
     assert "1 earthquakes" in page.locator("#pulse-quakes").inner_text()
     assert page.locator("#pulse-latest a").count() == 1
     assert "Fixture location" in page.locator("#pulse-latest a").inner_text()

@@ -62,3 +62,10 @@
 .command-overview .command-overview-card strong{font-size:clamp(18px,1.6vw,25px)}
 .command-overview .command-overview-detail{max-width:28ch}
 @media(max-width:380px){.pulse-categories{grid-template-columns:minmax(0,1fr)}}
+
+/* Keep the globe as the focal point rather than a large boxed panel. */
+.dashboard .cinematic-hero .dashboard-map{background:#050e1a;border-color:#31576b;box-shadow:0 0 42px #4194c522}
+.dashboard .cinematic-hero .globe-canvas-wrap{background:radial-gradient(ellipse at 46% 43%,#163f5c,#071624 55%,#050e1a 83%)}
+.dashboard .cinematic-hero .map-panel-heading{background:linear-gradient(110deg,#102335,#091725)}
+#earth-texture-credit{font-size:10px;line-height:1.4;color:#a9c7dc}
+#earth-texture-credit a{color:#8fe3f4}

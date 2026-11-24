@@ -2,7 +2,7 @@
 (() => {
   const dashboard = document.getElementById('top');
   const toggle = document.getElementById('sidebar-toggle');
-  const preference = 'clearintel.sidebar.collapsed';
+  const preference = 'clearintel.sidebar.cinematic.v2.collapsed';
   function setCollapsed(collapsed) {
     dashboard.classList.toggle('sidebar-collapsed', collapsed);
     toggle.setAttribute('aria-expanded', String(!collapsed));
