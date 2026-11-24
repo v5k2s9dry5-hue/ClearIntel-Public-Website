@@ -266,3 +266,24 @@ class CountryNewsTests(TestCase):
         with patch('country_news._get', return_value=b'<!DOCTYPE rss><rss><channel/></rss>'):
             with self.assertRaises(ValueError):
                 _publisher_reports('https://example.org/rss', 'Fixture', 'GB', True)
+
+    def test_expanded_country_aliases_match_without_substring_false_positives(self):
+        cases = {
+            'KE': 'Kenyan lawmakers debate budget',
+            'ET': 'Ethiopian parliament discusses public services',
+            'GH': 'Ghanaian government publishes transport plan',
+            'SE': 'Sverige presenterar ny budget',
+            'AT': 'Österreich beschließt neue Reform',
+            'HR': 'Croatian parliament debates budget',
+            'LB': 'Lebanese cabinet meets',
+            'UY': 'Uruguayan authorities issue weather warning',
+            'SG': 'Singaporean businesses discuss trade',
+        }
+        for code, title in cases.items():
+            with self.subTest(code=code):
+                rows = (article(title, 'local.example', 1),
+                        article('Unrelated local news', 'other.example', 1))
+                result = search_country_news(code, NOW, (fixture_provider(*rows),))
+                self.assertEqual(result['story'][0]['title'], title)
+        self.assertEqual(search_country_news('SK', NOW, (
+            fixture_provider(article('Slovakianword is not a place', 'other.example', 1)),))['story'], [])
