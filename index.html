@@ -41,6 +41,7 @@
   <script src="/assets/map-refresh.js" defer></script>
   <script src="/assets/activity-pulse.js" defer></script>
   <script src="/assets/global-pulse.js" defer></script>
+  <script src="/assets/workspace-preferences.js" defer></script>
   <script src="/assets/ukmto-briefing.js" defer></script>
   <script src="/assets/globe-surface.js" defer></script>
   <script src="/assets/earth.js?v=20261122-lazy-regional" defer></script>
@@ -86,9 +87,9 @@
         </form>
         <p id="dashboard-search-status" role="status" class="visually-hidden"></p>
         <div id="dashboard-matches" hidden></div>
-            <div class="cinematic-quick"><a href="#dashboard-map">Explore map</a><a href="#dashboard-feed">Source feed</a><a href="#intelligence-replay">Replay</a></div>
+            <div id="favorite-countries" class="favorite-countries" hidden><strong>Favourite countries</strong><ul id="favorite-country-list"></ul></div><div class="cinematic-quick"><a href="#dashboard-map">Explore map</a><a href="#dashboard-feed">Source feed</a><a href="#intelligence-replay">Replay</a></div>
           </div>
-          <div class="dashboard-toolbar-tools">
+          <div class="dashboard-toolbar-tools"><details id="workspace-settings" class="workspace-settings"><summary>Display settings</summary><label for="compact-dashboard"><input type="checkbox" id="compact-dashboard"> Compact dashboard</label><p>Applies only in this browser. Does not change source coverage.</p></details>
             <div class="workspace-control-group" role="group" aria-label="Workspace display options">
               <button id="sidebar-toggle" type="button" class="workspace-control workspace-control-sidebar" aria-controls="dashboard-sidebar" aria-expanded="true" hidden>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
@@ -146,7 +147,7 @@
             <p id="ci-pulse-note" class="ci-inline-help" hidden>Each graph line counts dated reports or observations from a source in four-hour intervals. Select a source name to hide or show its line. Current means the source responded recently; older means a retained snapshot. Zero reports is different from an unavailable source. Select a category to open its reports, or use the filter below to narrow recent developments. UKMTO maritime notices are reviewed manually.</p>
             <p class="pulse-caption">Last 24 hours where available. Counts are source observations, not a global risk score.</p>
             <div class="pulse-refresh-controls" role="group" aria-label="Official publication refresh controls"><button type="button" class="globe-control" id="pulse-pause" aria-pressed="false">Pause publication checks</button><a href="#dashboard-source-guide">Source directory</a></div><p id="pulse-coverage" class="pulse-coverage" role="status">Checking 7 automatic sources…</p><details id="pulse-source-health" class="pulse-source-health"><summary>Source health details</summary><p>Latest checks in this session, not historical uptime. An unavailable source does not mean no incidents.</p><ul id="pulse-health-list"></ul></details>
-            <div id="pulse-chart" class="pulse-chart" aria-label="Activity by source, six four-hour intervals" role="img">
+            <div class="pulse-mobile-nav" role="group" aria-label="Browse intelligence panels"><button type="button" data-pulse-slide="pulse-overview-panel" aria-pressed="true">Activity</button><button type="button" data-pulse-slide="pulse-category-panel" aria-pressed="false">Categories</button><button type="button" data-pulse-slide="pulse-news-panel" aria-pressed="false">Latest</button></div><div class="pulse-mobile-panels" id="pulse-mobile-panels"><div id="pulse-overview-panel" class="pulse-slide"><div id="pulse-chart" class="pulse-chart" aria-label="Activity by source, six four-hour intervals" role="img">
               <svg viewBox="0 0 300 92" width="300" height="92" aria-hidden="true">
                 <g class="pulse-grid"><path d="M8 12H292 M8 34H292 M8 56H292 M8 78H292"/></g>
                 <g id="pulse-series"></g>
@@ -156,15 +157,15 @@
             <div id="pulse-peak" class="pulse-caption" aria-hidden="true">Scale pending</div>
             <p id="pulse-chart-note" class="pulse-caption">Waiting for source data. Unchecked sources are not plotted.</p>
             <div id="pulse-legend" class="pulse-legend" role="group" aria-label="Toggle source lines in chart"></div>
-            <div class="pulse-categories" aria-label="Intelligence categories">
-              <button type="button" data-pulse-category="geopolitical"><span>Geopolitical</span><small>FCDO · official updates</small></button>
-              <button type="button" data-pulse-layer="maritime" data-pulse-feed><span>Maritime security</span><small>Manually reviewed UKMTO notices</small></button>
-              <button type="button" data-pulse-layer="earthquakes"><span>Earth observations</span><small id="pulse-quakes">USGS · Awaiting source</small></button>
-              <button type="button" data-pulse-layer="wildfires"><span>Wildfires</span><small id="pulse-fires">NASA · Not checked yet</small></button>
-              <button type="button" data-pulse-category="cyber"><span>Cybersecurity</span><small>UK NCSC · news</small></button>
-              <button type="button" data-pulse-category="economic"><span>Economic</span><small>ECB · official releases</small></button>
-              <button type="button" data-pulse-category="humanitarian"><span>Humanitarian</span><small>GDACS · disaster alerts</small></button>
-              <button type="button" data-pulse-category="travel"><span>Travel &amp; security</span><small>FCDO · travel advice</small></button>
+            </div><div id="pulse-category-panel" class="pulse-slide"><div class="pulse-categories" aria-label="Intelligence categories">
+              <button type="button" data-pulse-category="geopolitical"><span><svg class="pulse-category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11h18M12 3v18M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M12 3c-6 5-6 13 0 18M12 3c6 5 6 13 0 18"/></svg> Geopolitical</span><small>FCDO · official updates</small></button>
+              <button type="button" data-pulse-layer="maritime" data-pulse-feed><span><svg class="pulse-category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15l3 4h12l3-4-9-5-9 5M8 12V6h8v6M12 3v3"/></svg> Maritime security</span><small>Manually reviewed UKMTO notices</small></button>
+              <button type="button" data-pulse-layer="earthquakes"><span><svg class="pulse-category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h5l3-8 4 16 3-8h5"/></svg> Earth observations</span><small id="pulse-quakes">USGS · Awaiting source</small></button>
+              <button type="button" data-pulse-layer="wildfires"><span><svg class="pulse-category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 6 7 7 7 13a7 7 0 0 1-14 0c0-4 3-6 4-9l3 5z"/></svg> Wildfires</span><small id="pulse-fires">NASA · Not checked yet</small></button>
+              <button type="button" data-pulse-category="cyber"><span><svg class="pulse-category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v6c0 4-4 7-8 9-4-2-8-5-8-9V7zM9 12l2 2 4-5"/></svg> Cybersecurity</span><small>UK NCSC · news</small></button>
+              <button type="button" data-pulse-category="economic"><span><svg class="pulse-category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V4M3 20h18M7 16l4-5 4 3 6-9"/></svg> Economic</span><small>ECB · official releases</small></button>
+              <button type="button" data-pulse-category="humanitarian"><span><svg class="pulse-category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21l-8-8C-2 5 8 0 12 7c4-7 14-2 8 6z"/></svg> Humanitarian</span><small>GDACS · disaster alerts</small></button>
+              <button type="button" data-pulse-category="travel"><span><svg class="pulse-category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l18-8-8 18-3-7z"/></svg> Travel &amp; security</span><small>FCDO · travel advice</small></button>
             </div>
             <section id="pulse-dedicated" hidden aria-label="Dedicated intelligence feed">
               <h3 id="pulse-dedicated-title" tabindex="-1">Official publications</h3>
@@ -172,12 +173,12 @@
               <ul id="pulse-dedicated-list" class="pulse-latest"></ul>
               <a id="pulse-dedicated-source" target="_blank" rel="noopener noreferrer">Open official source</a>
             </section>
-            <h3>Latest developments</h3>
+            </div><div id="pulse-news-panel" class="pulse-slide"><h3>Latest developments</h3>
             <label class="pulse-filter-label" for="pulse-latest-filter">Filter reports <select id="pulse-latest-filter"><option value="all">All automatic sources</option><option value="geopolitical">Geopolitical</option><option value="earthquakes">Earth observations</option><option value="wildfires">Wildfires</option><option value="cyber">Cybersecurity</option><option value="economic">Economic</option><option value="humanitarian">Humanitarian</option><option value="travel">Travel &amp; security</option></select></label>
             <p id="pulse-latest-status" class="pulse-caption" role="status">Waiting for observations from connected sources.</p>
             <ul id="pulse-latest" class="pulse-latest" aria-label="Recent observations received in this session"></ul>
             <button type="button" id="pulse-latest-more" class="globe-control pulse-more" aria-controls="pulse-latest" aria-expanded="false" hidden>Show more</button>
-            <p class="pulse-caption">Official publication sources refresh every five minutes while the dashboard is visible and publication checks are not paused. Map observations follow their own update schedules. Coverage is limited; check original reports.</p>
+            <p class="pulse-caption">Official publication sources refresh every five minutes while the dashboard is visible and publication checks are not paused. Map observations follow their own update schedules. Coverage is limited; check original reports.</p></div></div>
           </section>
         </div>
         <p id="ci-workspace-note" class="ci-inline-help" hidden>Analyst mode shows extra source details and keeps evidence sections expanded. Use Show sidebar to open the optional desktop navigation. Layer chooses which public data or archived reports appear on the map; the military and naval layers are historical, not live tracking.</p>
@@ -210,7 +211,7 @@
           </button>
         </div>
         <p class="command-art-credit">Decorative historical imagery: <a href="https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/" target="_blank" rel="noopener noreferrer">NASA Earth Observatory · Blue Marble, 2004</a> · <a href="https://commons.wikimedia.org/wiki/File:USS_George_Washington_(CVN-73)_underway_in_September_2015.JPG" target="_blank" rel="noopener noreferrer">U.S. Navy / Paul Archer, September 2015</a> (public domain). Not live imagery.</p>
-        <section class="crisis-overview" aria-labelledby="sanctions-heading"><div class="crisis-heading"><div><span class="activity-pulse-kicker">OFFICIAL PUBLICATIONS</span><h2 id="sanctions-heading">UK financial sanctions updates</h2></div><a href="https://www.gov.uk/government/organisations/office-of-financial-sanctions-implementation" target="_blank" rel="noopener noreferrer">OFSI official source</a></div><p>Official OFSI publications, not a complete sanctions register or a compliance determination. Check the <a href="https://www.gov.uk/government/publications/the-uk-sanctions-list" target="_blank" rel="noopener noreferrer">UK Sanctions List</a> directly for designations.</p><button type="button" class="globe-control" id="sanctions-load">Check latest OFSI publications</button><p id="sanctions-status" role="status">Not checked. Loads only when requested.</p><ul id="sanctions-results" class="pulse-latest"></ul><small>Source: GOV.UK · Open Government Licence v3.0 where applicable. Not affiliated with OFSI.</small></section>
+        <section id="recent-reporting" class="crisis-overview" aria-labelledby="recent-reporting-heading"><div class="crisis-heading"><div><span class="activity-pulse-kicker">LATEST SOURCE PUBLICATIONS</span><h2 id="recent-reporting-heading">Recent intelligence updates</h2></div><a href="#global-pulse">Explore all source categories</a></div><p>Newest linked publications from connected official sources in the last 24 hours. Publication times are not event times; this is not a comprehensive breaking-news service.</p><p id="recent-reporting-status" role="status">Waiting for source checks…</p><ul id="recent-reporting-list" class="recent-reporting-list"></ul></section><section class="crisis-overview" aria-labelledby="sanctions-heading"><div class="crisis-heading"><div><span class="activity-pulse-kicker">OFFICIAL PUBLICATIONS</span><h2 id="sanctions-heading">UK financial sanctions updates</h2></div><a href="https://www.gov.uk/government/organisations/office-of-financial-sanctions-implementation" target="_blank" rel="noopener noreferrer">OFSI official source</a></div><p>Official OFSI publications, not a complete sanctions register or a compliance determination. Check the <a href="https://www.gov.uk/government/publications/the-uk-sanctions-list" target="_blank" rel="noopener noreferrer">UK Sanctions List</a> directly for designations.</p><button type="button" class="globe-control" id="sanctions-load">Check latest OFSI publications</button><p id="sanctions-status" role="status">Not checked. Loads only when requested.</p><ul id="sanctions-results" class="pulse-latest"></ul><small>Source: GOV.UK · Open Government Licence v3.0 where applicable. Not affiliated with OFSI.</small></section>
         <section id="crisis-overview" class="crisis-overview" aria-labelledby="crisis-heading">
           <div class="crisis-heading"><div><span class="activity-pulse-kicker">CONFLICT &amp; HUMANITARIAN CONTEXT</span><h2 id="crisis-heading">Country crisis overview</h2></div><a href="https://www.unhcr.org/emergencies" target="_blank" rel="noopener noreferrer">UNHCR emergency overview ↗</a></div>
           <p>Selected humanitarian crises associated with conflict and displacement. Country-level context reviewed 24 November 2026, not a live battlefield tracker or complete list. No incident severity rating is inferred.</p>
