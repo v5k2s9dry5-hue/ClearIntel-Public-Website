@@ -165,6 +165,17 @@ class PublicSiteTests(unittest.TestCase):
         self.assertIn("script-src 'self'",r.headers['content-security-policy'])
         self.assertEqual(r.headers['strict-transport-security'], 'max-age=31536000')
 
+    def test_resource_policy_and_compression(self):
+        compressed = self.client.get("/", headers={"Accept-Encoding": "gzip"})
+        plain = self.client.get("/", headers={"Accept-Encoding": "identity"})
+        self.assertEqual(compressed.headers.get("content-encoding"), "gzip")
+        self.assertIn("accept-encoding", compressed.headers.get("vary", "").lower())
+        self.assertEqual(compressed.content, plain.content)
+        self.assertLess(int(compressed.headers["content-length"]), len(plain.content))
+        for path in ("/", "/countries/gb", "/api/build", "/assets/dashboard.css"):
+            self.assertEqual(self.client.get(path).headers["cross-origin-resource-policy"], "same-origin")
+        self.assertEqual(self.client.get("/api/build").headers["cache-control"], "no-store")
+
     def test_search_body_and_content_type_limits(self):
         with patch('main.search_news') as provider:
             self.assertEqual(self.client.post('/api/news', data={'query': 'London'}).status_code, 415)
