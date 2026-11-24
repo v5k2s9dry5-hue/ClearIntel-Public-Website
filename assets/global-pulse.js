@@ -192,9 +192,17 @@
       publications[category]=previous?.reports?{...previous,status:'stale'}:{status:'unavailable'};
     }
   }
-  let summaryBusy=false, summaryDue=0;
+  let summaryBusy=false, summaryDue=0, publicationsPaused=false;
+  const pauseButton=document.getElementById('pulse-pause');
+  pauseButton.addEventListener('click',()=>{
+    publicationsPaused=!publicationsPaused;
+    pauseButton.setAttribute('aria-pressed',String(publicationsPaused));
+    pauseButton.textContent=publicationsPaused?'Resume publication checks':'Pause publication checks';
+    if(!publicationsPaused){refreshSummary();if(selectedCategory&&Date.now()-lastCheck>=300000)loadDedicated(selectedCategory);}
+    render();
+  });
   async function refreshSummary(){
-    if(document.hidden||summaryBusy||Date.now()<summaryDue)return;
+    if(publicationsPaused||document.hidden||summaryBusy||Date.now()<summaryDue)return;
     summaryBusy=true;
     const started=Date.now();
     summaryDue=started+300000;
@@ -274,7 +282,7 @@
       loadDedicated(category);
     });
   }
-  setInterval(()=>{if(!document.hidden&&selectedCategory&&Date.now()-lastCheck>=300000)loadDedicated(selectedCategory);},30000);
+  setInterval(()=>{if(!publicationsPaused&&!document.hidden&&selectedCategory&&Date.now()-lastCheck>=300000)loadDedicated(selectedCategory);},30000);
   for(const btn of root.querySelectorAll('[data-pulse-layer]')){
     btn.addEventListener('click',()=>{
       layer.value=btn.dataset.pulseLayer;
@@ -290,6 +298,7 @@
       if(matchMedia('(max-width:860px)').matches)document.getElementById(link.hash==='#dashboard-feed'?'dashboard-feed-tab':'dashboard-map-tab').click();
     });
   }
+  for(const link of document.querySelectorAll('a[href="#dashboard-source-guide"]'))link.addEventListener('click',()=>{document.getElementById('dashboard-source-guide').open=true;});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){render();refreshSummary();}});
   setInterval(refreshSummary,30000);
   refreshSummary();
