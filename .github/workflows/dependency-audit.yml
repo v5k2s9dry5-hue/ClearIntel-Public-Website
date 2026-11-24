@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'requirements.txt'
+      - 'assets/vendor/**'
       - '.github/workflows/dependency-audit.yml'
   schedule:
     - cron: '30 8 * * 1'
@@ -32,4 +33,28 @@ jobs:
         with:
           name: dependency-audit
           path: dependency-audit.json
+          retention-days: 7
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Audit version of bundled PDF library
+        run: |
+          set -eu
+          version=$(find assets/vendor -maxdepth 1 -name 'jspdf-*.umd.min.js' -printf '%f\n' | sed -n 's/^jspdf-\([0-9][0-9.]*\)\.umd\.min\.js$/\1/p')
+          test -n "$version"
+          mkdir /tmp/clearintel-npm-audit
+          cd /tmp/clearintel-npm-audit
+          npm init -y >/dev/null
+          npm install --ignore-scripts --package-lock-only --save-exact "jspdf@$version"
+          npm audit --omit=dev --audit-level=high --json > "$GITHUB_WORKSPACE/frontend-audit.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-dependency-audit
+          path: frontend-audit.json
           retention-days: 7
