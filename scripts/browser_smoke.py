@@ -682,6 +682,17 @@ def check_site(browser, width):
     assert page.evaluate("getComputedStyle(document.body).backgroundColor") == "rgb(6, 9, 16)"
     assert page.locator('link[href*="/assets/obsidian.css"]').count() == 1
     assert page.locator(".profile-source-panel").is_visible()
+    assert page.locator("#country-briefing-export").is_visible()
+    evidence = page.locator("#country-briefing-evidence input")
+    assert evidence.count() == 1 and evidence.first.is_checked()
+    evidence.first.uncheck()
+    assert page.locator("#country-briefing-download").is_disabled()
+    evidence.first.check()
+    page.locator("#country-briefing-notes").fill("Fixture researcher note")
+    with page.expect_download(timeout=30000) as country_pdf:
+        page.locator("#country-briefing-download").click()
+    assert country_pdf.value.suggested_filename.startswith("ClearIntel-country-briefing-")
+    assert country_pdf.value.suggested_filename.endswith(".pdf")
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     # A complete outage retains prior headlines, but a successful empty search does not.
     page.evaluate("""previous => {
