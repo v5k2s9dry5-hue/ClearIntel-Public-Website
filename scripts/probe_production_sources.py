@@ -79,6 +79,7 @@ if __name__ == "__main__":
         for category, status, count in pool.map(probe, CATEGORIES):
             print(f"{category}: {status}; {count} returned records", flush=True)
     print("Aggregate Pulse: " + summary(), flush=True)
+    print("GDACS incident alerts: " + observation("/api/incident-alerts", "checked_at_ms"), flush=True)
     print("USGS observations: " + observation("/api/earthquakes", "generated_at_ms"), flush=True)
     print("NASA wildfire observations: " + observation("/api/wildfires", "checked_at_ms"), flush=True)
     print("NASA texture: " + texture(), flush=True)
