@@ -1,6 +1,7 @@
 'use strict';
 (() => {
   const input = document.getElementById('country-filter');
+  const clear = document.getElementById('country-filter-clear');
   const groups = [...document.querySelectorAll('main section')];
   const jumps = [...document.querySelectorAll('.letters a')];
   const aliases = {GB: 'UK Britain Great Britain', US: 'USA United States of America', ES: 'España'};
@@ -19,9 +20,11 @@
       group.hidden = !group.querySelector('li:not([hidden])');
       jumps[index].hidden = group.hidden;
     }
-    document.getElementById('filter-count').textContent = query ? (count ? count + (count === 1 ? ' match' : ' matches') : 'No matching country or territory') : '';
+    clear.hidden = !query;
+    document.getElementById('filter-count').textContent = query ? (count ? count + (count === 1 ? ' match' : ' matches') : 'No matching country or territory') : entries.length + ' countries and territories';
   }
   document.getElementById('directory-filter').hidden = false;
   input.addEventListener('input', filter);
+  clear.addEventListener('click', () => { input.value = ''; filter(); input.focus(); });
   filter();
 })();
