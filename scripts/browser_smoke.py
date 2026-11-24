@@ -136,6 +136,20 @@ def check_site(browser, width):
                    for index, level in enumerate(("green", "amber", "red"))]
     }))
     page.goto(ROOT, wait_until="domcontentloaded")
+    page.evaluate("""() => {
+        const rows=[
+          {title:'Regional transport authority announces new public rail service timetable',source:'Publisher A',url:'https://example.org/a'},
+          {title:'Regional transport authority announces new public rail service timetable!',source:'Publisher B',url:'https://example.org/b'},
+          {title:'Regional transport authority announces new public rail service timetable',source:'Duplicate',url:'https://example.org/a'},
+          {title:'Regional transport authority announces revised public rail service timetable',source:'Publisher C',url:'https://example.org/c'},
+          {title:'Regional transport authority announces new public rail service timetable 12',source:'Publisher D',url:'https://example.org/d'},
+          {title:'Regional transport authority announces new public rail service timetable',source:'Unsafe',url:'javascript:alert(1)'}
+        ];
+        const signals=reportWordingSignals(rows);
+        if(signals.exact.length!==1||signals.exact[0].length!==2||signals.similar.length!==2||signals.considered!==4)throw Error('Wording comparison invalid');
+        const panel=researchCorrelation(rows);
+        if(panel.querySelectorAll('.correlation-group').length!==3||panel.querySelector('a[href^="javascript:"]'))throw Error('Unsafe comparison rendering');
+    }""")
     assert page.locator("#globe-layer").input_value() == "incidents"
     page.locator("#incident-count-red").filter(has_text="1").wait_for(state="visible", timeout=10000)
     assert page.locator("#incident-count-green").inner_text() == "1"
