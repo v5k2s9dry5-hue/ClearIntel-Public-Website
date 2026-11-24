@@ -156,6 +156,8 @@ def check(base, requester=fetch, expected_commit=None):
            "frame-ancestors 'none'" in homepage_headers.get("content-security-policy", "") and
            homepage_headers.get("x-content-type-options", "").lower() == "nosniff" and
            homepage_headers.get("strict-transport-security", "").startswith("max-age="))
+    record("Public APIs are not cached", headers.get("/api/build", {}).get("cache-control") == "no-store" and headers.get("/health", {}).get("cache-control") == "no-store")
+    record("Cross-origin resource embedding restricted", homepage_headers.get("cross-origin-resource-policy") == "same-origin")
     return results
 
 
