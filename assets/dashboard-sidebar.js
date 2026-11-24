@@ -9,8 +9,8 @@
     const text = toggle.querySelector('.workspace-control-text');
     if (text) text.textContent = collapsed ? 'Show sidebar' : 'Hide sidebar';
   }
-  let collapsed = false;
-  try { collapsed = localStorage.getItem(preference) === 'true'; } catch {}
+  let collapsed = true;
+  try { collapsed = localStorage.getItem(preference) !== 'false'; } catch {}
   setCollapsed(collapsed);
   toggle.hidden = false;
   toggle.addEventListener('click', () => {
