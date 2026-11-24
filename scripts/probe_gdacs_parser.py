@@ -10,5 +10,8 @@ if __name__ == "__main__":
         data = _download(url)
         rows = parse_feed(data, hosts)
         print(f"Candidate GDACS parser: {len(rows)} usable reports returned")
+        for severity in ("green", "amber", "red"):
+            print(f"Source-rated hazard alerts ({severity}): {sum(row.get('severity') == severity for row in rows)}")
+        print("Unrated publications: " + str(sum("severity" not in row for row in rows)))
     except Exception as error:
         print("Candidate GDACS parser: unavailable (" + type(error).__name__ + ")")
