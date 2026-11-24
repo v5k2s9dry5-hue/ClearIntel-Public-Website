@@ -33,10 +33,20 @@ def audit(browser, name, width, height):
             textureCreditVisible: !!document.querySelector('#earth-texture-credit:not([hidden])'),
             archivePhotoConfigured: getComputedStyle(document.querySelector('[data-command-layer=aviation]'), '::before').backgroundImage.includes('archive-card.jpg')
         })""")
-        metrics.update({"http": response.status if response else None, "browserErrors": len(errors), "viewport": [width,height]})
+        metrics.update({"incidentDefault": page.locator('#globe-layer').input_value() == 'incidents',
+                        "incidentControlsVisible": page.locator('#incident-severity').is_visible(),
+                        "incidentCoverage": page.locator('#incident-coverage').inner_text(),
+                        "sourceHealthRows": page.locator('#pulse-health-list li').count(),
+                        "sanctionsOnDemand": 'Not checked' in page.locator('#sanctions-status').inner_text(),
+                        "navigationTiming": page.evaluate("() => {const n=performance.getEntriesByType('navigation')[0];return n?{ttfb_ms:Math.round(n.responseStart),dom_ready_ms:Math.round(n.domContentLoadedEventEnd),transfer_bytes:n.transferSize}:null;}"),
+                        "http": response.status if response else None, "browserErrors": len(errors), "viewport": [width,height]})
         print(name + ": " + json.dumps(metrics), flush=True)
         (OUT / (name + ".json")).write_text(json.dumps(metrics, indent=2), encoding="utf-8")
         audit_workspaces(page, name, errors)
+        assert metrics['http'] == 200 and not metrics['horizontalOverflow'], metrics
+        assert metrics['incidentDefault'] and metrics['incidentControlsVisible'], metrics
+        assert metrics['sanctionsOnDemand'] and metrics['sourceHealthRows'] == 7, metrics
+        assert not errors, errors
     finally:
         context.close()
 
@@ -71,9 +81,14 @@ def audit_workspaces(page, name, errors):
     metrics["profileNavigation"] = page.locator(".country-breadcrumb a").count() == 1
     metrics["profileSources"] = page.locator(".profile-source-panel a").count()
     metrics["profileNoOverflow"] = capture("profile")
+    metrics['briefingBuilderPresent'] = page.locator('#country-briefing-export').count() == 1
+    metrics['manifestControlPresent'] = page.locator('#country-briefing-manifest').count() == 1
     metrics["browserErrors"] = len(errors)
     print(name + " workspaces: " + json.dumps(metrics), flush=True)
     (OUT / f"{name}-workspaces.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    assert metrics['directoryHTTP'] == metrics['profileHTTP'] == 200 and metrics['directoryCount'] == 238, metrics
+    assert metrics['directoryNoOverflow'] and metrics['profileNoOverflow'] and metrics['researchNoOverflow'], metrics
+    assert metrics['briefingBuilderPresent'] and metrics['manifestControlPresent'], metrics
 
 
 if __name__ == "__main__":
