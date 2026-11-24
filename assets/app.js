@@ -290,6 +290,60 @@ function searchCoverage(payload) {
   return details;
 }
 
+
+/* Wording comparison only: no claim that reports describe the same event,
+   originate independently, or verify each other. No provider calls. */
+function reportWordingSignals(rows){
+  const unique=new Map();
+  for(const article of rows.slice(0,60)){
+    if(!article || typeof article.title!=='string')continue;
+    let url;
+    try{url=new URL(article.url);if(url.protocol!=='https:'||url.username||url.password)continue;url.hash='';}catch(_){continue;}
+    const normalized=article.title.slice(0,300).normalize('NFKC').toLowerCase().replace(/[\p{P}\p{S}]+/gu,' ').replace(/\s+/g,' ').trim();
+    if(normalized.length<30||normalized.split(' ').length<5||unique.has(url.href))continue;
+    unique.set(url.href,{article,href:url.href,normalized,tokens:new Set(normalized.split(' ')),numbers:normalized.match(/\b\d+\b/g)?.sort().join(',')||''});
+  }
+  const items=[...unique.values()],exact=new Map(),similar=[];
+  for(const item of items){
+    if(!exact.has(item.normalized))exact.set(item.normalized,[]);
+    exact.get(item.normalized).push(item);
+  }
+  for(let i=0;i<items.length && similar.length<8;i++)for(let j=i+1;j<items.length && similar.length<8;j++){
+    const a=items[i],b=items[j];
+    if(a.normalized===b.normalized||a.numbers!==b.numbers||a.tokens.size<8||b.tokens.size<8)continue;
+    const intersection=[...a.tokens].filter(word=>b.tokens.has(word)).length;
+    const union=new Set([...a.tokens,...b.tokens]).size;
+    if(intersection/union>=.8)similar.push([a,b]);
+  }
+  return {exact:[...exact.values()].filter(group=>group.length>1).slice(0,8),similar,considered:items.length};
+}
+function researchCorrelation(rows){
+  const result=reportWordingSignals(rows);
+  const details=el('details','research-correlation');
+  details.append(el('summary','', 'Compare reporting wording · '+result.exact.length+' matching groups · '+result.similar.length+' similar pairs'));
+  details.append(el('p','','Wording matches are research leads, not confirmed duplicate stories, shared ownership, independent corroboration or proof of an event. Different numbers are excluded from similar-wording comparisons. Open the original articles to assess context.'));
+  const add=(name,groups)=>{
+    if(!groups.length)return;
+    details.append(el('h4','',name));
+    for(const group of groups){
+      const section=el('div','correlation-group');
+      const publishers=new Set(group.map(item=>String(item.article.source||'Unknown').trim().toLowerCase()));
+      section.append(el('p','',group.length+' distinct links · '+publishers.size+' listed publishers'));
+      const list=el('ul','');
+      for(const item of group){
+        const li=el('li','');
+        const link=el('a','',item.article.title.slice(0,300));link.href=item.href;link.target='_blank';link.rel='noopener noreferrer nofollow';
+        li.append(link,el('span','',String(item.article.source||'Unknown').slice(0,100)));list.append(li);
+      }
+      section.append(list);details.append(section);
+    }
+  };
+  add('Matching headline wording',result.exact);add('Similar headline wording',result.similar);
+  if(!result.exact.length&&!result.similar.length)details.append(el('p','','No wording signals found among eligible returned headlines. This does not establish independent sourcing.'));
+  details.append(el('p','', 'Compared '+result.considered+' eligible distinct links from the first 60 results; showing up to eight groups or pairs of each type.'));
+  return details;
+}
+
 function renderResults(payload,search){
   const area=$('news-results');area.replaceChildren();
   const header=el('div','results-header');
@@ -298,6 +352,7 @@ function renderResults(payload,search){
   header.append(left,timeWindow);area.append(header);
   const notice=el('div','result-warning',payload.notice);area.append(notice);
   area.append(searchCoverage(payload));
+  if(payload.results.length>1)area.append(researchCorrelation(payload.results));
   const windowText='Requested UTC window: '+(payload.window_start||'unknown')+' to '+(payload.window_end||'unknown')+'.';
   area.append(el('p','analyst-only analyst-metadata',windowText));
   const exportUi=window.ClearIntelReport?reportExport(payload,search):null;
