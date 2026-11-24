@@ -22,3 +22,15 @@ class GlobeTextureTests(unittest.TestCase):
             self.assertEqual(g.texture().status_code, 503)
             self.assertEqual(g.texture().status_code, 503)
             download.assert_called_once()
+
+    def test_archive_is_fixed_source_and_cached(self):
+        original = (g._archive_photo, g._archive_retry)
+        g._archive_photo, g._archive_retry = None, 0
+        try:
+            fixture = b"\xff\xd8archive\xff\xd9"
+            with patch.object(g, "_download", return_value=fixture) as download:
+                self.assertEqual(g.archive_card().body, fixture)
+                self.assertEqual(g.archive_card().body, fixture)
+                download.assert_called_once_with(g.ARCHIVE_SOURCE)
+        finally:
+            g._archive_photo, g._archive_retry = original
