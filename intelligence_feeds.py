@@ -131,8 +131,9 @@ def feed(category: str):
         finally:
             _locks[category].release()
     snapshot = _cache.get(category)
+    status = ("checking" if _locks[category].locked() and not snapshot else "unavailable") if not snapshot else "stale" if monotonic() - snapshot[0] >= TTL else "available"
     return {"source": name, "source_url": website, "checked_at_utc": snapshot[1] if snapshot else None,
-            "status": "unavailable" if not snapshot else "stale" if monotonic() - snapshot[0] >= TTL else "available",
+            "status": status,
             "reports": snapshot[2] if snapshot else [], "coverage": "Latest available source publications, not incident verification or exhaustive coverage."}
 
 @router.get("/api/intelligence-pulse", include_in_schema=False)
