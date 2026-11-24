@@ -1,4 +1,5 @@
 """Allowlisted official publication feeds; shared short cache, no user supplied URLs."""
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from threading import Lock
@@ -21,6 +22,7 @@ MAX_BYTES = 1024 * 1024
 _cache = {}
 _retry = {}
 _locks = {key: Lock() for key in SOURCES}
+_pulse_lock = Lock()
 
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
@@ -111,3 +113,15 @@ def feed(category: str):
     return {"source": name, "source_url": website, "checked_at_utc": snapshot[1] if snapshot else None,
             "status": "unavailable" if not snapshot else "stale" if monotonic() - snapshot[0] >= TTL else "available",
             "reports": snapshot[2] if snapshot else [], "coverage": "Latest available source publications, not incident verification or exhaustive coverage."}
+
+@router.get("/api/intelligence-pulse", include_in_schema=False)
+def pulse():
+    """One bounded public summary; concurrent visitors reuse per-source caches."""
+    if not _pulse_lock.acquire(blocking=False):
+        return {"status": "checking", "feeds": {}}
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(feed, SOURCES))
+        return {"status": "checked", "feeds": dict(zip(SOURCES, results))}
+    finally:
+        _pulse_lock.release()
