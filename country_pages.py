@@ -1,5 +1,7 @@
 """Server-rendered country directory and source guides."""
 from html import escape
+import json
+from pathlib import Path
 from string import Template
 from urllib.parse import urlencode
 
@@ -41,6 +43,22 @@ def directory(base):
                 '<script src="/assets/country-filter.js" defer></script>')
 
 
+_ASSETS = Path(__file__).with_name("assets")
+_POINTS = {p["id"]: p for p in json.loads((_ASSETS / "countries.json").read_text(encoding="utf-8"))["events"]}
+_COASTS = json.loads((_ASSETS / "world-map.json").read_text(encoding="utf-8"))["coastlines"]
+def locator_map(code):
+    point = _POINTS[code]
+    def xy(lon, lat):
+        return (round((lon+180)*0.8, 2), round((90-lat)*0.8, 2))
+    x, y = xy(point["longitude"], point["latitude"])
+    paths = "".join('<polyline points="' + " ".join(f"{px},{py}" for px,py in (xy(lon,lat) for lon,lat in line)) + '"/>' for line in _COASTS)
+    return f'<svg class="country-locator" viewBox="0 0 288 144" role="img" aria-label="Approximate geographic label point for {escape(COUNTRIES[code])}"><g fill="none" stroke="#496c83" stroke-width=".6">{paths}</g><circle cx="{x}" cy="{y}" r="5" fill="#8be9f8" stroke="#071321" stroke-width="1.5"/></svg><small>Natural Earth · indicative geographic label point, not a boundary or event location.</small>'
+
+def flag(code):
+    if len(code)==2 and code.isascii() and code.isalpha() and code not in {"XX","XK"}:
+        return "".join(chr(0x1F1E6+ord(c)-65) for c in code)
+    return code
+
 def profile(base, code):
     name = COUNTRIES[code]
     sources = list(REGIONAL_FEEDS.get(code, ()))
@@ -60,13 +78,14 @@ def profile(base, code):
         sources.append((f'Google News national edition for {name}', national_edition))
     sources.append((f'Search Google News for {name}', search_url))
     source_links = ''.join(f'<li><a href="{escape(url)}">{escape(label)}</a></li>' for label, url in sources)
+    topic_links = ''.join(f'<li><a href="{escape("https://news.google.com/search?" + urlencode({"q": name + " " + term, "hl": "en-GB"}))}">{label}</a></li>' for label, term in (("Domestic and regional", "regional local news"), ("Politics and government", "politics government"), ("Economy and business", "economy business"), ("Health and environment", "health environment")))
     description = f'Browse recent headlines for {name}, check when sources were last queried and open the original reports.'
-    body = (f'<nav class="country-breadcrumb" aria-label="Breadcrumb"><a href="/countries">All countries</a><span aria-hidden="true">/</span><span>{escape(name)}</span></nav><div class="country-workspace-hero"><div class="page-kicker">COUNTRY INTELLIGENCE · {code}</div><h1>{escape(name)}</h1><p>{escape(description)}</p><div class="country-hero-links"><button type="button" id="favorite-country-toggle" data-code="{code}" data-name="{escape(name)}" aria-pressed="false" hidden>Save favourite</button><a href="/#research">Open research desk</a><a href="/#dashboard-map">Explore global map</a></div></div>'
+    body = (f'<nav class="country-breadcrumb" aria-label="Breadcrumb"><a href="/countries">All countries</a><span aria-hidden="true">/</span><span>{escape(name)}</span></nav><div class="country-workspace-hero"><div class="page-kicker">COUNTRY INTELLIGENCE · {code}</div><h1><span class="country-flag" aria-hidden="true">{flag(code)}</span> {escape(name)}</h1><p>{escape(description)}</p><div class="country-hero-links"><button type="button" id="favorite-country-toggle" data-code="{code}" data-name="{escape(name)}" aria-pressed="false" hidden>Save favourite</button><a href="/#research">Open research desk</a><a href="/#dashboard-map">Explore global map</a></div></div>'
             '<button type="button" id="analyst-mode-toggle" class="globe-control analyst-mode-toggle" aria-pressed="false" hidden>Analyst mode</button>'
             f'<div class="country-profile-grid"><div><section id="country-brief" data-code="{code}" data-place="{escape(name)}">'
             '<h2>Recent headlines</h2><noscript>Enable JavaScript to load headlines or use the source links below.</noscript></section>'
             f'<p class="update-note">Headlines refresh every five minutes while this page is open and visible.</p>'
             '<section id="country-briefing-export" class="country-briefing-export" hidden><h2>Build a country briefing</h2><p>Choose original linked reports from the current snapshot. Exported findings are reporting leads, not verified incidents.</p><p id="country-briefing-summary" role="status"></p><div id="country-briefing-evidence"></div><label for="country-briefing-notes">Researcher notes (included in exported files)</label><textarea id="country-briefing-notes" maxlength="2000" rows="3" placeholder="Questions, limitations or your assessment"></textarea><button type="button" id="country-briefing-download" disabled>Download country briefing PDF</button><button type="button" id="country-briefing-manifest" disabled>Download evidence JSON</button><p id="country-briefing-status" role="status"></p></section>'
-            f'</div><section class="profile-source-panel"><h2>Browse sources</h2><p>Open these sources directly, including when the headline feed is unavailable.</p><ul>{source_links}</ul></section></div>')
-    scripts = '<script src="/assets/analyst-mode.js" defer></script><script src="/assets/country-card.js?v=evidence-disclosure" defer></script><script src="/assets/research-pdf.js" defer></script><script src="/assets/country-profile.js?v=refresh-resilience" defer></script>'
+            f'</div><section class="profile-source-panel"><h2>Geographic context</h2>{locator_map(code)}<section class="country-context-links"><h2>Country statistics</h2><p>Official World Bank indicators, with observation years. Availability varies by country or territory.</p><button type="button" id="country-stats-load" data-code="{code}">Check latest available statistics</button><p id="country-stats-status" role="status">Not checked. Loads only on request.</p><dl id="country-stats-results"></dl><a href="https://data.worldbank.org/">World Bank Data</a><p><small>World Bank: World Development Indicators. See <a href="https://www.worldbank.org/ext/en/legal/terms-conditions/datasets">dataset terms</a>.</small></p></section><section class="country-context-links"><h2>Official travel advice</h2><p>Check UK government advice for this destination, including safety, entry rules and health. No risk rating inferred by ClearIntel.</p><a href="https://www.gov.uk/foreign-travel-advice">Find destination in FCDO travel advice</a></section><section class="country-context-links"><h2>Explore reporting by topic</h2><p>Targeted source searches, not classifications of existing reports.</p><ul>{topic_links}</ul></section><h2>Browse sources</h2><p>Open these sources directly, including when the headline feed is unavailable.</p><ul>{source_links}</ul></section></div>')
+    scripts = '<script src="/assets/analyst-mode.js" defer></script><script src="/assets/country-card.js?v=evidence-disclosure" defer></script><script src="/assets/research-pdf.js" defer></script><script src="/assets/country-profile.js?v=refresh-resilience" defer></script><script src="/assets/country-stats.js" defer></script>'
     return page(base, '/countries/' + code.lower(), name + ' news and sources', description, body, scripts)
