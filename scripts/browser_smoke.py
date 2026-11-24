@@ -98,6 +98,20 @@ def check_site(browser, width):
              "url": "https://earthquake.usgs.gov/earthquakes/eventpage/fixture-b"}
         ]})
     page.route("**/api/earthquakes", quake_fixture)
+    page.route("**/api/wildfires", lambda route: route_json(route, {
+        "checked_at_ms": int(time.time() * 1000),
+        "events": [{"id": "EONET_123", "title": "Fixture wildfire observation",
+                    "observed_at_ms": int(time.time() * 1000) - 1800000,
+                    "latitude": 35, "longitude": 25, "closed": False,
+                    "url": "https://eonet.gsfc.nasa.gov/api/v3/events/EONET_123",
+                    "source": "NASA EONET"}]
+    }))
+    from datetime import datetime, timezone
+    auto_stamp = datetime.now(timezone.utc).isoformat()
+    auto_report = {"title": "Fixture automatic economic update", "url": "https://www.ecb.europa.eu/press/example", "published_at_utc": auto_stamp}
+    page.route("**/api/intelligence-pulse", lambda route: route_json(route, {
+        "status": "checked", "feeds": {"economic": {"status": "available", "checked_at_utc": auto_stamp, "reports": [auto_report]}}
+    }))
     # Runs in every document, including reloads. The previous test defined an
     # uninvoked function and therefore never installed the clipboard stub.
     page.add_init_script("""Object.defineProperty(navigator, 'clipboard', {
@@ -143,6 +157,10 @@ def check_site(browser, width):
     assert page.locator(".command-overview-card").count() == 3
     assert page.locator("#activity-pulse").is_visible()
     assert page.locator(".pulse-categories > *").count() == 8
+    page.locator('[data-pulse-category="economic"] small').filter(has_text="1 recent publications").wait_for(state="visible", timeout=10000)
+    assert page.locator("#pulse-series polyline.economic").count() == 1
+    assert page.locator("#pulse-dedicated").is_hidden()
+
     from datetime import datetime, timezone
     recent_stamp = datetime.now(timezone.utc).isoformat()
     page.route("**/api/intelligence-feed/travel", lambda route: route_json(route, {
@@ -180,9 +198,9 @@ def check_site(browser, width):
         }}));
     }""")
     assert page.locator("#pulse-quakes").inner_text() == "USGS · 2 earthquakes · Last 24h"
-    assert "Not checked yet" in page.locator("#pulse-fires").inner_text()
+    page.locator("#pulse-fires").filter(has_text="1 wildfire observations").wait_for(state="visible", timeout=10000)
     assert page.locator("#pulse-series polyline.earthquakes").count() == 1
-    assert page.locator("#pulse-series polyline.wildfires").count() == 0
+    assert page.locator("#pulse-series polyline.wildfires").count() == 1
     assert "USGS: 0, 0, 0, 0, 0, 2" in page.locator("#pulse-chart").get_attribute("aria-label")
     page.evaluate("""() => {
         const now=Date.now();
@@ -683,6 +701,8 @@ def check_wide_hero_layout(browser):
         "longitude": 2.0, "url": "https://earthquake.usgs.gov/earthquakes/eventpage/test"
     }]}
     page.route("**/api/earthquakes", lambda route: route_json(route, observation))
+    page.route("**/api/wildfires", lambda route: route.fulfill(status=503))
+    page.route("**/api/intelligence-pulse", lambda route: route_json(route, {"status": "checking", "feeds": {}}))
     page.goto(ROOT, wait_until="domcontentloaded")
     page.wait_for_function("() => document.querySelector('#activity-pulse-total')?.textContent === '1'",
                            timeout=15000)
