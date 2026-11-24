@@ -52,3 +52,16 @@ class DedicatedFeedTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             f.parse_feed(xml, {"www.gdacs.org"})
         self.assertEqual(f.parse_feed(b"<rss><channel/></rss>", {"www.gdacs.org"}), [])
+
+    def test_pulse_shares_source_cache(self):
+        with patch.object(f, "_download", return_value=b"<rss><channel/></rss>") as request:
+            result = f.pulse()
+            self.assertEqual(result["status"], "checked")
+            self.assertEqual(set(result["feeds"]), set(f.SOURCES))
+            self.assertTrue(all(row["status"] == "available" for row in result["feeds"].values()))
+            f.pulse()
+            self.assertEqual(request.call_count, len(f.SOURCES))
+
+    def test_pulse_does_not_start_overlapping_aggregate(self):
+        with f._pulse_lock:
+            self.assertEqual(f.pulse(), {"status": "checking", "feeds": {}})
