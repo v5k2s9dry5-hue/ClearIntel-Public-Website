@@ -55,10 +55,13 @@ class PublicSiteTests(unittest.TestCase):
                       'Country news', 'Military aviation', 'Naval activity'):
             self.assertIn('>' + label + '</option>', html)
 
-    def test_activity_chart_precedes_guide_and_category_cards(self):
+    def test_global_pulse_in_hero_and_earthquake_chart_separate(self):
         html = self.client.get("/").text
         self.assertEqual(html.count('id="activity-pulse"'), 1)
-        self.assertLess(html.index('id="activity-pulse"'), html.index('id="ci-start-guide"'))
+        self.assertLess(html.index('id="global-pulse"'), html.index('id="ci-start-guide"'))
+        self.assertLess(html.index('id="earth-observations"'), html.index('id="activity-pulse"'))
+        self.assertIn('No dedicated feed', html)
+        self.assertIn('/assets/global-pulse.js?', html)
         self.assertLess(html.index('id="dashboard-search"'), html.index('id="dashboard-map"'))
         self.assertLess(html.index('id="dashboard-map"'), html.index('id="activity-pulse"'))
         self.assertIn('/assets/cinematic.css', html)
