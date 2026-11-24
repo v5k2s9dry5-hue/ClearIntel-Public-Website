@@ -230,6 +230,11 @@ def check_site(browser, width):
     assert "Fixture automatic economic update" in page.locator("#pulse-latest a").inner_text()
     page.locator("#pulse-latest-filter").select_option("all")
     assert "of 7 automatic sources current" in page.locator("#pulse-coverage").inner_text()
+    assert "Not checked" in page.locator("#sanctions-status").inner_text()
+    page.route("**/api/intelligence-feed/sanctions", lambda route: route_json(route, {"status":"available","checked_at_utc":auto_stamp,"reports":[{"title":"Fixture OFSI update","url":"https://www.gov.uk/government/publications/fixture","published_at_utc":auto_stamp}]}))
+    page.locator("#sanctions-load").click()
+    page.locator("#sanctions-results a").wait_for()
+    assert page.locator("#sanctions-results a").inner_text() == "Fixture OFSI update"
     page.locator("#pulse-source-health summary").click()
     assert page.locator("#pulse-health-list li").count() == 7
     assert "ECB · Current" in page.locator("#pulse-health-list").inner_text()
@@ -554,6 +559,8 @@ def check_site(browser, width):
     }))""")
     page.get_by_role("button", name="Save current snapshot").click()
     assert page.locator("#replay-select option").count() == 2
+    assert page.locator("#replay-compare-earlier option").count() == 1
+    assert not page.locator("#replay-compare-earlier").is_disabled()
     page.locator("#replay-query-filter").fill("no matching saved search")
     assert page.locator("#replay-select").is_disabled()
     assert "0 of 2" in page.locator("#replay-filter-count").inner_text()
