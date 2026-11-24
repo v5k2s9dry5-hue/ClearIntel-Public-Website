@@ -145,6 +145,22 @@ def check_site(browser, width):
     }""")
     assert page.locator("#pulse-quakes").inner_text() == "USGS · 2 earthquakes · Last 24h"
     assert "Not checked yet" in page.locator("#pulse-fires").inner_text()
+    assert page.locator("#pulse-series polyline.earthquakes").count() == 1
+    assert page.locator("#pulse-series polyline.wildfires").count() == 0
+    assert "USGS: 0, 0, 0, 0, 0, 2" in page.locator("#pulse-chart").get_attribute("aria-label")
+    page.evaluate("""() => {
+        const now=Date.now();
+        window.dispatchEvent(new CustomEvent('clearintel:wildfire-snapshot', {detail:{
+          checked_at_ms:now,events:[{observed_at_ms:now-1800000,title:'Fixture wildfire',url:'https://eonet.gsfc.nasa.gov/'}],stale:false
+        }}));
+    }""")
+    assert page.locator("#pulse-series polyline.wildfires").count() == 1
+    assert "NASA EONET: 0, 0, 0, 0, 0, 1" in page.locator("#pulse-chart").get_attribute("aria-label")
+    page.evaluate("window.dispatchEvent(new CustomEvent('clearintel:wildfire-snapshot',{detail:{unavailable:true}}))")
+    assert page.locator("#pulse-series polyline.wildfires.stale").count() == 1
+    for asset in ("card-earth.svg", "card-country.svg", "card-archive.svg"):
+        assert page.request.get(ROOT + "/assets/" + asset).ok
+
     assert page.locator("#activity-pulse-total").inner_text() == "2"
     assert page.locator("#activity-pulse-bars .activity-pulse-bin").count() == 6
     assert page.locator("#activity-pulse-status").inner_text() == "USGS feed checked"
