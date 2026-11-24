@@ -17,6 +17,7 @@ from threading import Lock
 
 from fastapi import FastAPI, HTTPException, Request
 from starlette.requests import ClientDisconnect
+from starlette.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
@@ -36,6 +37,7 @@ PUBLIC_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
 PUBLIC_URL = PUBLIC_URL or "https://clearintel-public.onrender.com"
 HOME_TEMPLATE = version_page((ROOT / "index.html").read_text(encoding="utf-8"))
 app = FastAPI(title="ClearIntel public website", docs_url=None, redoc_url=None, openapi_url=None)
+app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=3)
 app.mount("/assets", StaticFiles(directory=ROOT / "assets"), name="assets")
 app.include_router(earthquake_router)
 app.include_router(wildfire_router)
@@ -69,6 +71,7 @@ async def secure_headers(request: Request, call_next):
     response.headers["Strict-Transport-Security"] = "max-age=31536000"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'self' mailto:; base-uri 'none'; object-src 'none'; frame-ancestors 'none'"
     response.headers["Cache-Control"] = cache_policy(
