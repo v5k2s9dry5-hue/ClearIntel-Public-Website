@@ -431,6 +431,13 @@ function renderResults(payload,search){
       publisher.add(new Option(name,name));
     }
     sourceField.append(publisher);
+    const textField=el('label','result-view-field','Filter headline wording');
+    const wording=el('input','');wording.type='search';wording.id='result-wording';wording.maxLength=140;wording.placeholder='Words in headline';textField.htmlFor=wording.id;textField.append(wording);
+    const providerField=el('label','result-view-field','Feed provider');
+    const provider=el('select','');provider.id='result-provider';providerField.htmlFor=provider.id;
+    provider.add(new Option('All providers',''));
+    for(const name of [...new Set(entries.map(entry=>entry.article.provider).filter(Boolean))].sort())provider.add(new Option(name,name));
+    providerField.append(provider);
     const sortField=el('label','result-view-field','Order');
     const sort=el('select','');sort.id='result-order';sortField.htmlFor=sort.id;
     sort.add(new Option('Original order','original'));
@@ -439,7 +446,7 @@ function renderResults(payload,search){
     sortField.append(sort);
     const count=el('p','result-view-count');count.setAttribute('role','status');
     const reset=el('button','globe-control','Reset view');reset.type='button';
-    const guidance=el('p','result-view-guidance','View controls use results already retrieved. PDF includes checked findings, even when filtered out of view.');
+    const guidance=el('p','result-view-guidance','View controls use results already retrieved. PDF and evidence JSON include checked findings, even when filtered out of view.');
     function updateView(){
       let ordered=[...entries];
       if(sort.value!=='original')ordered.sort((a,b)=>{
@@ -449,17 +456,17 @@ function renderResults(payload,search){
       });
       let shown=0;
       for(const entry of ordered){
-        const visible=!publisher.value||entry.article.source===publisher.value;
+        const visible=(!publisher.value||entry.article.source===publisher.value)&&(!provider.value||entry.article.provider===provider.value)&&String(entry.article.title||'').toLocaleLowerCase('en-GB').includes(wording.value.trim().toLocaleLowerCase('en-GB'));
         entry.card.hidden=!visible;
         if(visible)shown++;
         list.append(entry.card);
       }
       count.textContent='Showing '+shown+' of '+entries.length+' headlines';
-      reset.disabled=!publisher.value&&sort.value==='original';
+      reset.disabled=!publisher.value&&!provider.value&&!wording.value&&sort.value==='original';
     }
-    publisher.addEventListener('change',updateView);sort.addEventListener('change',updateView);
-    reset.addEventListener('click',()=>{publisher.value='';sort.value='original';updateView();publisher.focus();});
-    controls.append(sourceField,sortField,reset,count,guidance);
+    publisher.addEventListener('change',updateView);sort.addEventListener('change',updateView);provider.addEventListener('change',updateView);wording.addEventListener('input',updateView);
+    reset.addEventListener('click',()=>{publisher.value='';provider.value='';wording.value='';sort.value='original';updateView();publisher.focus();});
+    controls.append(sourceField,providerField,textField,sortField,reset,count,guidance);
     area.append(controls);updateView();
   }
   area.append(list);
