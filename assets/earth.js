@@ -725,7 +725,7 @@
     if(isIncident){
       for(const event of allReports)if(Object.hasOwn(counts,event.severity))counts[event.severity]++;
       for(const level of Object.keys(counts))document.getElementById('incident-count-'+level).textContent=active.feed?String(counts[level]):'—';
-      document.getElementById('incident-coverage').textContent=active.failed?'Feed unavailable or older snapshot.':active.feed?'Natural-hazard alerts from GDACS. Not a global conflict or verified incident count.':'Checking GDACS alerts…';
+      document.getElementById('incident-coverage').textContent=active.failed||active.feed?.stale?'Feed unavailable or older snapshot.':active.feed?'Natural-hazard alerts from GDACS. Not a global conflict or verified incident count.':'Checking GDACS alerts…';
     }
     const filteredReports=isIncident&&incidentFilter.value!=='all'?allReports.filter(event=>event.severity===incidentFilter.value):allReports;
     const step=Number(reportWindow.value)===1?7200000:86400000;
