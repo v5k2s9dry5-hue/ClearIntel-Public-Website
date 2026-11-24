@@ -140,6 +140,16 @@
     }
     healthList.replaceChildren(...healthRows);
     recent.sort((a,b)=>b.time-a.time);
+    const recentList=document.getElementById('recent-reporting-list');
+    const recentStatus=document.getElementById('recent-reporting-status');
+    if(recentList&&recentStatus){
+      const distinct=new Set();
+      const top=recent.filter(row=>!row.stale&&!distinct.has(row.url)&&(distinct.add(row.url),true)).slice(0,6);
+      const focused=recentList.contains(document.activeElement)?document.activeElement.href:null;
+      recentList.replaceChildren();
+      for(const row of top){const li=document.createElement('li'),link=document.createElement('a'),meta=document.createElement('small');link.href=row.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=row.title;meta.textContent=row.source+' · '+new Date(row.time).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'short',timeStyle:'short'})+' UTC';li.append(link,meta);recentList.append(li);if(focused===link.href)link.focus({preventScroll:true});}
+      recentStatus.textContent=top.length?top.length+' recent records · '+fresh+' of 7 automatic sources current':'No current linked observations available. Coverage may be incomplete.';
+    }
     const seen=new Set();
     const selected=latestFilter.value;
     const matches=recent.filter(row=>{
