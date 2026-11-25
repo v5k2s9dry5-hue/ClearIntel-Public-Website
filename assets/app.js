@@ -374,7 +374,7 @@ function renderResults(payload,search){
   if(payload.results.length>1)area.append(researchCorrelation(payload.results));
   const windowText='Requested UTC window: '+(payload.window_start||'unknown')+' to '+(payload.window_end||'unknown')+'.';
   area.append(el('p','analyst-only analyst-metadata',windowText));
-  const exportUi=window.ClearIntelReport?reportExport(payload,search):null;
+  const exportUi=completed&&window.ClearIntelReport?reportExport(payload,search):null;
   if(exportUi)area.append(exportUi.controls);
   if(!payload.results.length){
     const guidance = !checked.length && errors.length ?
