@@ -78,6 +78,7 @@ def translate_country_headlines(payload):
                 continue
             language, english = result
             _cache.move_to_end(article["title"])
+            article["translation_language"] = language
             if language.lower().split("-")[0] != "en" and english != article["title"]:
                 article["title_en"] = english
                 article["translation_provider"] = "Azure Translator"
