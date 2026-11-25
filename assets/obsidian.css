@@ -128,3 +128,6 @@ body:not(:has(.dashboard)) a:hover{color:#d1f4ff}
 .country-translation-note a,.country-original-headline summary{color:inherit;text-decoration:underline;text-underline-offset:.16em;cursor:pointer;font-weight:400}
 .country-translation-note a,.country-original-headline summary{display:inline-flex;align-items:center;min-height:44px}
 .country-original-headline p{margin:.1rem 0 .45rem;white-space:normal;overflow-wrap:anywhere}
+
+/* Warning filters must override dashboard list display rules. */
+#national-alert-filters[hidden], #national-alert-list li[hidden] { display: none !important; }
