@@ -32,6 +32,7 @@ from wildfires import router as wildfire_router
 from globe_texture import router as globe_texture_router
 from intelligence_feeds import router as intelligence_feed_router
 from country_stats import router as country_stats_router
+from headline_translation import translate_country_headlines
 
 ROOT = Path(__file__).resolve().parent
 PUBLIC_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
@@ -212,11 +213,16 @@ async def news(request: Request):
     )
 
 
+def _country_news_with_translation(code):
+    result = search_country_news(code)
+    return translate_country_headlines(result) if result.get("sources_checked") else result
+
+
 @app.get("/api/country-news/{code}", include_in_schema=False)
 async def country_news(code: str, request: Request):
     if code not in COUNTRIES:
         raise HTTPException(404, "Unknown country or territory.")
-    return await _cached_news(request, (code,), 300, search_country_news, code)
+    return await _cached_news(request, (code,), 300, _country_news_with_translation, code)
 
 
 async def _cached_news(request, key, cache_seconds, search, *args, **kwargs):
