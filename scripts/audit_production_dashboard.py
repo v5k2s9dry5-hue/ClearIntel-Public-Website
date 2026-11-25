@@ -16,7 +16,7 @@ def audit(browser, name, width, height):
         response = page.goto(BASE + "/", wait_until="domcontentloaded", timeout=60000)
         page.locator("#global-pulse").wait_for(state="attached", timeout=15000)
         try:
-            page.locator("#pulse-coverage").filter(has_text="of 7 automatic sources current").wait_for(timeout=45000)
+            page.locator("#pulse-coverage").filter(has_text="7 of 7 automatic sources current").wait_for(timeout=45000)
         except Exception:
             pass
         try:
@@ -43,12 +43,19 @@ def audit(browser, name, width, height):
                         "sanctionsOnDemand": 'Not checked' in page.locator('#sanctions-status').inner_text(),
                         "navigationTiming": page.evaluate("() => {const n=performance.getEntriesByType('navigation')[0];return n?{ttfb_ms:Math.round(n.responseStart),dom_ready_ms:Math.round(n.domContentLoadedEventEnd),transfer_bytes:n.transferSize,encoded_body_bytes:n.encodedBodySize,decoded_body_bytes:n.decodedBodySize}:null;}"),
                         "http": response.status if response else None, "browserErrors": len(errors), "viewport": [width,height]})
+        metrics["brandRestored"] = page.locator(".site-header .header-monogram").count() == 1 and page.locator(".site-header .header-monogram").evaluate("(e) => getComputedStyle(e).backgroundImage.includes('data:image/webp;base64,')")
+        metrics["severityAboveMap"] = page.locator(".incident-counts").bounding_box()["y"] < page.locator("#earth-canvas").bounding_box()["y"]
+        metrics["recentPanelPresent"] = page.locator("#recent-reporting").count() == 1
+        metrics["categoryIcons"] = page.locator(".pulse-category-icon").count()
+        metrics["securityHeaders"] = {"csp": "script-src 'self'" in headers.get("content-security-policy",""),"hsts": "max-age=" in headers.get("strict-transport-security",""),"resourcePolicy": headers.get("cross-origin-resource-policy")}
         print(name + ": " + json.dumps(metrics), flush=True)
         (OUT / (name + ".json")).write_text(json.dumps(metrics, indent=2), encoding="utf-8")
         audit_workspaces(page, name, errors)
         assert metrics['http'] == 200 and not metrics['horizontalOverflow'], metrics
         assert metrics['incidentDefault'] and metrics['incidentControlsVisible'], metrics
         assert metrics['sanctionsOnDemand'] and metrics['sourceHealthRows'] == 7, metrics
+        assert metrics["brandRestored"] and metrics["severityAboveMap"] and metrics["categoryIcons"] == 8, metrics
+        assert metrics["recentPanelPresent"] and metrics["securityHeaders"]["csp"] and metrics["securityHeaders"]["hsts"], metrics
         assert not errors, errors
     finally:
         context.close()
@@ -82,16 +89,23 @@ def audit_workspaces(page, name, errors):
     page.locator("#country-brief").wait_for(state="visible")
     metrics["profileHTTP"] = response.status
     metrics["profileNavigation"] = page.locator(".country-breadcrumb a").count() == 1
+    metrics["profileBrandRestored"] = page.locator(".country-header .header-monogram").count() == 1
+    metrics["locatorMapPresent"] = page.locator(".country-locator").count() == 1
+    metrics["favoriteControlPresent"] = page.locator("#favorite-country-toggle").is_visible()
     metrics["profileSources"] = page.locator(".profile-source-panel a").count()
     metrics["profileNoOverflow"] = capture("profile")
     metrics['briefingBuilderPresent'] = page.locator('#country-briefing-export').count() == 1
     metrics['manifestControlPresent'] = page.locator('#country-briefing-manifest').count() == 1
+    stats = page.request.get(BASE + "/api/country-stats/GB", timeout=20000)
+    stats_data = stats.json() if stats.ok else {}
+    metrics["worldBankGB"] = {"http":stats.status,"status":stats_data.get("status"),"observations":len(stats_data.get("observations",[]))}
     metrics["browserErrors"] = len(errors)
     print(name + " workspaces: " + json.dumps(metrics), flush=True)
     (OUT / f"{name}-workspaces.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     assert metrics['directoryHTTP'] == metrics['profileHTTP'] == 200 and metrics['directoryCount'] == 238, metrics
     assert metrics['directoryNoOverflow'] and metrics['profileNoOverflow'] and metrics['researchNoOverflow'], metrics
     assert metrics['briefingBuilderPresent'] and metrics['manifestControlPresent'], metrics
+    assert metrics['directoryFilter'] and metrics['directoryReset'] and metrics['profileBrandRestored'] and metrics['locatorMapPresent'] and metrics['favoriteControlPresent'], metrics
 
 
 if __name__ == "__main__":
