@@ -150,6 +150,20 @@
       for(const row of top){const li=document.createElement('li'),link=document.createElement('a'),meta=document.createElement('small');link.href=row.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=row.title;meta.textContent=row.source+' · '+new Date(row.time).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'short',timeStyle:'short'})+' UTC';li.append(link,meta);recentList.append(li);if(focused===link.href)link.focus({preventScroll:true});}
       recentStatus.textContent=top.length?top.length+' recent records · '+fresh+' of 7 automatic sources current':'No current linked observations available. Coverage may be incomplete.';
     }
+    const desk=document.getElementById('desktop-briefing-list'),deskStatus=document.getElementById('desktop-briefing-status');
+    if(desk&&deskStatus){
+      const distinct=new Set();
+      const top=recent.filter(row=>Object.hasOwn(publicationNames,row.key)&&!row.stale&&!distinct.has(row.url)&&(distinct.add(row.url),true)).slice(0,4);
+      const focused=desk.contains(document.activeElement)?document.activeElement.href:null;
+      desk.replaceChildren();
+      for(const row of top){
+        const li=document.createElement('li'),link=document.createElement('a'),meta=document.createElement('small');
+        link.href=row.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=row.title;
+        meta.textContent=row.source+' · '+new Date(row.time).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'short',timeStyle:'short'})+' UTC';
+        li.append(link,meta);desk.append(li);if(focused===link.href)link.focus({preventScroll:true});
+      }
+      deskStatus.textContent=top.length?fresh+' of 7 automatic sources current':'No recent current official publications available; coverage may be incomplete.';
+    }
     const seen=new Set();
     const selected=latestFilter.value;
     const matches=recent.filter(row=>{
