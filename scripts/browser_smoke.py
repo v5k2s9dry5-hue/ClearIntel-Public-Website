@@ -1168,6 +1168,18 @@ def check_site(browser, width):
         renderCountryCard(box, country, {data: unsafe});
         if (!box.querySelector('.country-top-stories a[href="https://example.org/legitimate"]'))
             throw Error('Valid HTTPS headline link disappeared');
+        if (!box.querySelector('.country-translation-note a[href^="https://translate.google.com/"]'))
+            throw Error('Manual translation fallback missing');
+        const report = unsafe.stories[0].reports[0];
+        report.title='Новини України';
+        report.title_en='Ukraine news';
+        report.translation_language='uk';
+        renderCountryCard(box, country, {data: unsafe});
+        const headline = box.querySelector('.country-top-stories a[href="https://example.org/legitimate"]');
+        if (headline.textContent !== 'Ukraine news' ||
+            !box.querySelector('.country-original-headline p')?.textContent.includes('Новини України') ||
+            !box.querySelector('.country-original-headline summary')?.textContent.includes('Machine-translated'))
+            throw Error('Translated headline or original provenance missing');
     }""")
     page.get_by_role("link", name="Country directory").click()
     page.get_by_role("link", name="Netherlands", exact=True).wait_for()
