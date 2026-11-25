@@ -103,6 +103,7 @@
   let zoom = 1, previousWorld = null, coastline = null, coastlineLoading = null;
   let worldMap = null, detailedMap = null, detailLoading = false, detailFailed = false;
   let points = [], currentISS = null, lastDraw = 0, lastTick = 0;
+  let gestureFrame = null;
   let rotationFrame = null, mapInView = !('IntersectionObserver' in window);
   let reportsPaused = false;
   let visibleReports = [], pins = [], selectedReport = null, clusterIds = null;
@@ -322,6 +323,10 @@
     return groups;
   }
   function draw() {
+    if (gestureFrame !== null) {
+      cancelAnimationFrame(gestureFrame);
+      gestureFrame = null;
+    }
     const width=canvas.clientWidth, height=canvas.clientHeight;
     if(!width||!height)return;
     ctx.clearRect(0,0,width,height);
@@ -435,6 +440,13 @@
     if (dashboard.dataset.mobileView === next) return;
     (next === 'feed' ? feedTab : mapTab).click();
   });
+  function drawGesture() {
+    if (gestureFrame !== null) return;
+    gestureFrame = requestAnimationFrame(() => {
+      gestureFrame = null;
+      draw();
+    });
+  }
   canvas.addEventListener('keydown',e=>{
     if(e.altKey||e.ctrlKey||e.metaKey||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;
     e.preventDefault();setRotation(false);
@@ -444,7 +456,7 @@
     if(e.key==='ArrowUp')tilt=clamp(tilt-step,-90,90);
     if(e.key==='ArrowDown')tilt=clamp(tilt+step,-90,90);
     if(flatMap)resetMap.disabled=false;
-    draw();
+    drawGesture();
   });
   function touchDistance(){
     const [first, second] = touches.values();
@@ -486,7 +498,7 @@
     tilt=clamp(tilt+dy*(flatMap?1/scale:.25/zoom),-90,90);
     px=e.clientX;py=e.clientY;
     if(flatMap)resetMap.disabled=false;
-    draw();
+    drawGesture();
   });
   function releaseTouch(e){
     if (touches.delete(e.pointerId)) pinchDistance = 0;
@@ -496,6 +508,7 @@
     if(e.pointerId!==dragPointer)return;
     dragPointer=null;syncRotation();
     if(dragDistance+Math.hypot(e.clientX-px,e.clientY-py)>6||!reportLayers[layer.value])return;
+    if(gestureFrame!==null)draw();
     const box=canvas.getBoundingClientRect();
     const x=(e.clientX-box.left)*canvas.clientWidth/box.width;
     const y=(e.clientY-box.top)*canvas.clientHeight/box.height;
@@ -584,8 +597,8 @@
     if (next === zoom) return false;
     if (next === 1) previousWorld = null;
     setZoom(next);
-    setRotation(false);
-    draw();
+    if (playing) setRotation(false);
+    drawGesture();
     return true;
   }
   function stepZoom(step){
