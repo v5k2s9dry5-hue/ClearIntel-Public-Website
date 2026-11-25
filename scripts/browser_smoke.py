@@ -292,7 +292,13 @@ def check_site(browser, width):
         assert page.locator("#desktop-briefing").is_visible()
         brief = page.locator("#desktop-briefing").bounding_box()
         globe = page.locator("#dashboard-map").bounding_box()
-        assert brief["height"] > 70 and brief["y"] + brief["height"] <= globe["y"] + globe["height"] + 10
+        assert brief["height"] > 70 and abs((brief["y"] + brief["height"]) - (globe["y"] + globe["height"])) <= 15, (brief, globe)
+    if 861 <= width < 1180:
+        intro = page.locator(".dashboard-title").bounding_box()
+        globe = page.locator("#dashboard-map").bounding_box()
+        pulse = page.locator("#global-pulse").bounding_box()
+        assert intro["width"] >= globe["width"] + pulse["width"] - 2, (intro, globe, pulse)
+        assert abs(globe["y"] - pulse["y"]) <= 2
     if mobile:
         assert page.locator("#desktop-briefing").is_hidden()
     page.locator("#pulse-latest-filter").select_option("economic")
@@ -455,6 +461,11 @@ def check_site(browser, width):
         toggle.click()
         assert toggle.get_attribute("aria-expanded") == "true"
         assert page.locator("#dashboard-sidebar").is_visible()
+        if width >= 1180:
+            assert page.locator(".cinematic-hero").evaluate("(e) => getComputedStyle(e).gridTemplateAreas.includes('intro intro')")
+            globe = page.locator("#dashboard-map").bounding_box()
+            pulse = page.locator("#global-pulse").bounding_box()
+            assert abs(globe["y"] - pulse["y"]) <= 2
         page.reload(wait_until="domcontentloaded")
         assert page.locator("#dashboard-sidebar").is_visible()
         page.get_by_role("button", name="Hide sidebar").click()
