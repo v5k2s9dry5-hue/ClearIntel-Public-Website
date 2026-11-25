@@ -226,6 +226,22 @@ def _collect(query, days, incident_only, fetchers, *, workers=3, **options):
     return combined, checked, errors
 
 
+def _headline_without_source(title, source):
+    headline, separator, suffix = title.rpartition(" - ")
+    if separator and headline and source and suffix.casefold() == source.casefold():
+        return headline
+    return title
+
+
+def _copy_priority(article):
+    """Prefer a stated publication time, then a direct publisher link."""
+    host = urlsplit(article["url"]).hostname
+    indexed_link = host in {"news.google.com", "www.bing.com", "bing.com"}
+    return (article["time_basis"].startswith("Publication time"), not indexed_link,
+            article["feed_time_utc"], article["url"], article["title"], article["source"],
+            article["provider"])
+
+
 def search_news(query: str, days: int = 1, incident_only: bool = True,
                 now: datetime | None = None, fetchers=None, *, country_code=None) -> dict:
     now = now or datetime.now(timezone.utc)
@@ -235,10 +251,11 @@ def search_news(query: str, days: int = 1, incident_only: bool = True,
         return {"results": [], "sources_checked": [], "provider_errors": [], "notice": "Enter a location or subject, not just 'bombing today'.", "window_start": start.isoformat(), "window_end": now.isoformat()}
     fetchers = fetchers if fetchers is not None else (fetch_gdelt, fetch_google, fetch_bing)
     combined, checked, errors = _collect(query, days, incident_only, fetchers)
-    ranked = []
-    seen = set()
+    best_by_headline = {}
     for article in combined:
-        title, url = str(article.get("title", "")).strip(), str(article.get("url", "")).strip()
+        url = str(article.get("url", "")).strip()
+        source = str(article.get("source", "Publisher")).strip() or "Publisher"
+        title = _headline_without_source(str(article.get("title", "")).strip(), source)
         pub = _date(str(article.get("published", "")))
         if not title or not _safe_link(url) or pub is None or not (start <= pub <= now + timedelta(minutes=5)):
             continue
@@ -246,15 +263,19 @@ def search_news(query: str, days: int = 1, incident_only: bool = True,
         score = _relevance(title, [] if scoped else subject, incident_only)
         if score < 0:
             continue
-        key = re.sub(r"\W+", "", title.casefold().split(' - ')[0])
-        if key in seen:
+        key = tuple(re.findall(r"\w+", title.casefold()))
+        if not key:
             continue
-        seen.add(key)
-        ranked.append({"title": title[:320], "url": url, "source": str(article.get("source", "Publisher"))[:90],
-                       "feed_time_utc": pub.isoformat(), "incident_time_utc": None,
-                       "time_basis": str(article.get("time_basis", "Provider timestamp"))[:45], "provider": str(article.get("provider", ""))[:30],
-                       "relevance": score})
-    ranked.sort(key=lambda r: (r["relevance"], r["feed_time_utc"]), reverse=True)
+        entry = {"title": title[:320], "url": url, "source": source[:90],
+                 "feed_time_utc": pub.isoformat(), "incident_time_utc": None,
+                 "time_basis": str(article.get("time_basis", "Provider timestamp"))[:45],
+                 "provider": str(article.get("provider", ""))[:30], "relevance": score}
+        previous = best_by_headline.get(key)
+        if previous is None or _copy_priority(entry) > _copy_priority(previous):
+            best_by_headline[key] = entry
+    ranked = sorted(best_by_headline.values(),
+                    key=lambda item: (item["relevance"], item["feed_time_utc"], item["title"], item["url"]),
+                    reverse=True)
     if not checked and errors:
         notice = ("News search unavailable: all queried feeds failed to respond. "
                   "No results were established, and this does not mean that nothing happened.")
