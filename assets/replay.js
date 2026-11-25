@@ -10,13 +10,14 @@
   const history = $('replay-history');
   const select = $('replay-select');
   const detail = $('replay-detail');
+  const exportSnapshot = $('replay-export-snapshot');
   const queryFilter=$('replay-query-filter'),periodFilter=$('replay-period-filter'),filterCount=$('replay-filter-count');
   const compareButton = $('replay-compare-button');
   const compareEarlier=$('replay-compare-earlier');
   const compareHint = $('replay-compare-hint');
   const comparePanel = $('replay-compare');
   const compareResult = $('replay-compare-result');
-  if (!save || !clear || !status || !history || !select || !detail ||
+  if (!save || !clear || !status || !history || !select || !detail || !exportSnapshot ||
       !compareButton || !compareHint || !comparePanel || !compareResult) return;
 
   let comparison=null;
@@ -323,6 +324,7 @@
       (periodFilter.value === 'all' || Date.parse(saveTime(snapshot)) >= cutoff));
     filterCount.textContent=filtered.length+' of '+snapshots.length+' saved snapshots shown.';
     select.disabled=!filtered.length;
+    exportSnapshot.disabled = select.disabled;
     filtered.forEach(s => {
       const option = new Option(utc(s.observed_at_utc) + ' · ' + short(s.query, 60) +
         ' · ' + searchWindow(s) + ' · ' + searchMode(s) + ' · ' + (Array.isArray(s.articles) ? s.articles.length : 0) + ' headlines', s.id);
@@ -405,15 +407,64 @@
   });
   select.addEventListener('change', drawSnapshot);
   compareEarlier.addEventListener('change',()=>{comparison=null;comparePanel.hidden=true;compareResult.replaceChildren();});
-  $('replay-export-comparison').addEventListener('click',()=>{
-    if(!comparison||comparePanel.hidden)return;
-    const {older,newer}=comparison;
-    const clean=a=>({title:short(a.title,240),publisher:short(a.source,100),provider:short(a.provider,80),source_url:sourceLink(a.url),source_time_utc:short(a.feed_time_utc,50),time_basis:short(a.time_basis,40)});
-    const describe=s=>({observed_at_utc:s.observed_at_utc,saved_at_utc:saveTime(s),timestamp_basis:s.saved_at_utc?'results_received':'legacy_save_time',total_results:s.total_results,saved_count:s.articles.length,sources_checked:s.sources_checked||[],provider_errors:s.provider_errors||[]});
+  function exportArticle(article) {
+    return {
+      title: short(article.title, 240),
+      publisher: short(article.source, 100),
+      provider: short(article.provider, 80),
+      source_url: sourceLink(article.url),
+      source_time_utc: short(article.feed_time_utc, 50),
+      time_basis: short(article.time_basis, 40)
+    };
+  }
+
+  function describeSnapshot(snapshot) {
+    return {
+      observed_at_utc: snapshot.observed_at_utc,
+      saved_at_utc: saveTime(snapshot),
+      timestamp_basis: snapshot.saved_at_utc ? 'results_received' : 'legacy_save_time',
+      total_results: snapshot.total_results,
+      saved_count: snapshot.articles.length,
+      sources_checked: snapshot.sources_checked || [],
+      provider_errors: snapshot.provider_errors || []
+    };
+  }
+
+  function downloadReplay(kind, manifest) {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(manifest, null, 2)], {type: 'application/json'}));
+    const link = node('a');
+    link.href = url;
+    link.download = 'ClearIntel-replay-' + kind + '-' + manifest.exported_at_utc.slice(0, 10) + '.json';
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  exportSnapshot.addEventListener('click', () => {
+    const snapshot = snapshots.find(item => item.id === select.value);
+    if (!snapshot) return;
+    downloadReplay('snapshot', {
+      schema: 'clearintel.replay-snapshot.v1',
+      exported_at_utc: new Date().toISOString(),
+      query: short(snapshot.query, 140),
+      window: snapshot.window === '7d' ? '7d' : '24h',
+      incident_only: Boolean(snapshot.incident_only),
+      ...describeSnapshot(snapshot),
+      limitations: 'Saved public news search results may reflect partial source coverage and retained headline limits. Verify claims against the original reports.',
+      articles: snapshot.articles.slice(0, MAX_RESULTS).map(article => ({
+        ...exportArticle(article),
+        incident_time_utc: short(article.incident_time_utc, 50) || null
+      }))
+    });
+  });
+
+  $('replay-export-comparison').addEventListener('click', () => {
+    if (!comparison || comparePanel.hidden) return;
+    const {older, newer} = comparison;
     const changes=calculateChanges(older,newer);
-    const manifest={schema:'clearintel.replay-comparison.v1',exported_at_utc:new Date().toISOString(),query:short(newer.query,140),window:newer.window,incident_only:Boolean(newer.incident_only),earlier:describe(older),later:describe(newer),limitations:'Differences in saved, potentially incomplete search results; not evidence of article publication or deletion, independent corroboration, or real-world event changes.',newly_present:changes.added.map(clean),no_longer_present:changes.removed.map(clean),changed:changes.changed.map(x=>({earlier:clean(x.prior),later:clean(x.article)})),unchanged:changes.unchanged.map(clean)};
-    const url=URL.createObjectURL(new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'}));
-    const link=node('a');link.href=url;link.download='ClearIntel-replay-comparison-'+manifest.exported_at_utc.slice(0,10)+'.json';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    const manifest={schema:'clearintel.replay-comparison.v1',exported_at_utc:new Date().toISOString(),query:short(newer.query,140),window:newer.window,incident_only:Boolean(newer.incident_only),earlier:describeSnapshot(older),later:describeSnapshot(newer),limitations:'Differences in saved, potentially incomplete search results; not evidence of article publication or deletion, independent corroboration, or real-world event changes.',newly_present:changes.added.map(exportArticle),no_longer_present:changes.removed.map(exportArticle),changed:changes.changed.map(x=>({earlier:exportArticle(x.prior),later:exportArticle(x.article)})),unchanged:changes.unchanged.map(exportArticle)};
+    downloadReplay('comparison', manifest);
   });
   compareButton.addEventListener('click',()=>{
     const selected=snapshots.find(s=>s.id===select.value);
