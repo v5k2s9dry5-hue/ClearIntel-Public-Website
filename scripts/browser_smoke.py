@@ -292,7 +292,13 @@ def check_site(browser, width):
         assert page.locator("#desktop-briefing").is_visible()
         brief = page.locator("#desktop-briefing").bounding_box()
         globe = page.locator("#dashboard-map").bounding_box()
-        assert brief["height"] > 70 and brief["y"] + brief["height"] <= globe["y"] + globe["height"] + 10
+        assert brief["height"] > 70 and abs((brief["y"] + brief["height"]) - (globe["y"] + globe["height"])) <= 15, (brief, globe)
+    if 861 <= width < 1180:
+        intro = page.locator(".dashboard-title").bounding_box()
+        globe = page.locator("#dashboard-map").bounding_box()
+        pulse = page.locator("#global-pulse").bounding_box()
+        assert intro["width"] >= globe["width"] + pulse["width"] - 2, (intro, globe, pulse)
+        assert abs(globe["y"] - pulse["y"]) <= 2
     if mobile:
         assert page.locator("#desktop-briefing").is_hidden()
     page.locator("#pulse-latest-filter").select_option("economic")
@@ -455,6 +461,11 @@ def check_site(browser, width):
         toggle.click()
         assert toggle.get_attribute("aria-expanded") == "true"
         assert page.locator("#dashboard-sidebar").is_visible()
+        if width >= 1180:
+            assert page.locator(".cinematic-hero").evaluate("(e) => getComputedStyle(e).gridTemplateAreas.includes('intro intro')")
+            globe = page.locator("#dashboard-map").bounding_box()
+            pulse = page.locator("#global-pulse").bounding_box()
+            assert abs(globe["y"] - pulse["y"]) <= 2
         page.reload(wait_until="domcontentloaded")
         assert page.locator("#dashboard-sidebar").is_visible()
         page.get_by_role("button", name="Hide sidebar").click()
@@ -462,6 +473,15 @@ def check_site(browser, width):
         assert not page.locator("#dashboard-sidebar").is_visible()
     else:
         assert not toggle.is_visible()
+    # Display controls must not create a standalone blank toolbar row.
+    assert page.locator(".dashboard-title .dashboard-toolbar-tools").count() == 1
+    assert "tools" not in page.locator(".cinematic-hero").evaluate("(e) => getComputedStyle(e).gridTemplateAreas")
+    if width >= 1180:
+        hero = page.locator(".cinematic-hero").bounding_box()
+        globe = page.locator("#dashboard-map").bounding_box()
+        heading = page.locator(".dashboard-heading-group").bounding_box()
+        assert globe["y"] - hero["y"] <= 8, (hero, globe)
+        assert abs(heading["y"] - globe["y"]) <= 12, (heading, globe)
     controls = page.locator(".dashboard-toolbar-tools").bounding_box()
     assert controls and controls["x"] >= 0
     assert controls["x"] + controls["width"] <= width + 1

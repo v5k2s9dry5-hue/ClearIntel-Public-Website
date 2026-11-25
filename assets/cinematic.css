@@ -1,7 +1,7 @@
 /* Cinematic Command Centre: responsive layout, local assets only. */
-.dashboard .cinematic-hero{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"tools" "intro" "map" "chart";gap:16px;align-items:start;padding:0 0 24px}
+.dashboard .cinematic-hero{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"intro" "map" "chart";gap:16px;align-items:start;padding:0 0 24px}
 .dashboard .cinematic-hero .dashboard-title{grid-area:intro;max-width:none;align-self:center}
-.dashboard .cinematic-hero .dashboard-toolbar-tools{grid-area:tools;justify-content:flex-end;width:100%;margin:0}
+.dashboard .cinematic-hero .dashboard-toolbar-tools{justify-content:flex-start;width:100%;margin:0}
 .dashboard .cinematic-hero > .dashboard-map{grid-area:map;min-width:0}
 .dashboard .cinematic-hero > .activity-pulse{grid-area:chart;align-self:start;margin:0}
 .dashboard .cinematic-hero h1{font-size:clamp(32px,4.3vw,58px);line-height:1.03;text-wrap:balance}
@@ -19,8 +19,8 @@
 .dashboard .cinematic-hero .dashboard-map-footer{padding:9px 12px;gap:7px;flex-wrap:wrap}
 .dashboard .dashboard-panels{grid-template-columns:minmax(0,1fr)}
 .dashboard .dashboard-feed{max-height:650px}
-@media(min-width:861px){.dashboard .cinematic-hero{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);grid-template-areas:"tools tools" "intro map" "chart map";gap:18px}}
-@media(min-width:1380px){.dashboard.sidebar-collapsed .cinematic-hero{grid-template-columns:minmax(260px,1fr) minmax(350px,1.28fr) minmax(280px,.95fr);grid-template-areas:"tools tools tools" "intro map chart";gap:20px}.dashboard.sidebar-collapsed .cinematic-hero .globe-canvas-wrap{height:clamp(320px,25vw,430px)}}
+@media(min-width:861px){.dashboard .cinematic-hero{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);grid-template-areas:"intro map" "chart map";gap:18px}}
+@media(min-width:1380px){.dashboard.sidebar-collapsed .cinematic-hero{grid-template-columns:minmax(260px,1fr) minmax(350px,1.28fr) minmax(280px,.95fr);grid-template-areas:"intro map chart";gap:20px}.dashboard.sidebar-collapsed .cinematic-hero .globe-canvas-wrap{height:clamp(320px,25vw,430px)}}
 @media(max-width:860px){.dashboard .cinematic-hero .dashboard-toolbar-tools{justify-content:flex-start}.dashboard .cinematic-hero .globe-canvas-wrap{height:clamp(300px,45svh,450px)}.dashboard .dashboard-feed{max-height:none}.dashboard .cinematic-hero h1{font-size:36px}.dashboard .cinematic-hero .dashboard-lede{font-size:13px}}
 
 /* Pulse separates observed activity from unavailable coverage; never implies severity. */
@@ -91,7 +91,7 @@
 .dashboard .cinematic-hero .pulse-categories small{font-size:10px}
 .dashboard .cinematic-hero .pulse-latest a{text-decoration:none}
 .dashboard .cinematic-hero .pulse-latest a:hover{text-decoration:underline}
-@media(min-width:1180px) and (max-width:1379px){.dashboard.sidebar-collapsed .cinematic-hero{grid-template-columns:minmax(220px,.8fr) minmax(330px,1.35fr) minmax(264px,1fr);grid-template-areas:"tools tools tools" "intro map chart";gap:14px}.dashboard.sidebar-collapsed .cinematic-hero h1{font-size:clamp(36px,3.6vw,48px)}.dashboard.sidebar-collapsed .cinematic-hero .globe-canvas-wrap{height:clamp(320px,30vw,410px)}.dashboard.sidebar-collapsed #dashboard-search{flex-wrap:wrap}.dashboard.sidebar-collapsed #dashboard-search input{flex-basis:100%}}
+@media(min-width:1180px) and (max-width:1379px){.dashboard.sidebar-collapsed .cinematic-hero{grid-template-columns:minmax(220px,.8fr) minmax(330px,1.35fr) minmax(264px,1fr);grid-template-areas:"intro map chart";gap:14px}.dashboard.sidebar-collapsed .cinematic-hero h1{font-size:clamp(36px,3.6vw,48px)}.dashboard.sidebar-collapsed .cinematic-hero .globe-canvas-wrap{height:clamp(320px,30vw,410px)}.dashboard.sidebar-collapsed #dashboard-search{flex-wrap:wrap}.dashboard.sidebar-collapsed #dashboard-search input{flex-basis:100%}}
 @media(max-width:860px){.dashboard .cinematic-hero::before{inset:0 -4px;opacity:.48;background-position:50% 0;background-size:auto 640px;background-repeat:no-repeat}.dashboard .cinematic-hero .dashboard-title{padding-block:8px}.dashboard .cinematic-hero .cinematic-pulse{padding:12px}.dashboard .cinematic-hero .pulse-categories{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* Explicit chart legend; source colours are identification only. */
@@ -146,11 +146,11 @@
 }
 /* At medium desktop widths avoid a tall chart/map spanning row with an empty column. */
 @media(min-width:861px) and (max-width:1179px){
- .dashboard .cinematic-hero{grid-template-areas:"tools tools" "intro map" "chart chart"}
+ .dashboard .cinematic-hero{grid-template-areas:"intro map" "chart chart"}
  .dashboard .cinematic-hero>.cinematic-pulse{min-width:0}
 }
 @media(min-width:861px){
- .dashboard:not(.sidebar-collapsed) .cinematic-hero{grid-template-areas:"tools tools" "intro map" "chart chart"}
+ .dashboard:not(.sidebar-collapsed) .cinematic-hero{grid-template-areas:"intro map" "chart chart"}
 }
 
 .incident-overview{display:none;padding:9px 12px;border-top:1px solid #294459;background:#0b1828}.dashboard[data-layer="incidents"] .incident-overview{display:block}.incident-overview p{font-size:11px;line-height:1.4;color:#b5ccda;margin:0 0 7px}.incident-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.incident-counts button{display:flex;justify-content:space-between;gap:4px;align-items:center;padding:6px 8px;border:1px solid currentColor;border-radius:6px;font-size:12px}.incident-counts b{font-variant-numeric:tabular-nums}.incident-counts [data-severity="green"],#quake-list button[data-severity="green"]{color:#55d58e}.incident-counts [data-severity="amber"],#quake-list button[data-severity="amber"]{color:#f1bd55}.incident-counts [data-severity="red"],#quake-list button[data-severity="red"]{color:#ff858a}
@@ -191,7 +191,7 @@
  .dashboard.sidebar-collapsed .cinematic-hero #dashboard-query{flex-basis:100%}
 }
 @media(max-width:860px){
- .dashboard .cinematic-hero{grid-template-areas:"intro" "map" "tools" "chart";gap:9px;padding-bottom:12px}
+ .dashboard .cinematic-hero{grid-template-areas:"intro" "map" "chart";gap:9px;padding-bottom:12px}
  .dashboard .cinematic-hero .dashboard-title{padding:0}
  .dashboard .cinematic-hero h1{font-size:clamp(23px,6.8vw,30px);letter-spacing:-.035em;line-height:1.1}
  .dashboard .cinematic-hero .workspace-kicker{font-size:9px}
@@ -229,7 +229,7 @@
  .dashboard.sidebar-collapsed .cinematic-hero>.dashboard-map .globe-canvas-wrap{flex:1 0 auto}
  .dashboard.sidebar-collapsed .cinematic-hero .dashboard-title>*:not(.desktop-briefing){flex-shrink:0}
  .dashboard.sidebar-collapsed .cinematic-hero #dashboard-matches:not([hidden]){min-width:0;max-width:100%;overflow-wrap:anywhere}
- .dashboard.sidebar-collapsed .desktop-briefing{display:flex;flex-direction:column;flex:1 0 110px;min-height:110px;max-height:260px;margin-top:8px;padding:11px;border:1px solid #31576c;border-radius:9px;background:linear-gradient(145deg,#102437e8,#091522ed);overflow-y:auto;scrollbar-width:thin}
+ .dashboard.sidebar-collapsed .desktop-briefing{display:flex;flex-direction:column;flex:1 0 110px;min-height:110px;max-height:none;margin-top:8px;padding:11px;border:1px solid #31576c;border-radius:9px;background:linear-gradient(145deg,#102437e8,#091522ed);overflow-y:auto;scrollbar-width:thin}
  .desktop-briefing h2{font-size:15px;margin:4px 0;line-height:1.25;color:#e8f5ff}
  #desktop-briefing-status{font-size:11px;color:#9ce9f6;margin:5px 0}
  .desktop-briefing .pulse-latest{flex:1;gap:9px;align-content:start}
@@ -244,3 +244,22 @@
 .weather-source-links{display:flex;flex-wrap:wrap;gap:8px}.weather-source-links a{display:inline-flex;align-items:center;min-height:44px;padding:8px;border:1px solid #36576c;border-radius:6px;background:#102336}#collection-count{color:#b8d0df;font-size:12px}
 
 .crisis-more{min-width:0;margin:12px 0}.crisis-more summary{cursor:pointer;min-height:44px;align-content:center;padding:8px 12px;border:1px solid #36536a;border-radius:7px;color:#9ce9f6;background:#0b1828;font-size:13px;font-weight:600}.crisis-more summary:focus-visible{outline:2px solid #65d9ef;outline-offset:3px}
+
+/* Keep medium-width and sidebar-open dashboards compact: the intro spans
+   the row rather than leaving a map-height void beside a short heading. */
+@media(min-width:861px) and (max-width:1179px){
+ .dashboard .cinematic-hero{grid-template-areas:"intro intro" "map chart";grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+ .dashboard .cinematic-hero>.cinematic-pulse{align-self:stretch;contain:size;min-height:0;min-width:0;overflow-y:auto;scrollbar-width:thin}
+}
+@media(min-width:1180px){
+ .dashboard:not(.sidebar-collapsed) .cinematic-hero{grid-template-areas:"intro intro" "map chart";grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+ .dashboard:not(.sidebar-collapsed) .cinematic-hero>.cinematic-pulse{align-self:stretch;contain:size;min-height:0;min-width:0;overflow-y:auto;scrollbar-width:thin}
+}
+
+/* Display settings belong to the intro, not a separate full-width grid row. */
+@media(min-width:861px){
+ .dashboard{padding-top:16px}
+ .dashboard .cinematic-hero .dashboard-title,.dashboard.sidebar-collapsed .cinematic-hero .dashboard-title{padding-top:0}
+ .dashboard .cinematic-hero .dashboard-toolbar-tools{justify-content:flex-start;gap:6px;margin:6px 0;flex:none;align-items:flex-start}
+}
+@media(max-width:860px){.dashboard .cinematic-hero .dashboard-toolbar-tools{display:flex;justify-content:flex-start;gap:6px;margin:6px 0;flex:none}}
