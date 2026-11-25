@@ -168,9 +168,10 @@ def check_site(browser, width):
     assert page.locator(".site-header .header-monogram").evaluate("(e) => getComputedStyle(e).backgroundImage.includes('data:image/webp;base64,')")
 
     favicon_href = page.locator('link[rel="icon"]').get_attribute("href")
-    assert favicon_href == "/assets/favicon.svg?v=approved-monogram-20261125"
+    from hashlib import sha256
     favicon = page.request.get(ROOT + favicon_href)
     assert favicon.ok
+    assert favicon_href == "/assets/favicon.svg?v=" + sha256(favicon.body()).hexdigest()[:16], favicon_href
     header_art = page.locator(".site-header .header-monogram").evaluate("(e) => getComputedStyle(e).backgroundImage")
     assert header_art.split('data:image/webp;base64,', 1)[1].split('"', 1)[0] in favicon.text()
     assert page.evaluate("""async (src) => {
