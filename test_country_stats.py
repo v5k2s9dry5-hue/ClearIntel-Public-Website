@@ -41,3 +41,23 @@ class StatsTests(unittest.TestCase):
             with self.assertRaises(HTTPError):
                 _fetch("GB")
             read.assert_called_once()
+
+
+    def test_development_indicators_validate_ranges_and_preserve_years(self):
+        from country_stats import INDICATORS
+        def row(indicator, value, date='2023'):
+            return {"country":{"id":"GB"},"indicator":{"id":indicator},"date":date,"value":value}
+        rows = parse_indicators([{}, [
+            row("NY.GDP.PCAP.CD", 49000, '2024'),
+            row("SL.UEM.TOTL.ZS", 4.5),
+            row("SL.UEM.TOTL.ZS", 110, '2024'),
+            row("SP.DYN.LE00.IN", 81),
+            row("SP.DYN.LE00.IN", 150, '2024'),
+            row("IT.NET.USER.ZS", 97.2),
+            row("IT.NET.USER.ZS", 101, '2024'),
+        ]], "GB")
+        self.assertEqual(len(INDICATORS), 9)
+        self.assertEqual([r["value"] for r in rows], [49000, 4.5, 81, 97.2])
+        self.assertEqual(rows[0]["year"], "2024")
+        self.assertEqual(rows[-1]["year"], "2023")
+        self.assertIn("ILO modelled estimate", rows[1]["label"])

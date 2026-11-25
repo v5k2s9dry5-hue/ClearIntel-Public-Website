@@ -130,7 +130,8 @@ def audit_workspaces(page, name, errors):
     assert metrics['directoryNoOverflow'] and metrics['profileNoOverflow'] and metrics['researchNoOverflow'], metrics
     assert metrics["comparisonPresent"], metrics
     if name == "desktop":
-        assert metrics["comparisonRows"] == 5, metrics
+        # Production can still be on the previous release during pre-merge CI.
+        assert metrics["comparisonRows"] in (5, 9), metrics
     assert metrics['briefingBuilderPresent'] and metrics['manifestControlPresent'], metrics
     assert metrics['directoryFilter'] and metrics['directoryReset'] and metrics['profileBrandRestored'] and metrics['locatorMapPresent'] and metrics['favoriteControlPresent'], metrics
 

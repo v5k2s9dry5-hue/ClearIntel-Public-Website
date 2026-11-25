@@ -19,7 +19,7 @@
      const table=document.createElement('table');table.className='country-comparison-table';
      const heading=table.createTHead().insertRow();
      for(const value of ['Indicator',first.selectedOptions[0].text,second.selectedOptions[0].text]){const th=document.createElement('th');th.scope='col';th.textContent=value;heading.append(th);}
-     const body=table.createTBody(),keys=['SP.POP.TOTL','NY.GDP.MKTP.CD','AG.LND.TOTL.K2','NY.GDP.MKTP.KD.ZG','FP.CPI.TOTL.ZG'],labels=['Population','GDP (current US$)','Land area (km²)','GDP growth (%)','Inflation (%)'];
+     const body=table.createTBody(),keys=['SP.POP.TOTL','NY.GDP.MKTP.CD','AG.LND.TOTL.K2','NY.GDP.MKTP.KD.ZG','FP.CPI.TOTL.ZG','NY.GDP.PCAP.CD','SL.UEM.TOTL.ZS','SP.DYN.LE00.IN','IT.NET.USER.ZS'],labels=['Population','GDP (current US$)','Land area (km²)','GDP growth (%)','Inflation (%)','GDP per capita (US$)','Unemployment (% of labour force, ILO modelled)','Life expectancy (years)','Internet use (% of population)'];
      keys.forEach((key,i)=>{
        const row=body.insertRow(),th=document.createElement('th');th.scope='row';const source=document.createElement('a');source.href='https://data.worldbank.org/indicator/'+key;source.textContent=labels[i];th.append(source);row.append(th);
        for(const data of [a,b]){const item=(data.observations||[]).find(x=>x.indicator===key),cell=row.insertCell();cell.textContent=item&&Number.isFinite(item.value)?new Intl.NumberFormat('en-GB',{maximumFractionDigits:2}).format(item.value)+' ('+item.year+')'+(data.status==='stale'?' · Older cache':''):'Not available';}
