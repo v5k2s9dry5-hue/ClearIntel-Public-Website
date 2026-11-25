@@ -1130,6 +1130,11 @@ def check_wide_hero_layout(browser):
 
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     assert page.locator("#activity-pulse-status").inner_text() == "USGS feed checked"
+    inspector = context.new_cdp_session(page)
+    manifest = inspector.send("Page.getAppManifest")
+    assert manifest["url"] == ROOT + "/assets/atlas.webmanifest"
+    assert not manifest["errors"], manifest["errors"]
+    inspector.detach()
     page.wait_for_selector("#earth-texture-credit", state="visible", timeout=10000)
     assert "NASA Earth Observatory" in page.locator("#earth-texture-credit").inner_text()
     canvas = page.locator("#earth-canvas")

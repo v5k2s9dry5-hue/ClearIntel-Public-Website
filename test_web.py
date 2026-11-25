@@ -19,6 +19,28 @@ class PublicSiteTests(unittest.TestCase):
             _active_searches=0, _next_rate_cleanup=0,
         ))
 
+    def test_installable_app_manifest_and_icons(self):
+        response = self.client.get("/assets/atlas.webmanifest")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["content-type"].split(";")[0], "application/manifest+json")
+        manifest = response.json()
+        self.assertEqual(manifest["start_url"], "/")
+        self.assertEqual(manifest["scope"], "/")
+        self.assertEqual(manifest["display"], "standalone")
+        self.assertEqual({icon["sizes"] for icon in manifest["icons"]}, {"192x192", "512x512"})
+        for icon in manifest["icons"]:
+            png = self.client.get(icon["src"])
+            size = int(icon["sizes"].split("x")[0])
+            self.assertEqual(png.status_code, 200)
+            self.assertEqual(png.headers["content-type"], "image/png")
+            self.assertEqual(png.content[:8], bytes.fromhex("89504e470d0a1a0a"))
+            self.assertEqual(int.from_bytes(png.content[16:20], "big"), size)
+            self.assertEqual(int.from_bytes(png.content[20:24], "big"), size)
+        for path in ("/", "/countries", "/countries/gb"):
+            page = self.client.get(path)
+            self.assertIn('rel="manifest" href="/assets/atlas.webmanifest"', page.text)
+            self.assertIn('rel="apple-touch-icon" href="/assets/atlas-app-192.png"', page.text)
+
     def test_home_and_health(self):
         self.assertEqual(self.client.get('/').status_code,200)
         self.assertIn('ClearIntel',self.client.get('/').text)

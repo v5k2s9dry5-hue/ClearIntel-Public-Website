@@ -2,6 +2,10 @@
 
 [ClearIntel Atlas](https://clearintel-public.onrender.com/) is a free, responsive global public-source research dashboard with country news briefs, sourced environmental observations, selected historical reports, saved local Replay snapshots, and a research enquiry workflow. Its headline lookup has provider limits and is not independent verification of incidents. It is NOT the private ClearIntel OSINT investigation engine. Do not upload your internal source files, API keys, local database, case information or `clearintel_gui.py` to the public repository.
 
+## Open Atlas as a web app
+
+Use your browser’s **Install** or **Add to Home Screen** option where available. Atlas opens in its own window and uses an internet connection for the site and its live sources.
+
 ## Development roadmap
 
 See [the active 22 November 2026 roadmap](docs/ROADMAP_2026-11-22.md), including the approved Intelligence Replay feature and its free-first, privacy-preserving milestones.

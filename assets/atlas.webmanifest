@@ -1,0 +1,21 @@
+{
+  "id": "/",
+  "name": "ClearIntel Atlas",
+  "short_name": "ClearIntel",
+  "description": "Public-source research, country briefings and environmental observations.",
+  "lang": "en-GB",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#060910",
+  "theme_color": "#060910",
+  "icons": [
+    {"src": "/assets/atlas-app-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/assets/atlas-app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}
+  ],
+  "shortcuts": [
+    {"name": "Interactive globe", "url": "/#dashboard-map"},
+    {"name": "Country directory", "url": "/countries"},
+    {"name": "Research desk", "url": "/#research"}
+  ]
+}
