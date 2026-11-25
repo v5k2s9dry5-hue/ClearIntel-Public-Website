@@ -13,7 +13,7 @@ PAGE = Template("""<!doctype html>
 <title>$title | ClearIntel Atlas</title><meta name="description" content="$description">
 <link rel="canonical" href="$canonical"><meta property="og:url" content="$canonical">
 <meta property="og:site_name" content="ClearIntel Atlas"><meta property="og:title" content="$title | ClearIntel Atlas"><meta property="og:description" content="$description">
-<link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/assets/countries.css?v=evidence-disclosure"><link rel="stylesheet" href="/assets/obsidian.css"><link rel="stylesheet" href="/assets/brand.css">
+<link rel="icon" href="/assets/favicon.svg?v=approved-monogram-20261125"><link rel="stylesheet" href="/assets/countries.css?v=evidence-disclosure"><link rel="stylesheet" href="/assets/obsidian.css"><link rel="stylesheet" href="/assets/brand.css">
 <script src="/assets/workspace-preferences.js" defer></script>$script</head><body>
 <a class="country-skip" href="#country-main">Skip to content</a>
 <header class="country-header"><a class="brand country-brand" href="/" aria-label="ClearIntel Atlas homepage"><span class="brand-mark header-monogram" aria-hidden="true"></span><span>Clear<b>Intel</b> Atlas<small>PUBLIC-SOURCE RESEARCH</small></span></a><nav aria-label="Main navigation"><a href="/">Home</a><a href="/#dashboard-map">Map</a><a href="/#research">Research</a><a href="/countries" aria-current="$current">Country directory</a><a href="/#dashboard-source-guide">Sources</a></nav></header>
