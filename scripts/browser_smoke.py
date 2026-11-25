@@ -230,7 +230,8 @@ def check_site(browser, width):
     assert page.locator('link[href*="/assets/obsidian.css"]').count() == 1
     assert page.get_by_role("heading", name="Intelligence at a glance.").is_visible()
     assert page.locator(".command-overview-card").count() == 3
-    assert page.locator("#crisis-overview .crisis-cards article").count() == 4
+    assert page.locator("#crisis-overview .crisis-cards article").count() == 8
+    assert page.locator("#crisis-overview > .crisis-cards article").count() == 4
     assert page.locator("#crisis-overview a[href^=\"/countries/\"]").count() == 8
     assert not page.locator(".crisis-more").evaluate("(e) => e.open")
     page.locator(".crisis-more summary").click()
