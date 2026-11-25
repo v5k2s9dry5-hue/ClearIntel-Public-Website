@@ -11,6 +11,8 @@ from country_stats import INDICATORS
 PAGE = Template("""<!doctype html>
 <html lang="en-GB"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#060910"><link rel="manifest" href="/assets/atlas.webmanifest">
+<link rel="apple-touch-icon" href="/assets/atlas-app-192.png">
 <title>$title | ClearIntel Atlas</title><meta name="description" content="$description">
 <link rel="canonical" href="$canonical"><meta property="og:url" content="$canonical">
 <meta property="og:site_name" content="ClearIntel Atlas"><meta property="og:title" content="$title | ClearIntel Atlas"><meta property="og:description" content="$description">
