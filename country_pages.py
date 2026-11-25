@@ -44,6 +44,20 @@ def directory(base):
                 '<script src="/assets/country-filter.js" defer></script><script src="/assets/country-comparison.js" defer></script>')
 
 
+_TRAVEL_BASE = "https://www.gov.uk/foreign-travel-advice"
+_TRAVEL_DESTINATIONS = json.loads(
+    Path(__file__).with_name("travel_destinations.json").read_text(encoding="utf-8")
+)["destinations"]
+
+
+def travel_advice_link(code):
+    destination = _TRAVEL_DESTINATIONS.get(code)
+    if destination:
+        return (f'<a href="{_TRAVEL_BASE}/{escape(destination)}">Read the official destination advice on GOV.UK</a>'
+                f' <a href="{_TRAVEL_BASE}">All destinations</a>')
+    return f'<a href="{_TRAVEL_BASE}">Browse the official FCDO destination directory</a>'
+
+
 _ASSETS = Path(__file__).with_name("assets")
 _POINTS = {p["id"]: p for p in json.loads((_ASSETS / "countries.json").read_text(encoding="utf-8"))["events"]}
 _COASTS = json.loads((_ASSETS / "world-map.json").read_text(encoding="utf-8"))["coastlines"]
@@ -96,6 +110,6 @@ def profile(base, code):
             '<h2>Recent headlines</h2><noscript>Enable JavaScript to load headlines or use the source links below.</noscript></section>'
             f'<p class="update-note">Headlines refresh every five minutes while this page is open and visible.</p>'
             '<section id="country-briefing-export" class="country-briefing-export" hidden><h2>Build a country briefing</h2><p>Choose original linked reports from the current snapshot. Exported findings are reporting leads, not verified incidents.</p><p id="country-briefing-summary" role="status"></p><div id="country-briefing-evidence"></div><label for="country-briefing-notes">Researcher notes (included in exported files)</label><textarea id="country-briefing-notes" maxlength="2000" rows="3" placeholder="Questions, limitations or your assessment"></textarea><button type="button" id="country-briefing-download" disabled>Download country briefing PDF</button><button type="button" id="country-briefing-manifest" disabled>Download evidence JSON</button><p id="country-briefing-status" role="status"></p></section>'
-            f'</div><section class="profile-source-panel"><h2>Geographic context</h2>{locator_map(code)}<section class="country-context-links"><h2>Country statistics</h2><p>Official World Bank indicators, with observation years. Availability varies by country or territory.</p><button type="button" id="country-stats-load" data-code="{code}">Check latest available statistics</button><p id="country-stats-status" role="status">Not checked. Loads only on request.</p><dl id="country-stats-results"></dl>{trend_panel}<a href="https://data.worldbank.org/">World Bank Data</a><p><small>World Bank: World Development Indicators. See <a href="https://www.worldbank.org/ext/en/legal/terms-conditions/datasets">dataset terms</a>.</small></p></section><section class="country-context-links"><h2>Official travel advice</h2><p>Check UK government advice for this destination, including safety, entry rules and health. No risk rating inferred by ClearIntel.</p><a href="https://www.gov.uk/foreign-travel-advice">Find destination in FCDO travel advice</a></section><section class="country-context-links"><h2>Explore reporting by topic</h2><p>Targeted source searches, not classifications of existing reports.</p><ul>{topic_links}</ul></section><h2>Browse sources</h2><p>Open these sources directly, including when the headline feed is unavailable.</p><ul>{source_links}</ul></section></div>')
+            f'</div><section class="profile-source-panel"><h2>Geographic context</h2>{locator_map(code)}<section class="country-context-links"><h2>Country statistics</h2><p>Official World Bank indicators, with observation years. Availability varies by country or territory.</p><button type="button" id="country-stats-load" data-code="{code}">Check latest available statistics</button><p id="country-stats-status" role="status">Not checked. Loads only on request.</p><dl id="country-stats-results"></dl>{trend_panel}<a href="https://data.worldbank.org/">World Bank Data</a><p><small>World Bank: World Development Indicators. See <a href="https://www.worldbank.org/ext/en/legal/terms-conditions/datasets">dataset terms</a>.</small></p></section><section class="country-context-links"><h2>Official travel advice</h2><p>Check UK government advice for this destination, including safety, entry rules and health. No risk rating inferred by ClearIntel.</p>{travel_advice_link(code)}</section><section class="country-context-links"><h2>Explore reporting by topic</h2><p>Targeted source searches, not classifications of existing reports.</p><ul>{topic_links}</ul></section><h2>Browse sources</h2><p>Open these sources directly, including when the headline feed is unavailable.</p><ul>{source_links}</ul></section></div>')
     scripts = '<script src="/assets/analyst-mode.js" defer></script><script src="/assets/country-card.js?v=evidence-disclosure" defer></script><script src="/assets/research-pdf.js" defer></script><script src="/assets/country-profile.js?v=refresh-resilience" defer></script><script src="/assets/country-stats.js" defer></script><script src="/assets/country-trend.js" defer></script>'
     return page(base, '/countries/' + code.lower(), name + ' news and sources', description, body, scripts)

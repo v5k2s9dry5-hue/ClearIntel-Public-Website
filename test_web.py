@@ -129,6 +129,23 @@ class PublicSiteTests(unittest.TestCase):
         self.assertIn('El Mundo', self.client.get('/countries/es').text)
         self.assertEqual(self.client.get('/countries/missing').status_code, 404)
 
+    def test_country_travel_links_use_official_destinations(self):
+        cases = {
+            "nl": "netherlands",
+            "us": "usa",
+            "cd": "democratic-republic-of-the-congo",
+            "cg": "congo",
+            "ck": "cook-islands-tokelau-and-niue",
+            "nu": "cook-islands-tokelau-and-niue",
+        }
+        root = "https://www.gov.uk/foreign-travel-advice"
+        for code, slug in cases.items():
+            with self.subTest(code=code):
+                result = self.client.get("/countries/" + code)
+                self.assertIn(f'href="{root}/{slug}"', result.text)
+        result = self.client.get("/countries/gb")
+        self.assertIn(f'href="{root}">Browse the official FCDO destination directory', result.text)
+
     def test_private_routes_not_exposed(self):
         for route in ['/report','/case','/run','/state','/config/api_keys.json','/docs']:
             self.assertEqual(self.client.get(route).status_code,404,route)
