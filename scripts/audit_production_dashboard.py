@@ -48,8 +48,17 @@ def audit(browser, name, width, height):
         favicon = page.request.get(BASE + favicon_href, timeout=15000)
         header_art = page.locator(".site-header .header-monogram").evaluate("(e) => getComputedStyle(e).backgroundImage")
         metrics["faviconMatchesHeader"] = favicon.ok and header_art.split('data:image/webp;base64,', 1)[-1].split('"', 1)[0] in favicon.text()
-        artwork = page.request.get(BASE + "/assets/country-newsroom.webp", timeout=15000)
-        metrics["countryArtwork"] = artwork.ok and artwork.headers.get("content-type") == "image/webp"
+        country_art = page.locator('[data-command-layer="countries"]').evaluate(
+            "(card) => getComputedStyle(card, '::before').backgroundImage"
+        )
+        if "/assets/country-newsroom.webp" in country_art:
+            artwork = page.request.get(BASE + "/assets/country-newsroom.webp", timeout=15000)
+            metrics["countryArtwork"] = artwork.ok and artwork.headers.get("content-type") == "image/webp"
+        else:
+            artwork = page.request.get(BASE + "/assets/card-country.svg", timeout=15000)
+            metrics["countryArtwork"] = (
+                "/assets/card-country.svg" in country_art and artwork.ok and "data:image/webp;base64," in artwork.text()
+            )
         metrics["desktopBriefingVisible"] = page.locator("#desktop-briefing").is_visible()
         if name == "desktop":
             from xml.etree import ElementTree as ET
