@@ -138,6 +138,17 @@ def check_site(browser, width):
                     "url": "https://www.gdacs.org/report.aspx?eventid="+str(index)}
                    for index, level in enumerate(("green", "amber", "red"))]
     }))
+    national_requests = []
+    def national_fixture(route):
+        national_requests.append(route.request.url)
+        if len(national_requests) == 1:
+            return route_json(route, {"status": "checking", "alerts": []})
+        return route_json(route, {"status": "available", "checked_at_utc": STAMP,
+            "returned_count": 1, "alerts": [{"title": "Flood Warning", "severity": "Flood Warning",
+            "area": "Fixture river", "time_utc": None, "source_time": "2026-11-25T08:43:21", "time_basis": "Source warning time",
+            "expires_utc": None, "url": "https://environment.data.gov.uk/flood-monitoring/id/floods/fixture"}]})
+    page.route("**/api/national-alerts/england", national_fixture)
+    page.route("**/api/national-alerts/us", lambda route: route_json(route, {"status":"unavailable","alerts":[]}))
     page.goto(ROOT, wait_until="domcontentloaded")
     page.evaluate("""() => {
         const rows=[
@@ -708,34 +719,29 @@ def check_site(browser, width):
         assert field is not None
         assert bounds["y"] + bounds["height"] <= field["y"] + 1, (
             "Help obscures the search input", bounds, field)
-    # National warning checks are opt-in and distinguish outage from empty results.
-    national_requests = []
-    def national_fixture(route):
-        national_requests.append(route.request.url)
-        route_json(route, {"status": "available", "checked_at_utc": STAMP,
-            "returned_count": 1, "alerts": [{"title": "Flood Warning", "severity": "Flood Warning",
-            "area": "Fixture river", "time_utc": None, "source_time": "2026-11-25T08:43:21", "time_basis": "Source warning time",
-            "expires_utc": None, "url": "https://environment.data.gov.uk/flood-monitoring/id/floods/fixture"}]})
-    page.route("**/api/national-alerts/england", national_fixture)
-    assert not national_requests
-    page.locator("#national-alert-load").click()
-    page.locator("#national-alert-list").get_by_text("Fixture river", exact=False).wait_for()
-    assert len(national_requests) == 1
+    # National alerts load automatically when viewed, retry a busy feed,
+    # and refresh without navigating or losing current filters.
+    page.locator("#national-alert-load").scroll_into_view_if_needed()
+    page.locator("#national-alert-list").get_by_text("Fixture river", exact=False).wait_for(timeout=15000)
+    assert len(national_requests) >= 2
     assert page.locator("#national-alert-list").get_by_text("source timezone unspecified", exact=False).is_visible()
+    before = len(national_requests)
     page.locator("#national-alert-query").fill("no match")
     assert page.locator("#national-alert-list li").first.is_hidden()
     assert "0 of 1" in page.locator("#national-alert-filter-count").inner_text()
+    page.locator("#national-alert-load").click()
+    page.locator("#national-alert-load").wait_for()
+    page.wait_for_function("!document.getElementById('national-alert-load').disabled")
+    assert len(national_requests) == before + 1
+    assert page.locator("#national-alert-query").input_value() == "no match"
+    assert page.locator("#national-alert-list li").first.is_hidden()
     page.locator("#national-alert-reset").click()
     assert page.locator("#national-alert-list li").first.is_visible()
     page.locator("#national-alert-severity").select_option("Flood Warning")
     assert page.locator("#national-alert-list li").first.is_visible()
-    assert len(national_requests) == 1
-
     page.locator("#national-alert-source").select_option("us")
-    assert page.locator("#national-alert-list li").count() == 0
-    page.route("**/api/national-alerts/us", lambda route: route_json(route, {"status":"unavailable","alerts":[]}))
-    page.locator("#national-alert-load").click()
     page.locator("#national-alert-status").get_by_text("No current warning count is available", exact=False).wait_for()
+    assert page.locator("#national-alert-list li").count() == 0
     # Search health must distinguish total failure, partial coverage and no checks.
     page.evaluate("""() => {
         const unavailable = searchCoverage({sources_checked: [], provider_errors: ['gdelt: timeout']});
