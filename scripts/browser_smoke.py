@@ -672,6 +672,15 @@ def check_site(browser, width):
     assert timeline.locator('[aria-current="true"]').count() == 1
     assert timeline.get_by_text("1 provider problem").is_visible()
     timeline.locator("button").first.click()
+    with page.expect_download() as snapshot_export:
+        page.get_by_role("button", name="Download snapshot JSON").click()
+    with open(snapshot_export.value.path(), encoding="utf-8") as exported:
+        snapshot = json.load(exported)
+    assert snapshot["schema"] == "clearintel.replay-snapshot.v1"
+    assert snapshot["query"] == "UK" and snapshot["window"] == "24h"
+    assert snapshot["observed_at_utc"] == replay[0]["observed_at_utc"]
+    assert snapshot["saved_at_utc"] == replay[0]["saved_at_utc"]
+    assert [row["source_url"] for row in snapshot["articles"]] == ["https://example.org/transport-update"]
     assert page.get_by_role("button", name="Compare with earlier snapshot").is_disabled()
     timeline.locator("button").last.click()
     assert not page.get_by_role("button", name="Compare with earlier snapshot").is_disabled()
@@ -681,6 +690,7 @@ def check_site(browser, width):
     page.locator("#replay-query-filter").fill("no matching saved search")
     assert page.locator("#replay-select").is_disabled()
     assert "0 of 2" in page.locator("#replay-filter-count").inner_text()
+    assert page.get_by_role("button", name="Download snapshot JSON").is_disabled()
     page.locator("#replay-query-filter").fill("")
     page.locator("#replay-period-filter").select_option("1")
     assert page.locator("#replay-select option").count() == 2
