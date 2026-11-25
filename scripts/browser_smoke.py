@@ -249,10 +249,6 @@ def check_site(browser, width):
     assert page.locator("#ci-pulse-note").is_hidden()
     assert page.request.get(ROOT + "/assets/command-room.svg").ok
     assert page.evaluate("() => getComputedStyle(document.querySelector('[data-command-layer=aviation]'), '::before').backgroundImage.includes('archive-card.jpg')")
-    newsroom = page.locator('[data-command-layer="countries"]')
-    assert newsroom.evaluate("card => getComputedStyle(card, '::before').backgroundImage.includes('country-newsroom.webp')")
-    photo = page.request.get(ROOT + "/assets/country-newsroom.webp")
-    assert photo.ok and photo.headers["content-type"] == "image/webp"
     assert page.locator(".command-art-credit a").count() == 3
     assert "Not live imagery" in page.locator(".command-art-credit").inner_text()
     assert page.evaluate("() => getComputedStyle(document.querySelector('.cinematic-hero'), '::before').backgroundImage.includes('command-room.svg')")
@@ -274,12 +270,12 @@ def check_site(browser, width):
     assert page.locator("#pulse-series polyline.economic").count() == 1
     assert page.locator("#desktop-briefing-list a").count() > 0
     art = page.locator('[data-command-layer="countries"]').evaluate("(e) => getComputedStyle(e, '::before').backgroundImage")
-    assert "card-country.svg" in art and "globe-texture.jpg" not in art
-    country_art = page.request.get(ROOT + "/assets/card-country.svg")
-    assert country_art.ok and 'data:image/webp;base64,' in country_art.text()
+    assert "country-newsroom.webp" in art and "globe-texture.jpg" not in art
+    country_art = page.request.get(ROOT + "/assets/country-newsroom.webp")
+    assert country_art.ok and country_art.headers["content-type"] == "image/webp"
     assert page.evaluate("""async () => {
         const img = new Image();
-        img.src = '/assets/card-country.svg';
+        img.src = '/assets/country-newsroom.webp';
         await img.decode();
         const canvas = document.createElement('canvas');
         canvas.width = 480; canvas.height = 270;
@@ -381,7 +377,7 @@ def check_site(browser, width):
     assert "NASA EONET: 0, 0, 0, 0, 0, 1" in page.locator("#pulse-chart").get_attribute("aria-label")
     page.evaluate("window.dispatchEvent(new CustomEvent('clearintel:wildfire-snapshot',{detail:{unavailable:true}}))")
     assert page.locator("#pulse-series polyline.wildfires.stale").count() == 1
-    for asset in ("card-earth.svg", "card-country.svg", "card-archive.svg"):
+    for asset in ("card-earth.svg", "country-newsroom.webp", "card-archive.svg"):
         assert page.request.get(ROOT + "/assets/" + asset).ok
 
     assert page.locator("#activity-pulse-total").inner_text() == "2"
