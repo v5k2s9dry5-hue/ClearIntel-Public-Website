@@ -793,12 +793,12 @@ def check_site(browser, width):
     page.locator("#result-publisher").select_option("Fixture publisher")
     page.locator("#result-order").select_option("oldest")
     assert page.locator(".result-view-count").inner_text() == "Showing 1 of 1 headlines"
-    page.get_by_role("dialog", name="Expanded map").get_by_role("button", name="Reset view").click()
+    page.locator("#news-results").get_by_role("button", name="Reset view").click()
     assert page.locator("#result-publisher").input_value() == ""
     assert page.locator("#result-order").input_value() == "original"
     page.locator("#result-wording").fill("no-such-fixture-phrase")
     assert page.locator(".result-view-count").inner_text() == "Showing 0 of 1 headlines"
-    page.get_by_role("dialog", name="Expanded map").get_by_role("button", name="Reset view").click()
+    page.locator("#news-results").get_by_role("button", name="Reset view").click()
     assert page.locator("#result-wording").input_value() == ""
     saved_topic = page.locator("#news-query").input_value()
     page.locator("#saved-query-save").click()
