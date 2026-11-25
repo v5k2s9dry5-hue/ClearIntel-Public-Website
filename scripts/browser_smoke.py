@@ -81,6 +81,7 @@ def check_site(browser, width):
     context = browser.new_context(
         viewport={"width": width, "height": 850},
         device_scale_factor=3 if mobile else 1,
+        has_touch=mobile,
         accept_downloads=True,
         reduced_motion="reduce",
     )
@@ -579,7 +580,42 @@ def check_site(browser, width):
     page.locator("#map-expand").click()
     assert page.get_by_role("dialog", name="Expanded map").is_visible()
     assert page.locator("#expanded-map #globe-layer").is_visible()
+    expanded_canvas = page.locator("#expanded-map #earth-canvas")
+    zoom_out = page.locator("#earth-zoom-out")
+    assert zoom_out.is_disabled()
+    if mobile:
+        box = expanded_canvas.bounding_box()
+        x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+        touch = page.context.new_cdp_session(page)
+
+        def pinch(event, distance):
+            points = [] if event == "touchEnd" else [
+                {"x": x - distance, "y": y, "id": 1},
+                {"x": x + distance, "y": y, "id": 2},
+            ]
+            touch.send("Input.dispatchTouchEvent", {"type": event, "touchPoints": points})
+
+        pinch("touchStart", 25)
+        pinch("touchMove", 75)
+        page.wait_for_function("() => !document.querySelector('#earth-zoom-out').disabled")
+        pinch("touchMove", 15)
+        pinch("touchEnd", 0)
+        page.wait_for_function("() => document.querySelector('#earth-zoom-out').disabled")
+        assert page.locator("#expanded-map").is_visible()
+        touch.detach()
+    else:
+        expanded_canvas.hover()
+        page.mouse.wheel(0, -120)
+        page.wait_for_function("() => !document.querySelector('#earth-zoom-out').disabled")
+        page.mouse.wheel(0, 160)
+        page.wait_for_function("() => document.querySelector('#earth-zoom-out').disabled")
+        browser_scale = page.evaluate("visualViewport.scale")
+        expanded_canvas.dispatch_event("wheel", {"deltaY": -60, "ctrlKey": True, "cancelable": True})
+        assert zoom_out.is_enabled() and page.evaluate("visualViewport.scale") == browser_scale
+        zoom_out.click()
+        assert zoom_out.is_disabled()
     page.locator("#earth-zoom-in").click()
+    assert zoom_out.is_enabled()
     page.keyboard.press("Escape")
     page.locator("#expanded-map").wait_for(state="hidden")
     page.wait_for_function("() => document.querySelector('#map-expand') === document.activeElement")
