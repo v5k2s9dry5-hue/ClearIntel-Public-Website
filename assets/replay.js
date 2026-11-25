@@ -370,6 +370,9 @@
     save.disabled = true;
     status.textContent = 'Searching. No new snapshot has been saved.';
   });
+  document.addEventListener('clearintel:search-unavailable', () => {
+    status.textContent = 'No completed source check to save.';
+  });
   document.addEventListener('clearintel:news-ready', event => {
     latest = {...event.detail, observedAt: new Date().toISOString()};
     save.disabled = false;
