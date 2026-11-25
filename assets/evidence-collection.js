@@ -9,12 +9,12 @@
     if(!row||typeof row.title!=='string'||typeof row.url!=='string'||row.url.length>2000)return null;
     let u;try{u=new URL(row.url);if(u.protocol!=='https:'||u.username||u.password)return null;u.hash='';}catch{return null;}
     const stamp=value=>typeof value==='string'&&Number.isFinite(Date.parse(value))?new Date(value).toISOString():null;
-    return {title:row.title.slice(0,300),url:u.href,source:String(row.source||'Unknown').slice(0,120),feed_time_utc:stamp(row.feed_time_utc),saved_at_utc:stamp(row.saved_at_utc)||new Date().toISOString()};
+    return {title:row.title.slice(0,300),url:u.href,source:String(row.source||'Unknown').slice(0,120),feed_time_utc:stamp(row.feed_time_utc),saved_at_utc:stamp(row.saved_at_utc)||new Date().toISOString(),note:typeof row.note==='string'?row.note.slice(0,500):'',review: ['unreviewed','reviewed','needs-followup'].includes(row.review)?row.review:'unreviewed'};
   }
   function render(){
     list.replaceChildren();clear.disabled=download.disabled=!records.length;
     const term=filter.value.trim().toLowerCase();
-    const view=records.map((row,index)=>({row,index})).filter(({row})=>(row.title+' '+row.source).toLowerCase().includes(term));
+    const view=records.map((row,index)=>({row,index})).filter(({row})=>(row.title+' '+row.source+' '+row.note+' '+row.review).toLowerCase().includes(term));
     if(order.value!=='saved')view.sort((a,b)=>{const x=Date.parse(a.row.feed_time_utc),y=Date.parse(b.row.feed_time_utc);if(!Number.isFinite(x)||!Number.isFinite(y))return Number.isFinite(x)?-1:Number.isFinite(y)?1:0;return order.value==='newest'?y-x:x-y;});
     count.textContent='Showing '+view.length+' of '+records.length+' saved links. Feed timestamps do not establish event times.';
     for(const {index,row} of view){
@@ -24,6 +24,16 @@
       info.append(link,document.createElement('br'),meta);
       remove.type='button';remove.className='globe-control';remove.textContent='Remove';remove.setAttribute('aria-label','Remove saved report '+row.title);
       remove.addEventListener('click',()=>{if(save(records.filter((_,i)=>i!==index)))status.textContent='Report removed.';});
+      const editor=document.createElement('details'),summary=document.createElement('summary'),form=document.createElement('div');
+      const states={'unreviewed':'Not reviewed','reviewed':'Source reviewed','needs-followup':'Needs follow-up'};
+      summary.textContent=states[row.review]+(row.note?' · Note saved':'')+' — Edit';
+      const noteLabel=document.createElement('label'),note=document.createElement('textarea');
+      noteLabel.textContent='Personal research note';note.maxLength=500;note.rows=3;note.value=row.note;noteLabel.append(note);
+      const reviewLabel=document.createElement('label'),review=document.createElement('select');reviewLabel.textContent='Review status (your assessment)';
+      for(const [value,label] of Object.entries(states))review.add(new Option(label,value));review.value=row.review;reviewLabel.append(review);
+      const commit=document.createElement('button');commit.type='button';commit.className='globe-control';commit.textContent='Save note and status';
+      commit.addEventListener('click',()=>{const next=records.map((record,i)=>i===index?{...record,note:note.value.slice(0,500),review:review.value}:record);if(save(next))status.textContent='Research note and review status saved locally.';});
+      form.append(noteLabel,reviewLabel,commit);editor.append(summary,form);info.append(editor);
       li.append(info,remove);list.append(li);
     }
   }
@@ -38,7 +48,7 @@
   }};
   clear.addEventListener('click',()=>{if(confirm('Clear all saved source links from this browser?')){try{localStorage.removeItem(KEY);records=[];render();status.textContent='Collection cleared.';}catch{status.textContent='Unable to clear browser storage.';}}});
   download.addEventListener('click',()=>{
-    const data={schema:'clearintel.evidence-collection.v1',exported_at_utc:new Date().toISOString(),limitations:'Saved public reporting links; not independent verification.',records};
+    const data={schema:'clearintel.evidence-collection.v1',exported_at_utc:new Date().toISOString(),limitations:'Saved public reporting links and user-authored notes/review labels; not independent verification.',records};
     const u=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='ClearIntel-collection.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);
   });
   filter.addEventListener('input',render);order.addEventListener('change',render);
