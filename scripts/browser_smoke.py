@@ -646,7 +646,8 @@ def check_site(browser, width):
     assert replay[0]["query"] == "UK"
     assert replay[0]["articles"][0]["source"] == "Fixture publisher"
     assert replay[0]["articles"][0]["url"] == "https://example.org/transport-update"
-    assert "observed_at_utc" in replay[0]
+    assert replay[0]["observed_at_utc"] < replay[0]["saved_at_utc"]
+    assert page.get_by_role("button", name="Save current snapshot").is_disabled()
     assert page.locator("#replay-history").is_visible()
     page.get_by_role("button", name="Explain Intelligence Replay").click()
     assert page.locator("#ci-replay-note").is_visible()
@@ -690,6 +691,7 @@ def check_site(browser, width):
         page.locator("#replay-export-comparison").click()
     with open(replay_export.value.path(), encoding="utf-8") as exported:
         comparison = json.load(exported)
+    assert comparison["earlier"]["timestamp_basis"] == "results_received"
     assert comparison["schema"] == "clearintel.replay-comparison.v1"
     assert len(comparison["newly_present"]) == 1
     assert len(comparison["no_longer_present"]) == 1
