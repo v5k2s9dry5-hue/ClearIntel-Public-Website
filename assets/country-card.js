@@ -104,6 +104,12 @@ function renderCountryCard(container,country,entry){
       const metadata=el('span','analyst-only analyst-metadata',
         'Exact source timestamp: '+preciseTime+' · '+group.reports.length+' '+(group.reports.length===1?'linked report':'linked reports')+' · Not independently verified');
       content.append(metadata);
+      const assessment=group.evidence;
+      if(assessment && assessment.verification==='not_assessed'){
+        const detail=el('span','analyst-only analyst-metadata',
+          'Evidence: '+assessment.distinct_links_retained+' distinct retained links · '+assessment.matching_records_excluded+' matching records excluded · Factual confidence not assessed');
+        content.append(detail);
+      }
       const additional=related.filter(report=>!report.editorial&&report.url);
       if(additional.length){
         const evidence=el('details','country-related-reports');
