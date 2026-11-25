@@ -644,6 +644,28 @@ def check_site(browser, width):
         assert zoom_out.is_enabled() and page.evaluate("visualViewport.scale") == browser_scale
         zoom_out.click()
         assert zoom_out.is_disabled()
+        paints = expanded_canvas.evaluate("""async canvas => {
+            const ctx = canvas.getContext('2d');
+            const clear = ctx.clearRect;
+            let count = 0;
+            ctx.clearRect = function(...args) {
+                count++;
+                return clear.apply(this, args);
+            };
+            try {
+                for (let step = 0; step < 5; step++) {
+                    canvas.dispatchEvent(new WheelEvent('wheel', {deltaY: -20, cancelable: true}));
+                }
+                const beforeFrame = count;
+                await new Promise(requestAnimationFrame);
+                return [beforeFrame, count];
+            } finally {
+                ctx.clearRect = clear;
+            }
+        }""")
+        assert paints[0] == 0 and paints[1] >= 1, paints
+        zoom_out.click()
+        assert zoom_out.is_disabled()
     page.locator("#earth-zoom-in").click()
     assert zoom_out.is_enabled()
     page.get_by_role("dialog", name="Expanded map").get_by_role("button", name="Reset view").click()
