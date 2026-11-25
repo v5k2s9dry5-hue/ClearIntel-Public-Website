@@ -248,6 +248,23 @@ def check_site(browser, width):
     assert page.locator("#desktop-briefing-list a").count() > 0
     art = page.locator('[data-command-layer="countries"]').evaluate("(e) => getComputedStyle(e, '::before').backgroundImage")
     assert "card-country.svg" in art and "globe-texture.jpg" not in art
+    country_art = page.request.get(ROOT + "/assets/card-country.svg")
+    assert country_art.ok and 'data:image/webp;base64,' in country_art.text()
+    assert page.evaluate("""async () => {
+        const img = new Image();
+        img.src = '/assets/card-country.svg';
+        await img.decode();
+        const canvas = document.createElement('canvas');
+        canvas.width = 480; canvas.height = 270;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img,0,0,480,270);
+        const pixels = ctx.getImageData(0,0,480,270).data;
+        let varied=0;
+        for(let i=0;i<pixels.length;i+=4) {
+            if(pixels[i]>20 && pixels[i+1]>40 && pixels[i+2]>55) varied++;
+        }
+        return varied>500;
+    }"""), "Country artwork must render its embedded photographic image"
     if width >= 1180 and page.locator("#top").evaluate("(e) => e.classList.contains('sidebar-collapsed')"):
         assert page.locator("#desktop-briefing").is_visible()
         brief = page.locator("#desktop-briefing").bounding_box()

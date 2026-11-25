@@ -2,7 +2,7 @@
 (() => {
   const input = document.getElementById('country-filter');
   const clear = document.getElementById('country-filter-clear');
-  const groups = [...document.querySelectorAll('main section')];
+  const groups = [...document.querySelectorAll('main section:has(> .directory)')];
   const jumps = [...document.querySelectorAll('.letters a')];
   const aliases = {GB: 'UK Britain Great Britain', US: 'USA United States of America', ES: 'España'};
   const fold = value => value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim();
@@ -18,7 +18,7 @@
     }
     for (const [index, group] of groups.entries()) {
       group.hidden = !group.querySelector('li:not([hidden])');
-      jumps[index].hidden = group.hidden;
+      if(jumps[index])jumps[index].hidden = group.hidden;
     }
     clear.hidden = !query;
     document.getElementById('filter-count').textContent = query ? (count ? count + (count === 1 ? ' match' : ' matches') : 'No matching country or territory') : entries.length + ' countries and territories';

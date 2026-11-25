@@ -240,3 +240,5 @@
  .desktop-briefing-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;padding-top:6px;border-top:1px solid #294459}
  .desktop-briefing-links a{font-size:11px;color:#b9e9f5;padding:6px;border:1px solid #36576c;border-radius:5px}
 }
+
+.weather-source-links{display:flex;flex-wrap:wrap;gap:8px}.weather-source-links a{display:inline-flex;align-items:center;min-height:44px;padding:8px;border:1px solid #36576c;border-radius:6px;background:#102336}#collection-count{color:#b8d0df;font-size:12px}
