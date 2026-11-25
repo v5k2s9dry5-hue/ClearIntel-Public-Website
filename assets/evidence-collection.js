@@ -4,6 +4,7 @@
   const list=$('collection-list'),status=$('collection-status'),clear=$('collection-clear'),download=$('collection-export');
   if(!list)return;
   let records=[];
+  const filter=$('collection-filter'),order=$('collection-order'),count=$('collection-count');
   function clean(row){
     if(!row||typeof row.title!=='string'||typeof row.url!=='string'||row.url.length>2000)return null;
     let u;try{u=new URL(row.url);if(u.protocol!=='https:'||u.username||u.password)return null;u.hash='';}catch{return null;}
@@ -12,7 +13,11 @@
   }
   function render(){
     list.replaceChildren();clear.disabled=download.disabled=!records.length;
-    for(const [index,row] of records.entries()){
+    const term=filter.value.trim().toLowerCase();
+    const view=records.map((row,index)=>({row,index})).filter(({row})=>(row.title+' '+row.source).toLowerCase().includes(term));
+    if(order.value!=='saved')view.sort((a,b)=>{const x=Date.parse(a.row.feed_time_utc),y=Date.parse(b.row.feed_time_utc);if(!Number.isFinite(x)||!Number.isFinite(y))return Number.isFinite(x)?-1:Number.isFinite(y)?1:0;return order.value==='newest'?y-x:x-y;});
+    count.textContent='Showing '+view.length+' of '+records.length+' saved links. Feed timestamps do not establish event times.';
+    for(const {index,row} of view){
       const li=document.createElement('li'),info=document.createElement('span'),link=document.createElement('a'),meta=document.createElement('small'),remove=document.createElement('button');
       link.href=row.url;link.target='_blank';link.rel='noopener noreferrer nofollow';link.textContent=row.title;
       meta.textContent=row.source+' · Feed timestamp: '+(row.feed_time_utc||'Unknown');
@@ -36,5 +41,6 @@
     const data={schema:'clearintel.evidence-collection.v1',exported_at_utc:new Date().toISOString(),limitations:'Saved public reporting links; not independent verification.',records};
     const u=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='ClearIntel-collection.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);
   });
+  filter.addEventListener('input',render);order.addEventListener('change',render);
   render();
 })();
