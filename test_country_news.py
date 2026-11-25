@@ -58,6 +58,31 @@ class CountryNewsTests(TestCase):
         self.assertEqual(result['story'], result['stories'][0]['reports'])
         self.assertEqual(result['stories'][1]['reports'][0]['source'], 'climate.example')
 
+    def test_conflicting_numbers_and_qualification_not_grouped(self):
+        from country_news import _story_groups
+        rows = [
+            {'title': 'France announces national housing plan for 100 new homes'},
+            {'title': 'France announces national housing plan for 200 new homes'},
+            {'title': 'France denies national housing plan for 100 new homes'},
+            {'title': 'France announces national housing plan for 100 new homes today'},
+        ]
+        groups = _story_groups(rows)
+        self.assertEqual([len(group) for group in groups], [2, 1, 1])
+
+    def test_evidence_counts_do_not_claim_verification(self):
+        title = 'France announces a new national climate investment plan'
+        provider = fixture_provider(
+            article(title, 'one.example', 2),
+            article(title, 'one.example', 3, via_google=True),
+            article(title + ' today', 'two.example', 4),
+        )
+        result = search_country_news('FR', NOW, (provider,))
+        self.assertEqual(result['stories'][0]['evidence'], {
+            'distinct_links_retained': 2,
+            'matching_records_excluded': 1,
+            'verification': 'not_assessed',
+        })
+
     def test_only_valid_single_report_is_labelled_recent(self):
         provider = fixture_provider(
             article('US issues flood warnings', 'future.example', -1),
