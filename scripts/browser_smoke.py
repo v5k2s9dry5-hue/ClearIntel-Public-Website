@@ -473,6 +473,15 @@ def check_site(browser, width):
         assert not page.locator("#dashboard-sidebar").is_visible()
     else:
         assert not toggle.is_visible()
+    # Display controls must not create a standalone blank toolbar row.
+    assert page.locator(".dashboard-title .dashboard-toolbar-tools").count() == 1
+    assert "tools" not in page.locator(".cinematic-hero").evaluate("(e) => getComputedStyle(e).gridTemplateAreas")
+    if width >= 1180:
+        hero = page.locator(".cinematic-hero").bounding_box()
+        globe = page.locator("#dashboard-map").bounding_box()
+        heading = page.locator(".dashboard-heading-group").bounding_box()
+        assert globe["y"] - hero["y"] <= 8, (hero, globe)
+        assert abs(heading["y"] - globe["y"]) <= 12, (heading, globe)
     controls = page.locator(".dashboard-toolbar-tools").bounding_box()
     assert controls and controls["x"] >= 0
     assert controls["x"] + controls["width"] <= width + 1
