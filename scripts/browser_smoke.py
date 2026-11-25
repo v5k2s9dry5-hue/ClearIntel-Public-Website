@@ -166,6 +166,22 @@ def check_site(browser, width):
     page.locator("#incident-count-red").filter(has_text="1").wait_for(state="visible", timeout=10000)
     assert page.locator(".incident-counts").bounding_box()["y"] < page.locator("#earth-canvas").bounding_box()["y"]
     assert page.locator(".site-header .header-monogram").evaluate("(e) => getComputedStyle(e).backgroundImage.includes('data:image/webp;base64,')")
+
+    favicon_href = page.locator('link[rel="icon"]').get_attribute("href")
+    assert favicon_href == "/assets/favicon.svg?v=approved-monogram-20261125"
+    favicon = page.request.get(ROOT + favicon_href)
+    assert favicon.ok
+    header_art = page.locator(".site-header .header-monogram").evaluate("(e) => getComputedStyle(e).backgroundImage")
+    assert header_art.split('data:image/webp;base64,', 1)[1].split('"', 1)[0] in favicon.text()
+    assert page.evaluate("""async (src) => {
+        const img = new Image(); img.src = src; await img.decode();
+        const c = document.createElement('canvas'); c.width=64; c.height=64;
+        const ctx = c.getContext('2d'); ctx.drawImage(img,0,0,64,64);
+        const p = ctx.getImageData(0,0,64,64).data;
+        let bright=0; for(let i=0;i<p.length;i+=4) if(p[i+1]>75 && p[i+2]>75 && p[i+3]>0) bright++;
+        return bright>20;
+    }""", favicon_href), "Approved favicon artwork must render"
+
     assert page.locator(".pulse-category-icon").count() == 8
     page.locator("#workspace-settings summary").click()
     page.locator("#compact-dashboard").check()
