@@ -714,13 +714,23 @@ def check_site(browser, width):
         national_requests.append(route.request.url)
         route_json(route, {"status": "available", "checked_at_utc": STAMP,
             "returned_count": 1, "alerts": [{"title": "Flood Warning", "severity": "Flood Warning",
-            "area": "Fixture river", "time_utc": STAMP, "time_basis": "Last reviewed",
+            "area": "Fixture river", "time_utc": None, "source_time": "2026-11-25T08:43:21", "time_basis": "Source warning time",
             "expires_utc": None, "url": "https://environment.data.gov.uk/flood-monitoring/id/floods/fixture"}]})
     page.route("**/api/national-alerts/england", national_fixture)
     assert not national_requests
     page.locator("#national-alert-load").click()
     page.locator("#national-alert-list").get_by_text("Fixture river", exact=False).wait_for()
     assert len(national_requests) == 1
+    assert page.locator("#national-alert-list").get_by_text("source timezone unspecified", exact=False).is_visible()
+    page.locator("#national-alert-query").fill("no match")
+    assert page.locator("#national-alert-list li").first.is_hidden()
+    assert "0 of 1" in page.locator("#national-alert-filter-count").inner_text()
+    page.locator("#national-alert-reset").click()
+    assert page.locator("#national-alert-list li").first.is_visible()
+    page.locator("#national-alert-severity").select_option("Flood Warning")
+    assert page.locator("#national-alert-list li").first.is_visible()
+    assert len(national_requests) == 1
+
     page.locator("#national-alert-source").select_option("us")
     assert page.locator("#national-alert-list li").count() == 0
     page.route("**/api/national-alerts/us", lambda route: route_json(route, {"status":"unavailable","alerts":[]}))

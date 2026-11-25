@@ -29,6 +29,17 @@ def stamp(value):
         return None
 
 
+def source_stamp(value):
+    """Retain a valid unzoned source timestamp without assuming UTC or BST."""
+    if not isinstance(value, str) or "T" not in value or len(value) > 40:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return parsed.isoformat()
+    except (ValueError, OverflowError):
+        return None
+
+
 def text(value, limit=500):
     return value.strip()[:limit] if isinstance(value, str) else ""
 
@@ -53,11 +64,13 @@ def parse_alerts(code, payload, now=None):
             ident = text(item.get("floodAreaID"), 100)
             area = text(item.get("description"))
             severity = {1: "Severe Flood Warning", 2: "Flood Warning", 3: "Flood Alert"}[level]
-            issued = stamp(item.get("timeRaised"))
-            if not ident or not area or not issued:
-                continue
+            raw_time = source_stamp(item.get("timeRaised"))
+            issued = stamp(raw_time) if raw_time else None
+            if not ident or not area or not raw_time:
+                raise ValueError("Active flood warning missing required fields")
             rows[ident] = {"title": severity, "severity": severity, "area": area,
-                           "time_utc": issued, "time_basis": "Last reviewed",
+                           "time_utc": issued, "source_time": raw_time if not issued else None,
+                           "time_basis": "Source warning time",
                            "expires_utc": None,
                            "url": "https://environment.data.gov.uk/flood-monitoring/id/floods/" + quote(ident, safe="")}
         else:
@@ -68,13 +81,15 @@ def parse_alerts(code, payload, now=None):
             if p.get("status") != "Actual" or p.get("messageType") not in ("Alert", "Update"):
                 continue
             issued, expires = stamp(p.get("sent")), stamp(p.get("expires"))
-            if not issued or not expires or datetime.fromisoformat(expires) <= now:
+            if not issued or not expires:
+                raise ValueError("Actual weather warning missing valid timestamps")
+            if datetime.fromisoformat(expires) <= now:
                 continue
             ident = text(p.get("id"), 300)
             title = text(p.get("event"))
             area = text(p.get("areaDesc"))
             if not ident or not title or not area:
-                continue
+                raise ValueError("Actual weather warning missing required fields")
             rows[ident] = {"title": title, "severity": text(p.get("severity"), 50) or "Unknown",
                            "area": area, "time_utc": issued, "time_basis": "Issued",
                            "expires_utc": expires,
@@ -82,7 +97,7 @@ def parse_alerts(code, payload, now=None):
     if raw and not recognized:
         raise ValueError("Unrecognized warning feed")
     # Never represent a partially parsed feed as a comprehensive active count.
-    return sorted(rows.values(), key=lambda row: row["time_utc"], reverse=True)
+    return sorted(rows.values(), key=lambda row: row.get("time_utc") or row.get("source_time") or "", reverse=True)
 
 
 def download(url):
