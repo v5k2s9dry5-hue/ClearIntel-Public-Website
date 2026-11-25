@@ -806,11 +806,23 @@ def check_site(browser, width):
     # Exercise the directory in a separate page, preserving the profile tests.
     directory_page = context.new_page()
     try:
+        directory_page.route("**/api/country-stats/*", lambda route: route.fulfill(json={
+            "status": "available", "observations": [
+                {"indicator": "NY.GDP.PCAP.CD", "value": 49000, "year": "2024"},
+                {"indicator": "IT.NET.USER.ZS", "value": 97.2, "year": "2023"},
+            ],
+        }))
         directory_page.goto(ROOT + "/countries", wait_until="domcontentloaded")
         directory_page.wait_for_function("() => document.querySelector('#compare-first').options.length === 238")
         assert directory_page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"), directory_page.evaluate("() => [...document.querySelectorAll('body *')].filter(e => e.getBoundingClientRect().right > innerWidth+1).slice(0,12).map(e=>[e.tagName,e.id,e.className])")
         for selector in ("#compare-first", "#compare-second"):
             assert directory_page.locator(selector).evaluate("(e) => e.getBoundingClientRect().right <= innerWidth")
+        directory_page.locator("#compare-load").click()
+        directory_page.locator("#compare-results table").wait_for()
+        assert directory_page.locator("#compare-results tbody tr").count() == 9
+        assert directory_page.locator("#compare-results").get_by_text("49,000 (2024)", exact=True).count() == 2
+        assert directory_page.locator("#compare-results").get_by_text("Not available", exact=True).count() == 14
+        assert directory_page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     finally:
         directory_page.close()
 
