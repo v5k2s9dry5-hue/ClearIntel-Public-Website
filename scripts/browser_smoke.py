@@ -1,3 +1,6 @@
+Traceback (most recent call last):
+  File "<stdin>", line 5, in <module>
+AssertionError
 """Browser smoke test for mobile and desktop public-site research workflows.
 
 Run against the local FastAPI service. External news providers are mocked:
