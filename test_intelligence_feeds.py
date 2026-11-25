@@ -47,6 +47,22 @@ class DedicatedFeedTests(unittest.TestCase):
         rows = f.parse_feed(xml, {"www.gdacs.org", "gdacs.org"})
         self.assertEqual(rows[0]["url"], "https://www.gdacs.org/report.aspx?eventtype=FL&eventid=123")
 
+    def test_iaea_publications_upgrade_official_links_only(self):
+        xml = b"""<rss><channel>
+        <item><title>Science programme publication</title><link>http://www.iaea.org/newscenter/news/fixture</link><pubDate>Mon, 23 Nov 26 09:00:00 +0100</pubDate></item>
+        <item><title>Other site</title><link>http://example.com/fixture</link><pubDate>Mon, 23 Nov 26 09:00:00 +0100</pubDate></item>
+        </channel></rss>"""
+        self.assertNotIn("iaea", f.PULSE_CATEGORIES)
+        with patch.object(f, "_download", return_value=xml) as request:
+            result = f.feed("iaea")
+        request.assert_called_once_with("https://www.iaea.org/feeds/news")
+        self.assertEqual(result["status"], "available")
+        self.assertEqual(result["reports"], [{
+            "title": "Science programme publication",
+            "url": "https://www.iaea.org/newscenter/news/fixture",
+            "published_at_utc": "2026-11-23T08:00:00+00:00",
+        }])
+
     def test_rejected_items_not_reported_as_empty_success(self):
         xml = b"""<rss><channel><item><title>Invalid link</title><link>http://example.org/report</link><pubDate>Tue, 24 Nov 2026 08:00:00 GMT</pubDate></item></channel></rss>"""
         with self.assertRaises(ValueError):

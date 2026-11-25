@@ -20,8 +20,11 @@ SOURCES = {
     "travel": ("FCDO travel advice", "https://www.gov.uk/foreign-travel-advice.atom", "https://www.gov.uk/foreign-travel-advice", {"www.gov.uk"}),
 }
 PULSE_CATEGORIES = tuple(SOURCES)
-# Optional, user-initiated sanctions publications; not an extra Pulse poll.
+# Optional publications checked only when requested.
 SOURCES['sanctions'] = ('UK OFSI', 'https://www.gov.uk/government/organisations/office-of-financial-sanctions-implementation.atom', 'https://www.gov.uk/government/organisations/office-of-financial-sanctions-implementation', {'www.gov.uk'})
+SOURCES["iaea"] = ("International Atomic Energy Agency", "https://www.iaea.org/feeds/news",
+                   "https://www.iaea.org/newscenter/news", {"www.iaea.org"})
+LEGACY_HTTP_HOSTS = {"www.gdacs.org", "gdacs.org", "www.iaea.org"}
 TTL = 300
 MAX_BYTES = 1024 * 1024
 _cache = {}
@@ -72,9 +75,8 @@ def parse_feed(data, hosts):
                 break
         try:
             url = urlsplit(link)
-            # GDACS RSS has historically published HTTP report links. Upgrade only
-            # the known provider host, never arbitrary links or credentials.
-            if (url.scheme == "http" and url.hostname in {"www.gdacs.org", "gdacs.org"}
+            # Official GDACS and IAEA feeds can publish legacy HTTP article links.
+            if (url.scheme == "http" and url.hostname in LEGACY_HTTP_HOSTS
                     and url.hostname in hosts and not url.username and not url.password
                     and url.port in (None, 80)):
                 link = urlunsplit(("https", url.hostname, url.path, url.query, url.fragment))
