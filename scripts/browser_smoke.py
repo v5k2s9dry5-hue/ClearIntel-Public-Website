@@ -1064,6 +1064,16 @@ def check_wide_hero_layout(browser):
     assert page.locator("#activity-pulse-status").inner_text() == "USGS feed checked"
     page.wait_for_selector("#earth-texture-credit", state="visible", timeout=10000)
     assert "NASA Earth Observatory" in page.locator("#earth-texture-credit").inner_text()
+    canvas = page.locator("#earth-canvas")
+    canvas.hover()
+    page.mouse.wheel(0, -120)
+    page.wait_for_function("() => !document.querySelector('#earth-zoom-out').disabled")
+    assert page.locator("#earth-texture-credit").is_visible()
+    page.locator("#earth-uk-view").click()
+    assert page.locator("#earth-zoom-in").is_disabled()
+    assert page.locator("#earth-texture-credit").is_visible()
+    page.locator("#earth-uk-view").click()
+    assert page.locator("#earth-texture-credit").is_visible()
     assert "1 earthquakes" in page.locator("#pulse-quakes").inner_text()
     assert page.locator("#pulse-latest a").count() == 1
     assert "Fixture location" in page.locator("#pulse-latest a").inner_text()

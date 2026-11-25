@@ -2,13 +2,14 @@
    This is a 2004 composite, not live satellite imagery. No WebGL or third-party scripts. */
 'use strict';
 window.ClearIntelGlobeSurface = (() => {
-  const SIZE=320, TW=1024, TH=512, RAD=Math.PI/180;
+  const SIZE=320, TW=3072, TH=1536, RAD=Math.PI/180;
   const surface=document.createElement('canvas');
   surface.width=SIZE;surface.height=SIZE;
   const paint=surface.getContext('2d');
   const frame=paint?.createImageData(SIZE,SIZE);
   const col=new Int16Array(SIZE*SIZE), row=new Int32Array(SIZE*SIZE), light=new Float32Array(SIZE*SIZE);
   let texture=null, lastTilt=NaN, lastRot=NaN, loading=false, attempts=0;
+  let lastExtentX=NaN, lastExtentY=NaN;
   function load(onReady){
     if(!frame||loading||texture||attempts>=2)return;
     loading=true;attempts++;
@@ -32,13 +33,13 @@ window.ClearIntelGlobeSurface = (() => {
     };
     image.src='/globe-texture.jpg';
   }
-  function geometry(tilt){
+  function geometry(tilt, extentX, extentY){
     row.fill(-1);
     const t=tilt*RAD, ct=Math.cos(t), st=Math.sin(t);
     for(let y=0;y<SIZE;y++){
-      const ny=1-(y+.5)*2/SIZE;
+      const ny=(1-(y+.5)*2/SIZE)*extentY;
       for(let x=0;x<SIZE;x++){
-        const nx=(x+.5)*2/SIZE-1, zz=1-nx*nx-ny*ny;
+        const nx=((x+.5)*2/SIZE-1)*extentX, zz=1-nx*nx-ny*ny;
         if(zz<=0)continue;
         const z=Math.sqrt(zz), i=y*SIZE+x;
         const lat=Math.asin(Math.max(-1,Math.min(1,ny*ct+z*st)));
@@ -50,10 +51,17 @@ window.ClearIntelGlobeSurface = (() => {
       }
     }
     lastTilt=tilt;lastRot=NaN;
+    lastExtentX=extentX;lastExtentY=extentY;
   }
-  function draw(ctx,cx,cy,r,rot,tilt){
+  function draw(ctx,cx,cy,r,rot,tilt,width,height){
     if(!texture||!frame)return false;
-    if(tilt!==lastTilt)geometry(tilt);
+    // Sample the visible part of the globe into the same bounded buffer at every zoom.
+    const halfWidth=Math.min(r,Math.max(cx,width-cx));
+    const halfHeight=Math.min(r,Math.max(cy,height-cy));
+    const extentX=halfWidth/r, extentY=halfHeight/r;
+    if(tilt!==lastTilt||extentX!==lastExtentX||extentY!==lastExtentY){
+      geometry(tilt,extentX,extentY);
+    }
     const shift=Math.round(rot/360*TW);
     if(shift!==lastRot){
       const pixels=frame.data;
@@ -69,7 +77,7 @@ window.ClearIntelGlobeSurface = (() => {
       paint.putImageData(frame,0,0);
       lastRot=shift;
     }
-    ctx.drawImage(surface,cx-r,cy-r,r*2,r*2);
+    ctx.drawImage(surface,cx-halfWidth,cy-halfHeight,halfWidth*2,halfHeight*2);
     return true;
   }
   return {load,draw};
