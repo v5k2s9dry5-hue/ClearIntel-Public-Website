@@ -73,3 +73,12 @@
 .replay-observation-track span{height:5px;border-radius:2px;background:#284356}
 .replay-observation-track .replay-observation-filled{background:#72d9eb}
 .replay-observation-note{grid-column:1/-1;color:#efce9b;font-size:11px}
+
+#collection-list li>span{min-width:0;flex:1;overflow-wrap:anywhere}
+#collection-list details{margin-top:8px;color:#b9d8e8;font-size:12px}
+#collection-list summary{cursor:pointer;min-height:32px;padding:5px 0}
+#collection-list details>div{display:grid;gap:8px;padding:8px;border:1px solid #36576c;border-radius:6px}
+#collection-list label{display:grid;gap:5px;min-width:0}
+#collection-list textarea,#collection-list select{box-sizing:border-box;width:100%;min-width:0;max-width:100%;font:inherit;color:#e7f4fa;background:#102233;border:1px solid #36576c;border-radius:5px;padding:8px}
+#collection-list textarea{resize:vertical;min-height:68px}
+#collection-list select,#collection-list details button{min-height:44px}

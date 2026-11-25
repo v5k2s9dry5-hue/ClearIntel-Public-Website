@@ -623,6 +623,20 @@ def check_site(browser, width):
     assert "https://example.org/transport-update" in page.evaluate("() => window.lastCitation")
     assert "not independently verified" in page.evaluate("() => window.lastCitation")
     assert page.locator("#news-results .citation-status").inner_text() == "Citation copied."
+    # Evidence notes require a separate explicit save action and never claim verification.
+    assert page.evaluate("() => window.ClearIntelCollection.add({title:'Fixture evidence',source:'Fixture publisher',url:'https://example.org/evidence'})")
+    evidence = page.locator("#collection-list li").first
+    evidence.locator("summary").click()
+    evidence.locator("textarea").fill("Review the original report")
+    evidence.locator("select").select_option("needs-followup")
+    assert page.evaluate("() => JSON.parse(localStorage.getItem('clearintel.evidence-collection.v1'))[0].note") == ""
+    evidence.get_by_role("button", name="Save note and status").click()
+    saved = page.evaluate("() => JSON.parse(localStorage.getItem('clearintel.evidence-collection.v1'))[0]")
+    assert saved["note"] == "Review the original report" and saved["review"] == "needs-followup"
+    page.locator("#collection-filter").fill("Review the original report")
+    assert page.locator("#collection-list li").count() == 1
+    page.locator("#collection-filter").fill("")
+    assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     # Replay must never retain a query or its news results before explicit action.
     assert page.evaluate("() => localStorage.getItem('clearintel.replay.snapshots.v1')") is None
     page.get_by_role("button", name="Save current snapshot").click()
