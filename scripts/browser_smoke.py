@@ -231,7 +231,12 @@ def check_site(browser, width):
     assert page.get_by_role("heading", name="Intelligence at a glance.").is_visible()
     assert page.locator(".command-overview-card").count() == 3
     assert page.locator("#crisis-overview .crisis-cards article").count() == 4
-    assert page.locator("#crisis-overview a[href^=\"/countries/\"]").count() == 4
+    assert page.locator("#crisis-overview a[href^=\"/countries/\"]").count() == 8
+    assert not page.locator(".crisis-more").evaluate("(e) => e.open")
+    page.locator(".crisis-more summary").click()
+    assert page.locator(".crisis-more a[href='/countries/ht']").is_visible()
+    assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
+    page.locator(".crisis-more summary").click()
     assert "not a live battlefield tracker" in page.locator("#crisis-overview").inner_text()
     assert page.locator("#activity-pulse").is_visible()
     assert page.locator(".pulse-categories > *").count() == 8
