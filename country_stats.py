@@ -21,6 +21,10 @@ INDICATORS = {
     "AG.LND.TOTL.K2": "Land area (km²)",
     "NY.GDP.MKTP.KD.ZG": "GDP growth (annual %)",
     "FP.CPI.TOTL.ZG": "Consumer price inflation (annual %)",
+    "NY.GDP.PCAP.CD": "GDP per capita (current US$)",
+    "SL.UEM.TOTL.ZS": "Unemployment (% of labour force, ILO modelled estimate)",
+    "SP.DYN.LE00.IN": "Life expectancy at birth (years)",
+    "IT.NET.USER.ZS": "Internet use (% of population)",
 }
 TTL = 86400
 MAX_BYTES = 256 * 1024
@@ -43,6 +47,10 @@ def parse_indicators(data, code):
         if not isinstance(year, str) or len(year) != 4 or not year.isascii() or not year.isdigit() or not 1960 <= int(year) <= datetime.now(timezone.utc).year:
             continue
         if type(value) not in (int, float) or not isfinite(value) or (value < 0 and key not in {"NY.GDP.MKTP.KD.ZG", "FP.CPI.TOTL.ZG"}):
+            continue
+        if key in {"SL.UEM.TOTL.ZS", "IT.NET.USER.ZS"} and value > 100:
+            continue
+        if key == "SP.DYN.LE00.IN" and not 0 < value <= 130:
             continue
         if key not in rows or year > rows[key]["year"]:
             rows[key] = {"indicator":key,"label":INDICATORS[key],"year":year,"value":value,
