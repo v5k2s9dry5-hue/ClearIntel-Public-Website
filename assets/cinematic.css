@@ -262,3 +262,17 @@
  .dashboard .cinematic-hero .dashboard-toolbar-tools{justify-content:flex-start;gap:6px;margin:6px 0;flex:none;align-items:flex-start}
 }
 @media(max-width:860px){.dashboard .cinematic-hero .dashboard-toolbar-tools{display:flex;justify-content:flex-start;gap:6px;margin:6px 0;flex:none}}
+
+
+#incident-filters{margin-top:7px}
+#incident-filters summary{min-height:44px;align-content:center;color:#a9eaf5;cursor:pointer;font-size:12px;font-weight:700}
+#incident-filters summary:focus-visible{outline:2px solid #9ce9f6;outline-offset:2px}
+@media(min-width:861px){
+  #incident-filters summary{display:none}
+}
+@media(max-width:860px){
+  .map-panel-heading .map-layer-picker{flex:1;min-width:0}
+  .map-panel-heading .map-layer-picker select{width:100%;min-width:0;max-width:none}
+  .map-panel-heading .map-layer-kind{display:none}
+  #incident-filters{margin-top:2px}
+}

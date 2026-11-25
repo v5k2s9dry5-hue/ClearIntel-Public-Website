@@ -53,6 +53,12 @@
   const incidentWindow=document.getElementById('incident-window');
   const severityButtons=[...document.querySelectorAll('.incident-counts button')];
   const incidentControls=document.getElementById('incident-controls');
+  const incidentFilters = document.getElementById('incident-filters');
+  function syncIncidentFilters() {
+    incidentFilters.open = !mobileDashboard.matches;
+  }
+  mobileDashboard.addEventListener('change', syncIncidentFilters);
+  syncIncidentFilters();
   const severityColors={green:'#55d58e',amber:'#f1bd55',red:'#ff6b72'};
   const severityRank={green:1,amber:2,red:3};
   const reportLayers = {
