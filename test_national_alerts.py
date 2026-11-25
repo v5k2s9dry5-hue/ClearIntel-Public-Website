@@ -42,6 +42,10 @@ class NationalAlertTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             alerts.parse_alerts("england", {"items": [{"unexpected": True}]})
         self.assertEqual(alerts.parse_alerts("england", {"items": []}), [])
+        with self.assertRaises(ValueError):
+            alerts.parse_alerts("england", {"items": [{"severityLevel": 3}]})
+        with self.assertRaises(ValueError):
+            alerts.parse_alerts("us", {"features": [{"properties": {"status": "Actual", "messageType": "Alert"}}]})
 
     def test_outage_and_cache(self):
         with patch.object(alerts, "download", side_effect=OSError):
