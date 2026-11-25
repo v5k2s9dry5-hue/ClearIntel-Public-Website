@@ -1,6 +1,8 @@
 'use strict';
 const el = (name, cls, text) => { const node = document.createElement(name); if(cls)node.className=cls; if(text!=null)node.textContent=text; return node; };
 
+// Session-only, bounded browser translations; never mutate source evidence.
+const localHeadlineTranslations=new Map();
 function renderCountryCard(container,country,entry){
   function reportLink(url, text){
     // Defence in depth: no clickable URL is built from an untrusted feed or
@@ -17,26 +19,73 @@ function renderCountryCard(container,country,entry){
     return link;
   }
 
+    function translatedTitle(article){
+      return article.title_en||localHeadlineTranslations.get(article.title)||'';
+    }
     function headlineLink(article){
       const original=String(article.title||'Original report');
-      const translated=typeof article.title_en==='string'&&article.title_en.trim()&&article.title_en!==original;
-      return reportLink(article.url,translated?article.title_en:original);
+      const translated=translatedTitle(article);
+      return reportLink(article.url,typeof translated==='string'&&translated.trim()?translated:original);
     }
-    function translationNote(article){
+    function translationNote(article,headline){
       if(article.editorial||reportLink(article.url,'').tagName!=='A'||String(article.translation_language||'').toLowerCase().split('-')[0]==='en')return null;
       const original=String(article.title||'');
       if(!original)return null;
       const note=el('div','country-translation-note');
-      if(typeof article.title_en==='string'&&article.title_en.trim()&&article.title_en!==original){
+      function showOriginal(local){
         const details=el('details','country-original-headline');
-        details.append(el('summary','','Machine-translated to English · View original'),
-          el('p','',original));
-        note.append(details);
+        details.append(el('summary','',local?'Machine-translated on this device · View original':'Machine-translated to English · View original'),el('p','',original));
+        note.replaceChildren(details);
+      }
+      const translated=translatedTitle(article);
+      if(typeof translated==='string'&&translated.trim()&&translated!==original){
+        showOriginal(!article.title_en);
       }else{
         const url=new URL('https://translate.google.com/');
         url.searchParams.set('sl','auto');url.searchParams.set('tl','en');
         url.searchParams.set('text',original);url.searchParams.set('op','translate');
-        note.append(reportLink(url.href,'Translate headline to English ↗'));
+        const fallback=reportLink(url.href,'Translate headline to English ↗');
+        if(typeof globalThis.Translator?.create==='function'&&typeof globalThis.LanguageDetector?.create==='function'){
+          const button=el('button','globe-control','Translate on this device');button.type='button';
+          const status=el('span','country-local-translation-status');status.setAttribute('role','status');
+          let language=null;
+          const monitor=m=>m.addEventListener('downloadprogress',e=>{status.textContent='Downloading language model: '+Math.round(e.loaded*100)+'%';});
+          button.addEventListener('click',async()=>{
+            if(button.disabled)return;
+            button.disabled=true;status.textContent='Preparing local translation…';
+            let detector,translator;
+            try{
+              if(!language){
+                detector=await globalThis.LanguageDetector.create({monitor});
+                const detected=(await detector.detect(original))[0];
+                if(!detected||detected.confidence<.65||typeof detected.detectedLanguage!=='string'){
+                  status.textContent='Language uncertain. Use the external translation option.';return;
+                }
+                language=detected.detectedLanguage;
+              }
+              if(language.toLowerCase().split('-')[0]==='en'){
+                status.textContent='Headline appears to be English.';button.hidden=true;return;
+              }
+              const options={sourceLanguage:language,targetLanguage:'en'};
+              const availability=await globalThis.Translator.availability(options);
+              if(availability==='unavailable'){status.textContent='Local language pair unavailable. Use the external option.';return;}
+              if(availability!=='available'&&navigator.userActivation&&!navigator.userActivation.isActive){
+                button.textContent='Continue translation';status.textContent='Click again to download the language model.';return;
+              }
+              translator=await globalThis.Translator.create({...options,monitor});
+              const result=await translator.translate(original);
+              if(typeof result!=='string'||!result.trim()||result.length>2000)throw Error('Invalid translation');
+              if(result.trim()===original){status.textContent='No different English wording returned. Original retained.';return;}
+              localHeadlineTranslations.set(original,result.trim());
+              while(localHeadlineTranslations.size>128)localHeadlineTranslations.delete(localHeadlineTranslations.keys().next().value);
+              headline.textContent=result.trim();showOriginal(true);
+              note.querySelector('summary')?.focus({preventScroll:true});
+            }catch(_){status.textContent='Local translation unavailable. Retry or use the external option.';}
+            finally{detector?.destroy?.();translator?.destroy?.();button.disabled=false;}
+          });
+          note.append(button,status);
+        }
+        note.append(fallback);
       }
       return note;
     }
@@ -123,7 +172,7 @@ function renderCountryCard(container,country,entry){
         source.textContent=`${article.source||'Publisher'} · ${article.time_basis||'Feed time'} · ${Number.isFinite(timestamp.getTime())?utcTime.format(timestamp)+' UTC':'Unknown'}`;
         content.append(link,source);
       }
-      const translation=translationNote(article);if(translation)content.append(translation);
+      const translation=translationNote(article,link);if(translation)content.append(translation);
       source.textContent+=' · '+(labels[group.basis]||'Recent coverage');
       const preciseTime=Number.isFinite(timestamp.getTime())?timestamp.toISOString():'unknown';
       const metadata=el('span','analyst-only analyst-metadata',
@@ -148,10 +197,11 @@ function renderCountryCard(container,country,entry){
         for(const report of additional){
           const published=new Date(report.feed_time_utc);
           const item=el('div','country-related-item');
-          item.append(headlineLink(report),
+          const relatedHeadline=headlineLink(report);
+          item.append(relatedHeadline,
             el('span','', (report.source||'Publisher')+' · '+(report.time_basis||'Feed time')+' · '+
               (Number.isFinite(published.getTime())?utcTime.format(published)+' UTC':'Unknown')));
-          const translation=translationNote(report);if(translation)item.append(translation);
+          const translation=translationNote(report,relatedHeadline);if(translation)item.append(translation);
           read.append(item);
         }
         evidence.append(read,el('p','', 'Related reporting does not establish independent corroboration.'));
