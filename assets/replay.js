@@ -118,6 +118,8 @@
         ' changed headline/publisher · '+changes.unchanged.length+' unchanged'),
       node('p','replay-warning','These are differences between two saved, potentially incomplete search results. They do not prove an article was published or deleted, an incident occurred, or reports were independently verified. Changes to URLs and repeated headline wording may look like separate stories.')
     );
+    if (!older.saved_at_utc || !newer.saved_at_utc)
+      compareResult.append(node('p','replay-warning','Older snapshots record the time you saved them. Their search completion time is unknown.'));
     const priorSources=Array.isArray(older.sources_checked) ? older.sources_checked : [];
     const newSources=Array.isArray(newer.sources_checked) ? newer.sources_checked : [];
     const priorErrors=Array.isArray(older.provider_errors) ? older.provider_errors : [];
@@ -246,6 +248,7 @@
       for(let i=0;i<MAX_RESULTS;i++)track.append(node('span',i<retained?'replay-observation-filled':''));
       button.append(node('span','replay-observation-time',utc(item.observed_at_utc)),count,track);
       const errors=Array.isArray(item.provider_errors)?item.provider_errors.length:0;
+      if(!item.saved_at_utc)button.append(node('span','replay-observation-note','Save time only'));
       if(errors)button.append(node('span','replay-observation-note',errors+' provider problem'+(errors===1?'':'s')));
       button.disabled=![...select.options].some(option=>option.value===item.id);
       if(button.disabled)button.title='Outside current saved-history filters';
@@ -267,7 +270,7 @@
     updateComparison(snapshot);
     if (!snapshot) return;
     const heading = node('h4', '', 'Snapshot: ' + short(snapshot.query, 140));
-    const observed = node('p', 'replay-observed', 'Observed by this browser: ' + utc(snapshot.observed_at_utc));
+    const observed = node('p', 'replay-observed', (snapshot.saved_at_utc ? 'Observed by this browser: ' : 'Saved by this browser: ') + utc(snapshot.observed_at_utc));
     const windowLabel = node('p', 'replay-window', 'Requested window: ' +
       (snapshot.window === '7d' ? '7 days' : '24 hours') + ' · ' +
       snapshot.total_results + ' headlines returned · ' + snapshot.articles.length + ' saved');
@@ -335,7 +338,8 @@
     return {
       id: new Date().toISOString() + ':' + Math.random().toString(36).slice(2, 8),
       version: 1,
-      observed_at_utc: new Date().toISOString(),
+      observed_at_utc: latest.observedAt,
+      saved_at_utc: new Date().toISOString(),
       query: short(search.query, 140),
       window: search.window === '7d' ? '7d' : '24h',
       incident_only: Boolean(search.incidentOnly),
@@ -358,7 +362,7 @@
     status.textContent = 'Searching. No new snapshot has been saved.';
   });
   document.addEventListener('clearintel:news-ready', event => {
-    latest = event.detail;
+    latest = {...event.detail, observedAt: new Date().toISOString()};
     save.disabled = false;
     status.textContent = 'Search complete. Save a snapshot manually if you want to remember these source results.';
   });
@@ -366,16 +370,17 @@
   queryFilter.addEventListener('input',()=>render(select.value));
   periodFilter.addEventListener('change',()=>render(select.value));
   save.addEventListener('click', () => {
-    if (!latest) return;
+    if (!latest || save.disabled) return;
     const snapshot = makeSnapshot();
     const updated = [snapshot, ...snapshots].slice(0, MAX_SNAPSHOTS);
     try {
       localStorage.setItem(KEY, JSON.stringify(updated));
       storageReadable = true;
       snapshots = updated;
+      save.disabled = true;
       queryFilter.value='';periodFilter.value='all';
       render(snapshot.id);
-      status.textContent = 'Snapshot saved to this browser (' + snapshots.length + '/' + MAX_SNAPSHOTS + '). No server upload.';
+      status.textContent = 'Snapshot saved to this browser (' + snapshots.length + '/' + MAX_SNAPSHOTS + '). Run a fresh search to save another observation.';
     } catch (_) {
       status.textContent = 'Browser storage unavailable or full. Nothing was saved. No server upload.';
     }
@@ -386,6 +391,7 @@
       localStorage.removeItem(KEY);
       storageReadable = true;
       snapshots = [];
+      save.disabled = !latest;
       render();
       status.textContent = 'All saved Replay snapshots cleared from this browser.';
     } catch (_) {
@@ -398,7 +404,7 @@
     if(!comparison||comparePanel.hidden)return;
     const {older,newer}=comparison;
     const clean=a=>({title:short(a.title,240),publisher:short(a.source,100),provider:short(a.provider,80),source_url:sourceLink(a.url),source_time_utc:short(a.feed_time_utc,50),time_basis:short(a.time_basis,40)});
-    const describe=s=>({observed_at_utc:s.observed_at_utc,total_results:s.total_results,saved_count:s.articles.length,sources_checked:s.sources_checked||[],provider_errors:s.provider_errors||[]});
+    const describe=s=>({observed_at_utc:s.observed_at_utc,saved_at_utc:s.saved_at_utc||s.observed_at_utc,timestamp_basis:s.saved_at_utc?'results_received':'legacy_save_time',total_results:s.total_results,saved_count:s.articles.length,sources_checked:s.sources_checked||[],provider_errors:s.provider_errors||[]});
     const changes=calculateChanges(older,newer);
     const manifest={schema:'clearintel.replay-comparison.v1',exported_at_utc:new Date().toISOString(),query:short(newer.query,140),window:newer.window,incident_only:Boolean(newer.incident_only),earlier:describe(older),later:describe(newer),limitations:'Differences in saved, potentially incomplete search results; not evidence of article publication or deletion, independent corroboration, or real-world event changes.',newly_present:changes.added.map(clean),no_longer_present:changes.removed.map(clean),changed:changes.changed.map(x=>({earlier:clean(x.prior),later:clean(x.article)})),unchanged:changes.unchanged.map(clean)};
     const url=URL.createObjectURL(new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'}));
