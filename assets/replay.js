@@ -11,13 +11,14 @@
   const select = $('replay-select');
   const detail = $('replay-detail');
   const exportSnapshot = $('replay-export-snapshot');
+  const removeSnapshot = $('replay-remove-snapshot');
   const queryFilter=$('replay-query-filter'),periodFilter=$('replay-period-filter'),filterCount=$('replay-filter-count');
   const compareButton = $('replay-compare-button');
   const compareEarlier=$('replay-compare-earlier');
   const compareHint = $('replay-compare-hint');
   const comparePanel = $('replay-compare');
   const compareResult = $('replay-compare-result');
-  if (!save || !clear || !status || !history || !select || !detail || !exportSnapshot ||
+  if (!save || !clear || !status || !history || !select || !detail || !exportSnapshot || !removeSnapshot ||
       !compareButton || !compareHint || !comparePanel || !compareResult) return;
 
   let comparison=null;
@@ -325,6 +326,7 @@
     filterCount.textContent=filtered.length+' of '+snapshots.length+' saved snapshots shown.';
     select.disabled=!filtered.length;
     exportSnapshot.disabled = select.disabled;
+    removeSnapshot.disabled = select.disabled || !storageReadable;
     filtered.forEach(s => {
       const option = new Option(utc(s.observed_at_utc) + ' · ' + short(s.query, 60) +
         ' · ' + searchWindow(s) + ' · ' + searchMode(s) + ' · ' + (Array.isArray(s.articles) ? s.articles.length : 0) + ' headlines', s.id);
@@ -403,6 +405,23 @@
       status.textContent = 'All saved Replay snapshots cleared from this browser.';
     } catch (_) {
       status.textContent = 'Browser storage could not be cleared. Check your browser site settings.';
+    }
+  });
+  removeSnapshot.addEventListener('click', () => {
+    const selected = snapshots.find(snapshot => snapshot.id === select.value);
+    if (!selected || !confirm('Remove this saved Replay snapshot from your browser?')) return;
+    const next = snapshots.filter(snapshot => snapshot !== selected);
+    try {
+      if (next.length) localStorage.setItem(KEY, JSON.stringify(next));
+      else localStorage.removeItem(KEY);
+      snapshots = next;
+      render();
+      status.textContent = 'Selected snapshot removed from this browser.';
+      if (history.hidden) status.focus();
+      else if (select.disabled) queryFilter.focus();
+      else select.focus();
+    } catch (_) {
+      status.textContent = 'Browser storage could not be updated. The snapshot remains available.';
     }
   });
   select.addEventListener('change', drawSnapshot);

@@ -772,7 +772,17 @@ def check_site(browser, width):
     # A selected older snapshot cannot invent history before it was recorded.
     page.locator("#replay-select").select_option(index=1)
     assert page.get_by_role("button", name="Compare with earlier snapshot").is_disabled()
-    page.locator("#replay-select").select_option(index=0)
+    remove_snapshot = page.get_by_role("button", name="Remove selected snapshot")
+    page.once("dialog", lambda dialog: dialog.dismiss())
+    remove_snapshot.click()
+    assert page.locator("#replay-select option").count() == 2
+    page.once("dialog", lambda dialog: dialog.accept())
+    remove_snapshot.click()
+    assert page.locator("#replay-select option").count() == 1
+    assert page.locator("#replay-detail").get_by_text("New UK research report").is_visible()
+    assert page.get_by_role("button", name="Compare with earlier snapshot").is_disabled()
+    remaining = page.evaluate("() => JSON.parse(localStorage.getItem('clearintel.replay.snapshots.v1'))")
+    assert len(remaining) == 1 and remaining[0]["articles"][0]["title"] == "New UK research report"
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("button", name="Clear saved history").click()
     assert page.evaluate("() => localStorage.getItem('clearintel.replay.snapshots.v1')") is None
