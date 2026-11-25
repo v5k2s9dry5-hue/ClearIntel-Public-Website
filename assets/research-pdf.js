@@ -57,8 +57,9 @@
 
   function makeReport(PDF, font, report) {
     const pdf = new PDF({ unit: 'pt', format: 'a4', compress: true, putOnlyUsedFonts: true });
-    const country=report.kind==='country';
-    pdf.setProperties({ title: country?'ClearIntel country intelligence briefing':'ClearIntel public news report', creator: 'ClearIntel Atlas' });
+    const country=report.kind==='country', collection=report.kind==='collection';
+    const reportTitle=collection?'Evidence collection briefing':country?'Country intelligence briefing':'Public news report';
+    pdf.setProperties({ title: 'ClearIntel '+reportTitle.toLowerCase(), creator: 'ClearIntel Atlas' });
     pdf.addFileToVFS('ClearIntelReport.ttf', font);
     pdf.addFont('ClearIntelReport.ttf', 'ClearIntelReport', 'normal');
     pdf.setFont('ClearIntelReport');
@@ -73,7 +74,7 @@
       pdf.setFillColor(10, 27, 45);
       pdf.rect(0, 0, width, 52, 'F');
       pdf.setFontSize(14).setTextColor(236, 248, 255).text('ClearIntel', margin, 32);
-      pdf.setFontSize(9).setTextColor(138, 208, 228).text(country?'COUNTRY INTELLIGENCE':'PUBLIC NEWS RESEARCH', width - margin, 32, { align: 'right' });
+      pdf.setFontSize(9).setTextColor(138, 208, 228).text(collection?'SAVED EVIDENCE':country?'COUNTRY INTELLIGENCE':'PUBLIC NEWS RESEARCH', width - margin, 32, { align: 'right' });
       y = 79;
     }
 
@@ -151,15 +152,15 @@
     }
 
     pageHeader();
-    textBlock(country?'Country intelligence briefing':'Public news report', 23, ink, 12);
-    textBlock((country?'Country: ':'Search: ') + report.query, 13);
-    textBlock(country?'Source snapshot checked: '+formatUtc(report.checkedAt):'Feed window: ' + formatUtc(report.windowStart) + ' to ' + formatUtc(report.windowEnd), 10, muted);
+    textBlock(reportTitle, 23, ink, 12);
+    textBlock((collection?'Collection: ':country?'Country: ':'Search: ') + report.query, 13);
+    textBlock(collection?'Scope: manually saved public-source links':country?'Source snapshot checked: '+formatUtc(report.checkedAt):'Feed window: ' + formatUtc(report.windowStart) + ' to ' + formatUtc(report.windowEnd), 10, muted);
     textBlock('Exported: ' + formatUtc(report.exportedAt), 10, muted);
     if(!country&&report.observedAt)textBlock('Results received by browser: '+formatUtc(report.observedAt),10,muted);
     textBlock('Evidence identifiers refer to this export only; source links and timestamps do not establish authenticity or independent verification.',9,muted);
-    textBlock((country?'Eligible original linked reports':report.incidentOnly ? 'Incident-related headlines' : 'All matching headlines') +
+    textBlock((collection?'Saved source links':country?'Eligible original linked reports':report.incidentOnly ? 'Incident-related headlines' : 'All matching headlines') +
       ' · ' + report.findings.length + ' of ' + report.total + ' findings included', 10, muted);
-    textBlock('Sources queried: ' + (report.sources.join(', ') || 'None reported'), 10, muted);
+    textBlock((collection?'Listed publishers: ':'Sources queried: ') + (report.sources.join(', ') || 'None reported'), 10, muted);
     if (report.providerErrors.length) textBlock('Feed limitations: ' + report.providerErrors.join('; '), 10, '#825220');
     textBlock(report.notice, 9, muted);
     if (report.notes.trim()) {
@@ -170,7 +171,7 @@
 
     ensureSpace(45);
     textBlock('Findings', 15, blue);
-    if (!report.findings.length) textBlock('No matching headlines were returned in this search.', 10, muted);
+    if (!report.findings.length) textBlock(collection?'No saved evidence links.':'No matching headlines were returned in this search.', 10, muted);
     report.findings.forEach((finding, index) => {
       ensureSpace(110);
       pdf.setDrawColor(218, 229, 239).line(margin, y - 4, width - margin, y - 4);
@@ -180,6 +181,12 @@
       textBlock((finding.time_basis || 'Feed time') + ': ' + formatUtc(finding.feed_time_utc), 9, muted, 3);
       if (report.incidentOnly || finding.incident_time_utc) {
         textBlock('Incident time: ' + formatUtc(finding.incident_time_utc), 9, muted, 3);
+      }
+      if(collection){
+        textBlock('Saved: '+formatUtc(finding.saved_at_utc),9,muted,3);
+        const reviewLabels={'unreviewed':'Not reviewed','reviewed':'Source reviewed','needs-followup':'Needs follow-up'};
+        textBlock('Researcher-assigned review status: '+(reviewLabels[finding.review]||reviewLabels.unreviewed),9,muted,3);
+        if(finding.note)textBlock('Researcher note: '+String(finding.note).slice(0,500),10,ink,4);
       }
       sourceLink(finding.url);
       y += 8;
@@ -236,7 +243,7 @@
   async function download(report) {
     const [PDF, font] = await loadResources();
     const day = new Date(report.exportedAt).toISOString().slice(0, 10);
-    makeReport(PDF, font, report).save('ClearIntel-'+(report.kind==='country'?'country-briefing':'news-report')+'-' + day + '.pdf');
+    makeReport(PDF, font, report).save('ClearIntel-'+(report.kind==='collection'?'evidence-collection':report.kind==='country'?'country-briefing':'news-report')+'-' + day + '.pdf');
   }
 
   window.ClearIntelReport = { download, downloadManifest, auditManifest };
