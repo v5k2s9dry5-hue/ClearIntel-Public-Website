@@ -195,6 +195,18 @@ class PublicSiteTests(unittest.TestCase):
             self.assertEqual(self.client.post('/api/news', json={'query': 'U'}).status_code, 422)
             self.assertIn('minlength="2"', self.client.get('/').text)
 
+    def test_country_aliases_share_the_filtered_search_cache(self):
+        with patch('main.search_news', return_value=SEARCH_RESPONSE) as provider:
+            self.assertEqual(self.client.post('/api/news', json={'query': 'NL'}).status_code, 200)
+            self.assertEqual(self.client.post('/api/news', json={'query': 'Netherlands'}).status_code, 200)
+            provider.assert_called_once_with('NL', days=1, incident_only=True)
+
+    def test_uppercase_country_codes_can_be_search_stopwords(self):
+        with patch('main.search_news', return_value=SEARCH_RESPONSE) as provider:
+            self.assertEqual(self.client.post('/api/news', json={'query': 'IN'}).status_code, 200)
+            self.assertEqual(self.client.post('/api/news', json={'query': 'in'}).status_code, 400)
+            provider.assert_called_once_with('IN', days=1, incident_only=True)
+
     def test_reject_invalid_window(self):
         r=self.client.post('/api/news',json={'query':'Iran bombing today','window':'forever'})
         self.assertEqual(r.status_code,422)

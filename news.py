@@ -134,9 +134,9 @@ def _parse_google_rss(content, country_code=None):
 
 
 
-def fetch_bing(query: str, days: int, incident_only: bool = True) -> list[dict]:
+def fetch_bing(query: str, days: int, incident_only: bool = True, *, topic: str = "") -> list[dict]:
     """Search-indexed news RSS, an independent fallback when other providers fail."""
-    topic = _provider_topic(query) or query
+    topic = topic or _provider_topic(query) or query
     suffix = ' (bombing OR bombed OR airstrike OR explosion OR missile OR attack)' if incident_only else ''
     url = 'https://www.bing.com/news/search?' + urlencode({'q': topic + suffix, 'format': 'rss'})
     root = ET.fromstring(_get(url))
@@ -246,7 +246,7 @@ def _copy_priority(article):
 
 
 def search_news(query: str, days: int = 1, incident_only: bool = True,
-                now: datetime | None = None, fetchers=None, *, country_code=None) -> dict:
+                now: datetime | None = None, fetchers=None, *, country_code=None, headline_match=None) -> dict:
     now = now or datetime.now(timezone.utc)
     start = now - timedelta(days=days)
     subject = _subject(query)
@@ -263,7 +263,9 @@ def search_news(query: str, days: int = 1, incident_only: bool = True,
         if not title or not _safe_link(url) or pub is None or not (start <= pub <= now + timedelta(minutes=5)):
             continue
         scoped = country_code is not None and article.get('country_code') == country_code
-        score = _relevance(title, [] if scoped else subject, incident_only)
+        if headline_match and not scoped and not headline_match(title):
+            continue
+        score = _relevance(title, [] if scoped or headline_match else subject, incident_only)
         if score < 0:
             continue
         key = tuple(re.findall(r"\w+", title.casefold()))

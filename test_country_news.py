@@ -5,9 +5,9 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 import main
-from country_news import search_country_news
+from country_news import search_country_news, search_research
 from current_events import CurrentEventsParser
-from news import _parse_google_rss
+from news import _parse_google_rss, search_news
 
 
 NOW = datetime(2026, 11, 21, 12, tzinfo=timezone.utc)
@@ -31,6 +31,35 @@ def fixture_provider(*articles):
 
 
 class CountryNewsTests(TestCase):
+    def test_filtered_country_code_queries_search_names_and_require_country_context(self):
+        calls = []
+
+        def provider(query, _days, _incident_only, *, topic):
+            calls.append((query, topic))
+            return [
+                article("Dutch cabinet announces rail investment", "example.nl", 2),
+                article("Unrelated report using NL as an abbreviation", "example.com", 1),
+                article("Technology story - Dutch Monitor", "example.net", 1) | {"source": "Dutch Monitor"},
+            ]
+
+        scoped_article = article("Cabinet publishes its rail programme", "country.example.nl", 3)
+        scoped_article["country_code"] = "NL"
+
+        def fixed_time(*args, **kwargs):
+            return search_news(*args, **kwargs, now=NOW)
+
+        with patch("country_news.search_news", new=fixed_time), \
+             patch("country_news.guardian_reports", return_value=[scoped_article]), \
+             patch("country_news.fetch_google", new=provider), \
+             patch("country_news.fetch_bing", new=provider), \
+             patch("country_news.fetch_gdelt", new=provider):
+            result = search_research("NL", 1, False)
+        self.assertEqual({row["title"] for row in result["results"]}, {
+            "Dutch cabinet announces rail investment", "Cabinet publishes its rail programme"
+        })
+        self.assertEqual(len(calls), 3)
+        self.assertTrue(all(query == "Netherlands" and '"Dutch"' in topic for query, topic in calls))
+
     def test_rank_similar_headlines_from_distinct_publishers(self):
         title = 'France announces a new national climate investment plan'
         provider = fixture_provider(
