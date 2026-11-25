@@ -1,6 +1,8 @@
 import unittest
+from unittest.mock import patch
+from urllib.error import HTTPError
 from datetime import datetime, timedelta, timezone
-from news import _date, _provider_topic, _relevance, _subject, search_news
+from news import ProviderCooldownError, _get, _date, _provider_topic, _relevance, _subject, search_news
 
 NOW=datetime(2026,11,19,17,0,tzinfo=timezone.utc)
 
@@ -12,6 +14,36 @@ def fake(rows):
 
 
 class NewsTests(unittest.TestCase):
+    def test_provider_retry_after_honours_a_longer_cooldown(self):
+        url = "https://news.google.com/rss/search"
+        response = HTTPError(url, 429, "Too many requests", {"Retry-After": "240"}, None)
+        with patch("news._rate_limited_until", {}), patch("news.monotonic", return_value=1000) as clock, \
+             patch("news.urlopen", side_effect=response) as request:
+            with self.assertRaises(HTTPError):
+                _get(url)
+            clock.return_value = 1239
+            with self.assertRaises(ProviderCooldownError):
+                _get(url)
+            request.assert_called_once()
+            clock.return_value = 1240
+            with self.assertRaises(HTTPError):
+                _get(url)
+            self.assertEqual(request.call_count, 2)
+
+    def test_a_shorter_retry_does_not_replace_another_requests_cooldown(self):
+        url = "https://news.google.com/rss/search"
+        state = {}
+
+        def limited(*args, **kwargs):
+            state["news.google.com"] = 1300
+            raise HTTPError(url, 429, "Too many requests", {"Retry-After": "5"}, None)
+
+        with patch("news._rate_limited_until", state), patch("news.monotonic", return_value=1000), \
+             patch("news.urlopen", side_effect=limited):
+            with self.assertRaises(HTTPError):
+                _get(url)
+        self.assertEqual(state["news.google.com"], 1300)
+
     def test_user_query_becomes_subject(self):
         self.assertEqual(_subject('Iran bombing today'), ['iran'])
         self.assertEqual(_subject('Bahrain missiles today'), ['bahrain'])

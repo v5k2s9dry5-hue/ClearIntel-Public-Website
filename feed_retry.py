@@ -21,6 +21,7 @@ def retry_delay(error, now=None):
             delay = date.timestamp() - (time() if now is None else now)
         except (ValueError, TypeError, OverflowError):
             return 60 if error.code == 429 else default
-    if not isfinite(delay):
+    try:
+        return max(default, ceil(delay)) if isfinite(delay) else default
+    except OverflowError:
         return default
-    return max(default, ceil(delay))
