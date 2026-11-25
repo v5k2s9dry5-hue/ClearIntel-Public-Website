@@ -224,11 +224,12 @@
 /* Desktop briefing fills the empty intro column, without increasing globe height. */
 .desktop-briefing{display:none}
 @media(min-width:1180px){
- .dashboard.sidebar-collapsed .cinematic-hero .dashboard-title{align-self:stretch;min-height:0;min-width:0;display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;contain:size}
- .dashboard.sidebar-collapsed .cinematic-hero .dashboard-title:has(#dashboard-matches:not([hidden])){contain:none}
+ .dashboard.sidebar-collapsed .cinematic-hero .dashboard-title{align-self:stretch;min-height:0;min-width:0;display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:4px;contain:none}
+ .dashboard.sidebar-collapsed .cinematic-hero>.dashboard-map{align-self:stretch;display:flex;flex-direction:column}
+ .dashboard.sidebar-collapsed .cinematic-hero>.dashboard-map .globe-canvas-wrap{flex:1 0 auto}
  .dashboard.sidebar-collapsed .cinematic-hero .dashboard-title>*:not(.desktop-briefing){flex-shrink:0}
  .dashboard.sidebar-collapsed .cinematic-hero #dashboard-matches:not([hidden]){min-width:0;max-width:100%;overflow-wrap:anywhere}
- .dashboard.sidebar-collapsed .desktop-briefing{display:flex;flex-direction:column;flex:1;min-height:0;margin-top:8px;padding:11px;border:1px solid #31576c;border-radius:9px;background:linear-gradient(145deg,#102437e8,#091522ed);overflow-y:auto;scrollbar-width:thin}
+ .dashboard.sidebar-collapsed .desktop-briefing{display:flex;flex-direction:column;flex:1 0 110px;min-height:110px;max-height:260px;margin-top:8px;padding:11px;border:1px solid #31576c;border-radius:9px;background:linear-gradient(145deg,#102437e8,#091522ed);overflow-y:auto;scrollbar-width:thin}
  .desktop-briefing h2{font-size:15px;margin:4px 0;line-height:1.25;color:#e8f5ff}
  #desktop-briefing-status{font-size:11px;color:#9ce9f6;margin:5px 0}
  .desktop-briefing .pulse-latest{flex:1;gap:9px;align-content:start}
