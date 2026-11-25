@@ -95,6 +95,9 @@
   const zoomLevels = [1,3,7];
   const UK_ZOOM = zoomLevels.at(-1);
   let rot = -18, tilt = 19, playing = !reduced, dragPointer = null, px = 0, py = 0;
+  const touches = new Map();
+  let pinchDistance = 0;
+  let trackpadStartZoom = null;
   let zoom = 1, previousWorld = null, coastline = null, coastlineLoading = null;
   let worldMap = null, detailedMap = null, detailLoading = false, detailFailed = false;
   let points = [], currentISS = null, lastDraw = 0, lastTick = 0;
@@ -441,13 +444,37 @@
     if(flatMap)resetMap.disabled=false;
     draw();
   });
+  function touchDistance(){
+    const [first, second] = touches.values();
+    return Math.hypot(first.x - second.x, first.y - second.y);
+  }
   canvas.addEventListener('pointerdown',e=>{
+    if (e.pointerType === 'touch') {
+      if (touches.size >= 2) return;
+      touches.set(e.pointerId, {x: e.clientX, y: e.clientY});
+      canvas.setPointerCapture(e.pointerId);
+      if (touches.size === 2) {
+        dragPointer = null;
+        pinchDistance = touchDistance();
+        setRotation(false);
+        return;
+      }
+    }
     if(!e.isPrimary||e.button!==0||dragPointer!==null)return;
     dragPointer=e.pointerId;dragDistance=0;px=e.clientX;py=e.clientY;
-    canvas.setPointerCapture(e.pointerId);
+    if (e.pointerType !== 'touch') canvas.setPointerCapture(e.pointerId);
     syncRotation();
   });
   canvas.addEventListener('pointermove',e=>{
+    if (touches.has(e.pointerId)) {
+      touches.set(e.pointerId, {x: e.clientX, y: e.clientY});
+      if (touches.size === 2) {
+        const distance = touchDistance();
+        if (pinchDistance > 0 && distance > 0) zoomTo(zoom * distance / pinchDistance);
+        pinchDistance = distance;
+        return;
+      }
+    }
     if(e.pointerId!==dragPointer)return;
     const dx=e.clientX-px, dy=e.clientY-py;
     dragDistance+=Math.hypot(dx,dy);
@@ -459,7 +486,11 @@
     if(flatMap)resetMap.disabled=false;
     draw();
   });
+  function releaseTouch(e){
+    if (touches.delete(e.pointerId)) pinchDistance = 0;
+  }
   canvas.addEventListener('pointerup',e=>{
+    releaseTouch(e);
     if(e.pointerId!==dragPointer)return;
     dragPointer=null;syncRotation();
     if(dragDistance+Math.hypot(e.clientX-px,e.clientY-py)>6||!reportLayers[layer.value])return;
@@ -486,7 +517,10 @@
       if(viewControls&&mobileDashboard.matches)reportDetail.focus();
     }
   });
-  function cancelDrag(e){if(e.pointerId===dragPointer){dragPointer=null;syncRotation();}}
+  function cancelDrag(e){
+    releaseTouch(e);
+    if(e.pointerId===dragPointer){dragPointer=null;syncRotation();}
+  }
   canvas.addEventListener('pointercancel',cancelDrag);
   canvas.addEventListener('lostpointercapture',cancelDrag);
   function setRotation(active){
@@ -518,13 +552,14 @@
     finally{detailLoading=false;updateMapCredit();}
   }
   function setZoom(value){
+    const wasWorld = zoom === 1;
     zoom=value;
     if(zoomIn)zoomIn.disabled=zoom===UK_ZOOM;
     if(zoomOut)zoomOut.disabled=zoom===1;
     ukView.textContent=previousWorld?'World view':'Zoom to UK';
     resetMap.disabled=zoom===1&&rot===0&&tilt===12;
     updateMapCredit();
-    if(zoom>1)loadDetailedMap();
+    if(zoom>1 && (wasWorld || zoomLevels.includes(zoom)))loadDetailedMap();
   }
   ukView.addEventListener('click',()=>{
     if(previousWorld){
@@ -542,14 +577,44 @@
     }
     draw();
   });
-  function stepZoom(step){
-    const next=zoomLevels[zoomLevels.indexOf(zoom)+step];
-    if(!next)return;
-    if(next===1)previousWorld=null;
+  function zoomTo(value){
+    const next = clamp(value, 1, UK_ZOOM);
+    if (next === zoom) return false;
+    if (next === 1) previousWorld = null;
     setZoom(next);
     setRotation(false);
     draw();
+    return true;
   }
+  function stepZoom(step){
+    const next = step > 0
+      ? zoomLevels.find(level => level > zoom)
+      : zoomLevels.findLast(level => level < zoom);
+    if (next !== undefined) zoomTo(next);
+  }
+  canvas.addEventListener('wheel', event => {
+    if (trackpadStartZoom !== null) {
+      event.preventDefault();
+      return;
+    }
+    const units = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? canvas.clientHeight : 1;
+    const delta = clamp(event.deltaY * units, -160, 160);
+    if (zoomTo(zoom * Math.exp(-delta * (event.ctrlKey ? 0.012 : 0.003))) || event.ctrlKey) {
+      event.preventDefault();
+    }
+  }, {passive:false});
+  // Safari can emit trackpad pinch as a gesture instead of a Ctrl-wheel event.
+  canvas.addEventListener('gesturestart', event => {
+    if (touches.size) return;
+    event.preventDefault();
+    trackpadStartZoom = zoom;
+  });
+  canvas.addEventListener('gesturechange', event => {
+    if (trackpadStartZoom === null) return;
+    event.preventDefault();
+    if (Number.isFinite(event.scale)) zoomTo(trackpadStartZoom * event.scale);
+  });
+  canvas.addEventListener('gestureend', () => { trackpadStartZoom = null; });
   function resetFlatMap(){
     previousWorld=null;
     rot=0;tilt=12;
@@ -570,7 +635,7 @@
     canvas.setAttribute('aria-label',flatMap
       ? 'Interactive map of past public reports. Select a marker or use the feed.'
       : 'Interactive globe. You can also select events in the feed.');
-    mapInstructions.textContent=flatMap?'Drag or use arrow keys to pan · Select a marker':'Drag or use arrow keys to rotate · Select a pin or count';
+    mapInstructions.textContent=flatMap?'Drag or use arrow keys to pan · Scroll or pinch to zoom':'Drag or use arrow keys to rotate · Scroll or pinch to zoom';
     draw();
   }
   flatButton.addEventListener('click',()=>{preferFlat=true;updateProjection();});
