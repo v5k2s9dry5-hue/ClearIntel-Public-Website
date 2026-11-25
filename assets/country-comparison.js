@@ -43,7 +43,8 @@
    const left=first.value,right=second.value;if(left===right)return;
    button.disabled=copy.disabled=first.disabled=second.disabled=true;status.textContent='Checking latest published indicators…';
    try{
-     const [a, b] = await Promise.all([fetchStats(left), fetchStats(right)]);
+     const a = await fetchStats(left);
+     const b = await fetchStats(right);
      const table=document.createElement('table');table.className='country-comparison-table';
      const heading=table.createTHead().insertRow();
      for(const value of ['Indicator',first.selectedOptions[0].text,second.selectedOptions[0].text]){const th=document.createElement('th');th.scope='col';th.textContent=value;heading.append(th);}
