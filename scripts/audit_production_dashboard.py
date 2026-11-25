@@ -51,6 +51,29 @@ def audit(browser, name, width, height):
         artwork = page.request.get(BASE + "/assets/card-country.svg", timeout=15000)
         metrics["countryArtwork"] = artwork.ok and "data:image/webp;base64," in artwork.text()
         metrics["desktopBriefingVisible"] = page.locator("#desktop-briefing").is_visible()
+        if name == "desktop":
+            from xml.etree import ElementTree as ET
+            robots = page.request.get(BASE + "/robots.txt", timeout=15000)
+            sitemap = page.request.get(BASE + "/sitemap.xml", timeout=15000)
+            assert robots.ok and sitemap.ok
+            locations = [node.text for node in ET.fromstring(sitemap.body()).findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}loc")]
+            verification = page.request.get(BASE + "/google823498a85ac9e7c0.html", timeout=15000)
+            health = page.request.get(BASE + "/health", timeout=15000)
+            metrics["crawlerChecks"] = {
+                "robotsAllowsPublicPages": "Allow: /" in robots.text() and "Disallow: /api/" in robots.text(),
+                "robotsSitemap": "Sitemap: " + BASE + "/sitemap.xml" in robots.text(),
+                "sitemapCount": len(locations), "sitemapUnique": len(set(locations)),
+                "sitemapSameOrigin": all(url.startswith(BASE + "/") for url in locations),
+                "homepageCanonical": page.locator('link[rel="canonical"]').get_attribute("href") == BASE + "/",
+                "homepageIndexable": "noindex" not in (page.locator('meta[name="robots"]').get_attribute("content") or "").lower() and "noindex" not in headers.get("x-robots-tag", "").lower(),
+                "verificationFile": verification.ok and "google-site-verification: google823498a85ac9e7c0.html" in verification.text(),
+                "healthNoStore": health.ok and health.headers.get("cache-control") == "no-store",
+                "noSniff": headers.get("x-content-type-options") == "nosniff",
+                "frameDenied": headers.get("x-frame-options") == "DENY",
+            }
+            checks = metrics["crawlerChecks"]
+            assert checks["sitemapCount"] == checks["sitemapUnique"] == 240, checks
+            assert all(value for key, value in checks.items() if key not in ("sitemapCount", "sitemapUnique")), checks
         metrics["severityAboveMap"] = page.locator(".incident-counts").bounding_box()["y"] < page.locator("#earth-canvas").bounding_box()["y"]
         metrics["recentPanelPresent"] = page.locator("#recent-reporting").count() == 1
         metrics["categoryIcons"] = page.locator(".pulse-category-icon").count()
@@ -86,6 +109,8 @@ def audit_workspaces(page, name, errors):
     response = page.goto(BASE + "/countries", wait_until="domcontentloaded", timeout=60000)
     page.locator("#country-filter").wait_for(state="visible", timeout=15000)
     metrics["directoryHTTP"] = response.status
+    metrics["directoryCanonical"] = page.locator('link[rel="canonical"]').get_attribute("href") == BASE + "/countries"
+
     metrics["directoryCount"] = page.locator(".directory li").count()
     page.locator("#country-filter").fill("Netherlands")
     metrics["directoryFilter"] = page.locator(".directory li:not([hidden])").count() == 1
@@ -107,6 +132,8 @@ def audit_workspaces(page, name, errors):
     response = page.goto(BASE + "/countries/nl", wait_until="domcontentloaded", timeout=60000)
     page.locator("#country-brief").wait_for(state="visible")
     metrics["profileHTTP"] = response.status
+    metrics["profileCanonical"] = page.locator('link[rel="canonical"]').get_attribute("href") == BASE + "/countries/nl"
+
     metrics["profileNavigation"] = page.locator(".country-breadcrumb a").count() == 1
     metrics["profileBrandRestored"] = page.locator(".country-header .header-monogram").count() == 1
     metrics["locatorMapPresent"] = page.locator(".country-locator").count() == 1
@@ -127,6 +154,7 @@ def audit_workspaces(page, name, errors):
     print(name + " workspaces: " + json.dumps(metrics), flush=True)
     (OUT / f"{name}-workspaces.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     assert metrics['directoryHTTP'] == metrics['profileHTTP'] == 200 and metrics['directoryCount'] == 238, metrics
+    assert metrics["directoryCanonical"] and metrics["profileCanonical"], metrics
     assert metrics['directoryNoOverflow'] and metrics['profileNoOverflow'] and metrics['researchNoOverflow'], metrics
     assert metrics["comparisonPresent"], metrics
     if name == "desktop":
