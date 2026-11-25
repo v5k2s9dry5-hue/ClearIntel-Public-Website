@@ -708,6 +708,24 @@ def check_site(browser, width):
         assert field is not None
         assert bounds["y"] + bounds["height"] <= field["y"] + 1, (
             "Help obscures the search input", bounds, field)
+    # National warning checks are opt-in and distinguish outage from empty results.
+    national_requests = []
+    def national_fixture(route):
+        national_requests.append(route.request.url)
+        route_json(route, {"status": "available", "checked_at_utc": STAMP,
+            "returned_count": 1, "alerts": [{"title": "Flood Warning", "severity": "Flood Warning",
+            "area": "Fixture river", "time_utc": STAMP, "time_basis": "Last reviewed",
+            "expires_utc": None, "url": "https://environment.data.gov.uk/flood-monitoring/id/floods/fixture"}]})
+    page.route("**/api/national-alerts/england", national_fixture)
+    assert not national_requests
+    page.locator("#national-alert-load").click()
+    page.locator("#national-alert-list").get_by_text("Fixture river", exact=False).wait_for()
+    assert len(national_requests) == 1
+    page.locator("#national-alert-source").select_option("us")
+    assert page.locator("#national-alert-list li").count() == 0
+    page.route("**/api/national-alerts/us", lambda route: route_json(route, {"status":"unavailable","alerts":[]}))
+    page.locator("#national-alert-load").click()
+    page.locator("#national-alert-status").get_by_text("No current warning count is available", exact=False).wait_for()
     # Search health must distinguish total failure, partial coverage and no checks.
     page.evaluate("""() => {
         const unavailable = searchCoverage({sources_checked: [], provider_errors: ['gdelt: timeout']});
