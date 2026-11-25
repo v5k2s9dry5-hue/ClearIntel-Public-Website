@@ -5,13 +5,16 @@ from math import isfinite
 from threading import Lock
 from time import monotonic
 from urllib.request import Request, build_opener
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 import json
+import logging
 from fastapi import APIRouter, HTTPException
 from country_news import COUNTRIES
 from intelligence_feeds import NoRedirect
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 INDICATORS = {
     "SP.POP.TOTL": "Population",
     "NY.GDP.MKTP.CD": "GDP (current US$)",
@@ -46,15 +49,28 @@ def parse_indicators(data, code):
                          "source_url":"https://data.worldbank.org/indicator/"+key}
     return [rows[k] for k in INDICATORS if k in rows]
 
-def _fetch(code):
-    query = urlencode({"source":2,"format":"json","mrnev":1,"per_page":30})
+def _read(code, params, timeout):
+    query = urlencode({"source":2,"format":"json",**params})
     url = "https://api.worldbank.org/v2/country/"+code+"/indicator/"+";".join(INDICATORS)+"?"+query
     req = Request(url, headers={"User-Agent":"ClearIntel Atlas public data reader", "Accept":"application/json"})
-    with build_opener(NoRedirect()).open(req, timeout=8) as response:
+    with build_opener(NoRedirect()).open(req, timeout=timeout) as response:
         body = response.read(MAX_BYTES+1)
     if len(body)>MAX_BYTES:
         raise ValueError("Oversized response")
     return parse_indicators(json.loads(body),code)
+
+def _fetch(code):
+    try:
+        return _read(code, {"mrnev":1,"per_page":30}, 5)
+    except HTTPError as exc:
+        if exc.code != 400:
+            raise
+    except ValueError:
+        pass
+    # A documented date-range query can recover rejected recent-value queries.
+    # Do not retry network errors, throttling or blocked redirects.
+    year = datetime.now(timezone.utc).year
+    return _read(code, {"date":f"{year-9}:{year}","per_page":100}, 5)
 
 @router.get("/api/country-stats/{code}",include_in_schema=False)
 def stats(code: str):
@@ -70,7 +86,8 @@ def stats(code: str):
         try:
             rows=_fetch(code)
             data={"status":"available" if rows else "no-data","checked_at_utc":datetime.now(timezone.utc).isoformat(),"observations":rows}
-        except (OSError, ValueError, TypeError, OverflowError):
+        except (OSError, ValueError, TypeError, OverflowError) as exc:
+            logger.warning('World Bank request failed: country=%s error=%s http_status=%s', code, type(exc).__name__, getattr(exc, 'code', None))
             if cached and cached[1]["observations"]:
                 data={**cached[1],"status":"stale"}
             else:
