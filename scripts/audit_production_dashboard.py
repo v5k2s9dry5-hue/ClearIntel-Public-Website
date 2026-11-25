@@ -60,6 +60,14 @@ def audit(browser, name, width, height):
                 "/assets/card-country.svg" in country_art and artwork.ok and "data:image/webp;base64," in artwork.text()
             )
         metrics["desktopBriefingVisible"] = page.locator("#desktop-briefing").is_visible()
+        filters = page.locator("#incident-filters")
+        if name == "mobile" and filters.count():
+            metrics["mobileAlertFiltersCollapsed"] = not filters.evaluate("(panel) => panel.open")
+            if metrics["mobileAlertFiltersCollapsed"]:
+                filters.locator("summary").click()
+                metrics["incidentControlsVisible"] = page.locator("#incident-severity").is_visible()
+                filters.locator("summary").click()
+
         metrics["weatherOnDemand"] = "not checked" in page.locator("#weather-uk-status").inner_text()
         manifest_path = page.locator('link[rel="manifest"]').get_attribute("href")
         manifest = page.request.get(BASE + manifest_path, timeout=15000)
