@@ -1,7 +1,7 @@
 """Capture the public dashboard at desktop/mobile sizes, with real source responses."""
 import json
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 BASE = "https://clearintel-public.onrender.com"
 OUT = Path("production-dashboard-audit")
@@ -180,8 +180,7 @@ def audit_workspaces(page, name, errors):
     metrics["trendControlPresent"] = trend.locator("#trend-load").is_visible()
     if name == "desktop":
         trend.get_by_role("button", name="Load trend").click()
-        trend.locator("#trend-load").wait_for(state="visible")
-        page.wait_for_function("!document.querySelector('#trend-load').disabled", timeout=17000)
+        expect(trend.locator("#trend-load")).to_be_enabled(timeout=17000)
         metrics["trendStatus"] = trend.locator("#trend-status").inner_text()
         metrics["trendObservationCount"] = trend.locator("tbody tr").count()
         metrics["trendNoOverflow"] = capture("trend")
