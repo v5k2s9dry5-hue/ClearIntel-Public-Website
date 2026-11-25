@@ -23,7 +23,7 @@ function renderCountryCard(container,country,entry){
       return reportLink(article.url,translated?article.title_en:original);
     }
     function translationNote(article){
-      if(article.editorial)return null;
+      if(article.editorial||reportLink(article.url,'').tagName!=='A'||String(article.translation_language||'').toLowerCase().split('-')[0]==='en')return null;
       const original=String(article.title||'');
       if(!original)return null;
       const note=el('div','country-translation-note');
