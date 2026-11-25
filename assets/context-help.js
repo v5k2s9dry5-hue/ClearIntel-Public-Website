@@ -12,7 +12,7 @@
     ['#dashboard-source-guide summary','Expand details on providers, source coverage and how often ClearIntel checks for updates.'],
     ['#map-layer-kind','This label describes the active data layer. “Live feed” means refreshed source data, not verified incidents.'],
     ['#map-expand','Make the map larger to explore markers, boundaries and locations.'],
-    ['#earth-reset-map','Return from a regional focus to the world map.'],
+    ['#earth-reset-map','Restore the starting view and zoom level.'],
     ['#earth-motion','Pause or resume automatic map rotation; it does not pause news or event updates.'],
     ['#earth-uk-view','Focus the map on the United Kingdom. You can return to the world view.'],
     ['#earth-zoom-in','Zoom closer to the map.'],
