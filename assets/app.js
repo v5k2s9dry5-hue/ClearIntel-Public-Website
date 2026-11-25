@@ -359,8 +359,14 @@ function researchCorrelation(rows){
 
 function renderResults(payload,search){
   const area=$('news-results');area.replaceChildren();
+  const checked = Array.isArray(payload.sources_checked) ? payload.sources_checked : [];
+  const errors = Array.isArray(payload.provider_errors) ? payload.provider_errors : [];
+  const completed = checked.length > 0 || payload.results.length > 0;
   const header=el('div','results-header');
-  const left=el('div','');left.append(el('span','result-kicker','PUBLIC NEWS FEED · UTC'),el('h3','',`${payload.results.length} ${search.incidentOnly?'matching incident':'matching news'} headline${payload.results.length===1?'':'s'}`));
+  const title = completed
+    ? `${payload.results.length} ${search.incidentOnly?'matching incident':'matching news'} headline${payload.results.length===1?'':'s'}`
+    : 'Filtered search unavailable';
+  const left=el('div','');left.append(el('span','result-kicker','PUBLIC NEWS FEED · UTC'),el('h3','',title));
   const timeWindow=el('span','result-window', search.window==='24h'?'Last 24 hours':'Last 7 days');
   header.append(left,timeWindow);area.append(header);
   const notice=el('div','result-warning',payload.notice);area.append(notice);
@@ -371,8 +377,6 @@ function renderResults(payload,search){
   const exportUi=window.ClearIntelReport?reportExport(payload,search):null;
   if(exportUi)area.append(exportUi.controls);
   if(!payload.results.length){
-    const checked = Array.isArray(payload.sources_checked) ? payload.sources_checked : [];
-    const errors = Array.isArray(payload.provider_errors) ? payload.provider_errors : [];
     const guidance = !checked.length && errors.length ?
       'Every queried news feed failed. Try again later; this is not a successful search with zero matching stories.' :
       !checked.length ? 'No news feeds were checked. This search cannot establish whether reports exist.' :
@@ -473,6 +477,7 @@ function renderResults(payload,search){
   area.append(list);
   if(exportUi)exportUi.refreshSelection();
   area.append(el('div','results-foot','Feed timestamps may be publication or first-seen dates; they do not establish the incident date.'));
+  return completed;
 }
 const searchSubmit = $('news-submit');
 let searchRetryTimer;
@@ -506,6 +511,7 @@ $('news-form').addEventListener('submit',async e=>{
   fillStatus('Checking recent news feeds…','Looking for published headlines that match the selected time window and subject.','loading');
   $('news-results').scrollIntoView({behavior:'smooth',block:'nearest'});
   let timeout;
+  let completed = false;
   try{
     const controller=new AbortController();timeout=setTimeout(()=>controller.abort(),25000);
     const response=await fetch('/api/news',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,window:timeWindow,incident_only:incidentOnly}),signal:controller.signal});
@@ -526,14 +532,16 @@ $('news-form').addEventListener('submit',async e=>{
     }
     if(!response.ok)throw new Error(typeof payload.detail==='string'?payload.detail:'News search could not be completed.');
     const search={query,window:timeWindow,incidentOnly};
-    renderResults(payload,search);
-    document.dispatchEvent(new CustomEvent('clearintel:news-ready',{detail:{payload,search}}));
+    if (!Array.isArray(payload?.results)) throw Error('The filtered search returned an invalid response.');
+    completed = renderResults(payload,search);
+    if (completed) document.dispatchEvent(new CustomEvent('clearintel:news-ready',{detail:{payload,search}}));
   }catch(err){
     fillStatus('Filtered search unavailable',
       (err.name==='AbortError'?'The sources did not respond within the time limit. Try again.':err.message)+
       ' Any country briefing above is separate; it is not a result from this failed search.','error');
   }
   finally{
+    if (!completed) document.dispatchEvent(new Event('clearintel:search-unavailable'));
     clearTimeout(timeout);searchSubmit.disabled = searchRetryTimer !== undefined;
     searchSubmit.textContent=searchRetryTimer!==undefined?'Search temporarily paused':'Search recent reports →';
     $('news-form').setAttribute('aria-busy','false');

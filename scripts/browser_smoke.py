@@ -920,6 +920,7 @@ def check_site(browser, width):
     page.locator("#news-submit").click()
     page.get_by_text("Try again in 3 seconds.").wait_for()
     assert page.get_by_text("Filtered search is busy across the site").is_visible()
+    assert page.locator("#replay-status").inner_text() == "No completed source check to save."
     assert page.locator("#news-submit").is_disabled()
     page.locator("#search-country .country-top-stories li").wait_for()
     retry_requests = []
@@ -936,6 +937,22 @@ def check_site(browser, width):
     assert page.locator(".research-workflow span").count() == 3
     assert not retry_requests, retry_requests
     page.remove_listener("request", track_search)
+
+    empty_news = {**NEWS, "results": [], "sources_checked": [], "provider_errors": ["fixture: timeout"]}
+    page.route("**/api/news", lambda route: route_json(route, empty_news))
+    page.locator("#news-submit").click()
+    page.get_by_role("heading", name="Filtered search unavailable").wait_for()
+    assert page.get_by_role("button", name="Save current snapshot").is_disabled()
+    assert page.locator("#replay-status").inner_text() == "No completed source check to save."
+    empty_news["sources_checked"] = ["Fixture provider"]
+    empty_news["provider_errors"] = []
+    page.locator("#news-submit").click()
+    page.locator("#news-results .empty-results").get_by_text("Try a broader term", exact=False).wait_for()
+    page.get_by_role("button", name="Save current snapshot").click()
+    assert page.locator("#replay-detail").get_by_text("No matching headlines were returned", exact=False).is_visible()
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.get_by_role("button", name="Clear saved history").click()
+
 
     page.locator("#globe-layer").select_option("countries")
     if mobile:
