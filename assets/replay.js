@@ -227,6 +227,40 @@
     return section;
   }
 
+  function drawObservationTimeline(snapshot) {
+    const section=node('section','replay-observation-timeline');
+    section.append(node('h5','','Saved observation timeline'),
+      node('p','replay-warning','Only snapshots manually saved in this browser for the same query and filters. Counts describe retained headlines, not incident frequency.'));
+    const matching=snapshots.filter(s=>searchMatches(s,snapshot)&&Number.isFinite(Date.parse(s.observed_at_utc)))
+      .sort((a,b)=>Date.parse(a.observed_at_utc)-Date.parse(b.observed_at_utc));
+    const list=node('ol','replay-observation-list');
+    for(const item of matching){
+      const row=node('li');
+      const button=node('button','replay-observation-button');
+      button.type='button';
+      button.setAttribute('aria-current',item.id===snapshot.id?'true':'false');
+      const retained=Math.min(item.articles.length,MAX_RESULTS);
+      const count=node('span','replay-observation-count',retained+' saved');
+      const track=node('span','replay-observation-track');
+      track.setAttribute('aria-hidden','true');
+      for(let i=0;i<MAX_RESULTS;i++)track.append(node('span',i<retained?'replay-observation-filled':''));
+      button.append(node('span','replay-observation-time',utc(item.observed_at_utc)),count,track);
+      const errors=Array.isArray(item.provider_errors)?item.provider_errors.length:0;
+      if(errors)button.append(node('span','replay-observation-note',errors+' provider problem'+(errors===1?'':'s')));
+      button.disabled=![...select.options].some(option=>option.value===item.id);
+      if(button.disabled)button.title='Outside current saved-history filters';
+      button.addEventListener('click',()=>{
+        select.value=item.id;
+        drawSnapshot();
+        const current=detail.querySelector('.replay-observation-button[aria-current="true"]');
+        if(current)current.focus();
+      });
+      row.append(button);list.append(row);
+    }
+    section.append(list);
+    return section;
+  }
+
   function drawSnapshot() {
     detail.replaceChildren();
     const snapshot = snapshots.find(s => s.id === select.value);
@@ -238,7 +272,7 @@
       (snapshot.window === '7d' ? '7 days' : '24 hours') + ' · ' +
       snapshot.total_results + ' headlines returned · ' + snapshot.articles.length + ' saved');
     const caution = node('p', 'replay-warning', 'This is what the selected search returned when saved. It is not a reconstructed history, complete news archive, or verified incident record.');
-    detail.append(heading, observed, windowLabel, caution);
+    detail.append(heading, observed, windowLabel, caution,drawObservationTimeline(snapshot));
     const checked = Array.isArray(snapshot.sources_checked) ? snapshot.sources_checked : [];
     const errors = Array.isArray(snapshot.provider_errors) ? snapshot.provider_errors : [];
     detail.append(node('p','replay-coverage','Sources checked when saved: ' +

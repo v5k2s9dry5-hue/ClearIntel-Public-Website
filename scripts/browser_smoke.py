@@ -650,6 +650,15 @@ def check_site(browser, width):
     }))""")
     page.get_by_role("button", name="Save current snapshot").click()
     assert page.locator("#replay-select option").count() == 2
+    timeline = page.locator(".replay-observation-list")
+    assert timeline.locator("button").count() == 2
+    assert timeline.locator('[aria-current="true"]').count() == 1
+    assert timeline.get_by_text("1 provider problem").is_visible()
+    timeline.locator("button").first.click()
+    assert page.get_by_role("button", name="Compare with earlier snapshot").is_disabled()
+    timeline.locator("button").last.click()
+    assert not page.get_by_role("button", name="Compare with earlier snapshot").is_disabled()
+    assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     assert page.locator("#replay-compare-earlier option").count() == 1
     assert not page.locator("#replay-compare-earlier").is_disabled()
     page.locator("#replay-query-filter").fill("no matching saved search")

@@ -59,3 +59,17 @@
 .replay-wording-detail .replay-articles li{margin-right:5px}
 
 .saved-query-list{list-style:none;padding:0;margin:.8rem 0;display:grid;gap:.5rem}.saved-query-list li{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;padding:.6rem;border:1px solid #263b4c;border-radius:8px}.saved-query-list li span{flex:1 1 12rem;overflow-wrap:anywhere}.saved-query-list button{min-height:44px}.result-view-field input{width:100%;min-width:0;max-width:100%}
+
+/* Saved observations, not a continuous incident-history chart. */
+.replay-observation-timeline{margin:12px 0;min-width:0}
+.replay-observation-timeline h5{font-size:13px;margin:8px 0}
+.replay-observation-list{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:320px;overflow-y:auto}
+.replay-observation-button{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;text-align:left;padding:9px 10px;border:1px solid #36576c;border-radius:7px;background:#102233;color:#d7eaf3;min-height:44px;font-size:12px}
+.replay-observation-button[aria-current=true]{border-color:#65d9ef;background:#15384c}
+.replay-observation-button:focus-visible{outline:2px solid #9ce9f6;outline-offset:-3px}
+.replay-observation-button:disabled{opacity:.6}
+.replay-observation-count{font-variant-numeric:tabular-nums}
+.replay-observation-track{grid-column:1/-1;display:grid;grid-template-columns:repeat(20,minmax(0,1fr));gap:2px}
+.replay-observation-track span{height:5px;border-radius:2px;background:#284356}
+.replay-observation-track .replay-observation-filled{background:#72d9eb}
+.replay-observation-note{grid-column:1/-1;color:#efce9b;font-size:11px}
