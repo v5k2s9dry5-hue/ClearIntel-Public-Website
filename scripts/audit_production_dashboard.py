@@ -44,6 +44,13 @@ def audit(browser, name, width, height):
                         "navigationTiming": page.evaluate("() => {const n=performance.getEntriesByType('navigation')[0];return n?{ttfb_ms:Math.round(n.responseStart),dom_ready_ms:Math.round(n.domContentLoadedEventEnd),transfer_bytes:n.transferSize,encoded_body_bytes:n.encodedBodySize,decoded_body_bytes:n.decodedBodySize}:null;}"),
                         "http": response.status if response else None, "browserErrors": len(errors), "viewport": [width,height]})
         metrics["brandRestored"] = page.locator(".site-header .header-monogram").count() == 1 and page.locator(".site-header .header-monogram").evaluate("(e) => getComputedStyle(e).backgroundImage.includes('data:image/webp;base64,')")
+        favicon_href = page.locator('link[rel="icon"]').get_attribute("href")
+        favicon = page.request.get(BASE + favicon_href, timeout=15000)
+        header_art = page.locator(".site-header .header-monogram").evaluate("(e) => getComputedStyle(e).backgroundImage")
+        metrics["faviconMatchesHeader"] = favicon.ok and header_art.split('data:image/webp;base64,', 1)[-1].split('"', 1)[0] in favicon.text()
+        artwork = page.request.get(BASE + "/assets/card-country.svg", timeout=15000)
+        metrics["countryArtwork"] = artwork.ok and "data:image/webp;base64," in artwork.text()
+        metrics["desktopBriefingVisible"] = page.locator("#desktop-briefing").is_visible()
         metrics["severityAboveMap"] = page.locator(".incident-counts").bounding_box()["y"] < page.locator("#earth-canvas").bounding_box()["y"]
         metrics["recentPanelPresent"] = page.locator("#recent-reporting").count() == 1
         metrics["categoryIcons"] = page.locator(".pulse-category-icon").count()
@@ -55,6 +62,7 @@ def audit(browser, name, width, height):
         assert metrics['incidentDefault'] and metrics['incidentControlsVisible'], metrics
         assert metrics['sanctionsOnDemand'] and metrics['sourceHealthRows'] == 7, metrics
         assert metrics["brandRestored"] and metrics["severityAboveMap"] and metrics["categoryIcons"] == 8, metrics
+        assert metrics["faviconMatchesHeader"] and metrics["countryArtwork"], metrics
         assert metrics["recentPanelPresent"] and metrics["securityHeaders"]["csp"] and metrics["securityHeaders"]["hsts"], metrics
         assert not errors, errors
     finally:
@@ -84,6 +92,17 @@ def audit_workspaces(page, name, errors):
     page.locator("#country-filter-clear").click()
     metrics["directoryReset"] = page.locator("#country-filter").input_value() == ""
     metrics["directoryNoOverflow"] = capture("directory")
+    metrics["comparisonPresent"] = page.locator("#compare-load").is_visible()
+    if name == "desktop":
+        page.locator("#compare-first").select_option("GB")
+        page.locator("#compare-second").select_option("US")
+        page.locator("#compare-load").click()
+        page.locator("#compare-results table").wait_for(timeout=40000)
+        metrics["comparisonRows"] = page.locator("#compare-results tbody tr").count()
+        metrics["comparisonStatus"] = page.locator("#compare-status").inner_text()
+        metrics["comparisonMissingCells"] = page.locator("#compare-results td").filter(has_text="Not available").count()
+        capture("comparison")
+
 
     response = page.goto(BASE + "/countries/nl", wait_until="domcontentloaded", timeout=60000)
     page.locator("#country-brief").wait_for(state="visible")
@@ -99,11 +118,19 @@ def audit_workspaces(page, name, errors):
     stats = page.request.get(BASE + "/api/country-stats/GB", timeout=20000)
     stats_data = stats.json() if stats.ok else {}
     metrics["worldBankGB"] = {"http":stats.status,"status":stats_data.get("status"),"observations":len(stats_data.get("observations",[]))}
+    if name == "desktop":
+        for code in ("US", "NL"):
+            result = page.request.get(BASE + "/api/country-stats/" + code, timeout=20000)
+            payload = result.json() if result.ok else {}
+            metrics["worldBank" + code] = {"http": result.status, "status": payload.get("status"), "observations": len(payload.get("observations", []))}
     metrics["browserErrors"] = len(errors)
     print(name + " workspaces: " + json.dumps(metrics), flush=True)
     (OUT / f"{name}-workspaces.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     assert metrics['directoryHTTP'] == metrics['profileHTTP'] == 200 and metrics['directoryCount'] == 238, metrics
     assert metrics['directoryNoOverflow'] and metrics['profileNoOverflow'] and metrics['researchNoOverflow'], metrics
+    assert metrics["comparisonPresent"], metrics
+    if name == "desktop":
+        assert metrics["comparisonRows"] == 5, metrics
     assert metrics['briefingBuilderPresent'] and metrics['manifestControlPresent'], metrics
     assert metrics['directoryFilter'] and metrics['directoryReset'] and metrics['profileBrandRestored'] and metrics['locatorMapPresent'] and metrics['favoriteControlPresent'], metrics
 
