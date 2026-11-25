@@ -5,6 +5,7 @@ this checks UI behaviour without depending on unstable third-party feeds.
 """
 import json
 import time
+from urllib.parse import parse_qs, urlsplit
 from urllib.request import urlopen
 
 from playwright.sync_api import sync_playwright
@@ -908,7 +909,8 @@ def check_site(browser, width):
                 {"indicator": "IT.NET.USER.ZS", "value": 97.2, "year": "2023"},
             ],
         }))
-        directory_page.goto(ROOT + "/countries", wait_until="domcontentloaded")
+        profile_compare = page.get_by_role("link", name="Compare with another country")
+        directory_page.goto(ROOT + profile_compare.get_attribute("href"), wait_until="domcontentloaded")
         directory_page.wait_for_function("() => document.querySelector('#compare-first').options.length === 238")
         assert directory_page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"), directory_page.evaluate("() => [...document.querySelectorAll('body *')].filter(e => e.getBoundingClientRect().right > innerWidth+1).slice(0,12).map(e=>[e.tagName,e.id,e.className])")
         for selector in ("#compare-first", "#compare-second"):
@@ -918,6 +920,14 @@ def check_site(browser, width):
         assert directory_page.locator("#compare-results tbody tr").count() == 9
         assert directory_page.locator("#compare-results").get_by_text("49,000 (2024)", exact=True).count() == 2
         assert directory_page.locator("#compare-results").get_by_text("Not available", exact=True).count() == 14
+        directory_page.select_option("#compare-second", "NL")
+        assert directory_page.locator("#compare-results table").count() == 0
+        directory_page.get_by_role("button", name="Copy comparison link").click()
+        assert parse_qs(urlsplit(directory_page.url).query) == {"first": ["GB"], "second": ["NL"]}
+        directory_page.reload(wait_until="domcontentloaded")
+        assert directory_page.locator("#compare-first").input_value() == "GB"
+        assert directory_page.locator("#compare-second").input_value() == "NL"
+        assert directory_page.locator("#compare-results table").count() == 0
         assert directory_page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
     finally:
         directory_page.close()
