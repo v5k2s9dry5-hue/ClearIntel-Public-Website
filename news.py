@@ -19,6 +19,8 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 from urllib.request import Request, urlopen
 from xml.etree import ElementTree as ET
 
+from feed_retry import retry_delay
+
 MAX_RESPONSE_BYTES = 2_000_000
 HEADERS = {"User-Agent": "ClearIntel-PublicResearch/1.0 (+contact: contactclearintel@protonmail.me)"}
 INCIDENT = re.compile(r"\b(?:bomb(?:s|ed|ing)?|explosions?|blast(?:s)?|air[ -]?strikes?|missile(?:s)?|rocket(?:s)?|struck|strike(?:s)?|attacks?|drone strikes?|shelling|raid(?:s)?)\b", re.I)
@@ -61,8 +63,9 @@ def _get(url: str) -> bytes:
             return response.read(MAX_RESPONSE_BYTES + 1)[:MAX_RESPONSE_BYTES]
     except HTTPError as error:
         if error.code == 429:
+            retry_at = monotonic() + max(RATE_LIMIT_COOLDOWN_SECONDS, retry_delay(error))
             with _rate_limit_lock:
-                _rate_limited_until[host] = monotonic() + RATE_LIMIT_COOLDOWN_SECONDS
+                _rate_limited_until[host] = max(retry_at, _rate_limited_until.get(host, 0))
         raise
 
 

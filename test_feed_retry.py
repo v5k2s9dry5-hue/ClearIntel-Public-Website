@@ -10,5 +10,6 @@ class RetryDelayTests(TestCase):
         self.assertEqual(retry_delay(error('180')), 180)
         self.assertEqual(retry_delay(error('Thu, 01 Jan 1970 00:03:00 GMT'), now=0), 180)
         self.assertEqual(retry_delay(error('invalid')), 60)
+        self.assertEqual(retry_delay(error('9' * 350)), 30)
         self.assertEqual(retry_delay(error('5', 503)), 30)
         self.assertEqual(retry_delay(TimeoutError()), 30)
