@@ -36,7 +36,7 @@
             const a=node('a',row.title);a.href=url.href;a.target='_blank';a.rel='noopener noreferrer';item.append(a);
           }else item.append(heading);
         }catch(_){item.append(heading);}
-        item.append(node('span',row.severity+' · '+row.area),node('span',row.time_basis+': '+utc(row.time_utc)+(row.expires_utc?' · Expires: '+utc(row.expires_utc):'')));
+        item.append(node('span',row.severity+' · '+row.area),node('span',row.time_basis+': '+(row.time_utc?utc(row.time_utc):row.source_time?String(row.source_time).replace('T',' ')+' (source timezone unspecified)':'Unknown')+(row.expires_utc?' · Expires: '+utc(row.expires_utc):'')));
         list.append(item);
       }
     }catch(_){if(current===version)status.textContent='Official warning source unavailable. Check the authority directly.';}
