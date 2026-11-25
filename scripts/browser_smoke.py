@@ -797,6 +797,17 @@ def check_site(browser, width):
     assert audit["evidence"][0]["source_url"] == "https://example.org/manchester-news"
     assert audit["observed_at_utc"] == STAMP
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
+    # Exercise the directory in a separate page, preserving the profile tests.
+    directory_page = context.new_page()
+    try:
+        directory_page.goto(ROOT + "/countries", wait_until="domcontentloaded")
+        directory_page.wait_for_function("() => document.querySelector('#compare-first').options.length === 238")
+        assert directory_page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"), directory_page.evaluate("() => [...document.querySelectorAll('body *')].filter(e => e.getBoundingClientRect().right > innerWidth+1).slice(0,12).map(e=>[e.tagName,e.id,e.className])")
+        for selector in ("#compare-first", "#compare-second"):
+            assert directory_page.locator(selector).evaluate("(e) => e.getBoundingClientRect().right <= innerWidth")
+    finally:
+        directory_page.close()
+
     # A complete outage retains prior headlines, but a successful empty search does not.
     page.evaluate("""previous => {
         const outage = {...previous, stories: [], sources_checked: [], provider_errors: ['gdelt: timeout']};

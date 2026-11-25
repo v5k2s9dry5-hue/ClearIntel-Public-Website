@@ -61,7 +61,7 @@ def _read(code, params, timeout):
 
 def _fetch(code):
     try:
-        return _read(code, {"mrnev":1,"per_page":30}, 5)
+        return _read(code, {"mrnev":1,"per_page":30}, 8)
     except HTTPError as exc:
         if exc.code != 400:
             raise
@@ -70,7 +70,7 @@ def _fetch(code):
     # A documented date-range query can recover rejected recent-value queries.
     # Do not retry network errors, throttling or blocked redirects.
     year = datetime.now(timezone.utc).year
-    return _read(code, {"date":f"{year-9}:{year}","per_page":100}, 5)
+    return _read(code, {"date":f"{year-9}:{year}","per_page":100}, 3)
 
 @router.get("/api/country-stats/{code}",include_in_schema=False)
 def stats(code: str):
