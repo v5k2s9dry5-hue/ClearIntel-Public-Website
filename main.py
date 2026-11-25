@@ -33,6 +33,7 @@ from globe_texture import router as globe_texture_router
 from intelligence_feeds import router as intelligence_feed_router
 from country_stats import router as country_stats_router
 from headline_translation import translate_country_headlines
+from national_alerts import router as national_alerts_router
 
 ROOT = Path(__file__).resolve().parent
 PUBLIC_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
@@ -46,6 +47,7 @@ app.include_router(wildfire_router)
 app.include_router(globe_texture_router)
 app.include_router(intelligence_feed_router)
 app.include_router(country_stats_router)
+app.include_router(national_alerts_router)
 MAX_SEARCH_BODY_BYTES = 2048
 SEARCH_CACHE_SECONDS = 20
 SEARCH_CACHE_ENTRIES = 128
