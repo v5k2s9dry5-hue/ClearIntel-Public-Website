@@ -122,3 +122,9 @@ body:not(:has(.dashboard)) a:hover{color:#d1f4ff}
 /* Distinguish a country-specific brief from the separate filtered search. */
 .country-headline-context:not([hidden]){display:block;padding:10px 13px;margin:14px 0 7px;border:1px solid #34607a;border-left:3px solid #86dced;border-radius:7px;background:#0d2132;color:#cde6f3;font-size:12px;line-height:1.5;letter-spacing:.01em}
 #search-country:not([hidden]){margin-top:4px}
+
+/* Machine translations remain distinct from original source titles. */
+.country-translation-note{margin:.3rem 0;font-size:.78rem;line-height:1.5;overflow-wrap:anywhere}
+.country-translation-note a,.country-original-headline summary{color:inherit;text-decoration:underline;text-underline-offset:.16em;cursor:pointer;font-weight:400}
+.country-translation-note a,.country-original-headline summary{display:inline-flex;align-items:center;min-height:44px}
+.country-original-headline p{margin:.1rem 0 .45rem;white-space:normal;overflow-wrap:anywhere}

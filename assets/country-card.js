@@ -17,6 +17,30 @@ function renderCountryCard(container,country,entry){
     return link;
   }
 
+    function headlineLink(article){
+      const original=String(article.title||'Original report');
+      const translated=typeof article.title_en==='string'&&article.title_en.trim()&&article.title_en!==original;
+      return reportLink(article.url,translated?article.title_en:original);
+    }
+    function translationNote(article){
+      if(article.editorial||reportLink(article.url,'').tagName!=='A'||String(article.translation_language||'').toLowerCase().split('-')[0]==='en')return null;
+      const original=String(article.title||'');
+      if(!original)return null;
+      const note=el('div','country-translation-note');
+      if(typeof article.title_en==='string'&&article.title_en.trim()&&article.title_en!==original){
+        const details=el('details','country-original-headline');
+        details.append(el('summary','','Machine-translated to English · View original'),
+          el('p','',original));
+        note.append(details);
+      }else{
+        const url=new URL('https://translate.google.com/');
+        url.searchParams.set('sl','auto');url.searchParams.set('tl','en');
+        url.searchParams.set('text',original);url.searchParams.set('op','translate');
+        note.append(reportLink(url.href,'Translate headline to English ↗'));
+      }
+      return note;
+    }
+
     const utcTime=new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'});
     const utcDate=new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',dateStyle:'medium'});
     const title=document.createElement('strong');
@@ -78,7 +102,7 @@ function renderCountryCard(container,country,entry){
       list.append(row);
       const change=entry?.change?.statuses?.[index];
       if(change)content.append(el('span','country-change-badge',change==='new'?'New in feed':'Updated in feed'));
-      const link=reportLink(article.url, article.title);
+      const link=headlineLink(article);
       const source=document.createElement('span');
       const timestamp=new Date(article.feed_time_utc);
       if(article.editorial){
@@ -99,6 +123,7 @@ function renderCountryCard(container,country,entry){
         source.textContent=`${article.source||'Publisher'} · ${article.time_basis||'Feed time'} · ${Number.isFinite(timestamp.getTime())?utcTime.format(timestamp)+' UTC':'Unknown'}`;
         content.append(link,source);
       }
+      const translation=translationNote(article);if(translation)content.append(translation);
       source.textContent+=' · '+(labels[group.basis]||'Recent coverage');
       const preciseTime=Number.isFinite(timestamp.getTime())?timestamp.toISOString():'unknown';
       const metadata=el('span','analyst-only analyst-metadata',
@@ -123,9 +148,10 @@ function renderCountryCard(container,country,entry){
         for(const report of additional){
           const published=new Date(report.feed_time_utc);
           const item=el('div','country-related-item');
-          item.append(reportLink(report.url,report.title||'Original report'),
+          item.append(headlineLink(report),
             el('span','', (report.source||'Publisher')+' · '+(report.time_basis||'Feed time')+' · '+
               (Number.isFinite(published.getTime())?utcTime.format(published)+' UTC':'Unknown')));
+          const translation=translationNote(report);if(translation)item.append(translation);
           read.append(item);
         }
         evidence.append(read,el('p','', 'Related reporting does not establish independent corroboration.'));
