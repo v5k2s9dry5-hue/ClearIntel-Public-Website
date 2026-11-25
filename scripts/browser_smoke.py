@@ -637,6 +637,17 @@ def check_site(browser, width):
     assert page.locator("#collection-list li").count() == 1
     page.locator("#collection-filter").fill("")
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
+    # Collection export includes all explicitly saved links even with no visible matches.
+    page.locator("#collection-filter").fill("no matching evidence")
+    assert page.locator("#collection-list li").count() == 0
+    with page.expect_download(timeout=30000) as collection_pdf:
+        page.locator("#collection-pdf").click()
+    assert collection_pdf.value.suggested_filename.startswith("ClearIntel-evidence-collection-")
+    assert collection_pdf.value.suggested_filename.endswith(".pdf")
+    with open(collection_pdf.value.path(), "rb") as exported:
+        assert exported.read(5) == b"%PDF-"
+    page.locator("#collection-filter").fill("")
+    assert page.evaluate("() => JSON.parse(localStorage.getItem('clearintel.evidence-collection.v1'))[0].note") == "Review the original report"
     # Replay must never retain a query or its news results before explicit action.
     assert page.evaluate("() => localStorage.getItem('clearintel.replay.snapshots.v1')") is None
     page.get_by_role("button", name="Save current snapshot").click()
