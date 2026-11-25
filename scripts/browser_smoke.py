@@ -665,6 +665,8 @@ def check_site(browser, width):
     }))""")
     page.get_by_role("button", name="Save current snapshot").click()
     assert page.locator("#replay-select option").count() == 2
+    assert "24 hours · All reports" in page.locator("#replay-select option").first.inner_text()
+    assert "24 hours · All reports" in page.locator(".replay-window").inner_text()
     timeline = page.locator(".replay-observation-list")
     assert timeline.locator("button").count() == 2
     assert timeline.locator('[aria-current="true"]').count() == 1

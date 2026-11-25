@@ -31,6 +31,9 @@
       date.toLocaleString('en-GB', {timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short'}) + ' UTC' :
       'Unknown';
   };
+  const searchWindow = snapshot => snapshot.window === '7d' ? '7 days' : '24 hours';
+  const searchMode = snapshot => snapshot.incident_only ? 'Incident reports' : 'All reports';
+  const saveTime = snapshot => snapshot.saved_at_utc || snapshot.observed_at_utc;
   const sourceLink = value => {
     try {
       const url = new URL(value);
@@ -272,7 +275,7 @@
     const heading = node('h4', '', 'Snapshot: ' + short(snapshot.query, 140));
     const observed = node('p', 'replay-observed', (snapshot.saved_at_utc ? 'Observed by this browser: ' : 'Saved by this browser: ') + utc(snapshot.observed_at_utc));
     const windowLabel = node('p', 'replay-window', 'Requested window: ' +
-      (snapshot.window === '7d' ? '7 days' : '24 hours') + ' · ' +
+      searchWindow(snapshot) + ' · ' + searchMode(snapshot) + ' · ' +
       snapshot.total_results + ' headlines returned · ' + snapshot.articles.length + ' saved');
     const caution = node('p', 'replay-warning', 'This is what the selected search returned when saved. It is not a reconstructed history, complete news archive, or verified incident record.');
     detail.append(heading, observed, windowLabel, caution,drawObservationTimeline(snapshot));
@@ -315,12 +318,14 @@
     select.replaceChildren();
     const query=queryFilter.value.trim().toLowerCase();
     const cutoff=periodFilter.value==='all'?-Infinity:Date.now()-Number(periodFilter.value)*86400000;
-    const filtered=snapshots.filter(s=>String(s.query||'').toLowerCase().includes(query)&&Date.parse(s.observed_at_utc)>=cutoff);
+    const filtered = snapshots.filter(snapshot =>
+      String(snapshot.query || '').toLowerCase().includes(query) &&
+      (periodFilter.value === 'all' || Date.parse(saveTime(snapshot)) >= cutoff));
     filterCount.textContent=filtered.length+' of '+snapshots.length+' saved snapshots shown.';
     select.disabled=!filtered.length;
-    filtered.forEach((s, index) => {
+    filtered.forEach(s => {
       const option = new Option(utc(s.observed_at_utc) + ' · ' + short(s.query, 60) +
-        ' · ' + (Array.isArray(s.articles) ? s.articles.length : 0) + ' headlines', s.id);
+        ' · ' + searchWindow(s) + ' · ' + searchMode(s) + ' · ' + (Array.isArray(s.articles) ? s.articles.length : 0) + ' headlines', s.id);
       select.add(option);
     });
     if (filtered.length) {
@@ -404,7 +409,7 @@
     if(!comparison||comparePanel.hidden)return;
     const {older,newer}=comparison;
     const clean=a=>({title:short(a.title,240),publisher:short(a.source,100),provider:short(a.provider,80),source_url:sourceLink(a.url),source_time_utc:short(a.feed_time_utc,50),time_basis:short(a.time_basis,40)});
-    const describe=s=>({observed_at_utc:s.observed_at_utc,saved_at_utc:s.saved_at_utc||s.observed_at_utc,timestamp_basis:s.saved_at_utc?'results_received':'legacy_save_time',total_results:s.total_results,saved_count:s.articles.length,sources_checked:s.sources_checked||[],provider_errors:s.provider_errors||[]});
+    const describe=s=>({observed_at_utc:s.observed_at_utc,saved_at_utc:saveTime(s),timestamp_basis:s.saved_at_utc?'results_received':'legacy_save_time',total_results:s.total_results,saved_count:s.articles.length,sources_checked:s.sources_checked||[],provider_errors:s.provider_errors||[]});
     const changes=calculateChanges(older,newer);
     const manifest={schema:'clearintel.replay-comparison.v1',exported_at_utc:new Date().toISOString(),query:short(newer.query,140),window:newer.window,incident_only:Boolean(newer.incident_only),earlier:describe(older),later:describe(newer),limitations:'Differences in saved, potentially incomplete search results; not evidence of article publication or deletion, independent corroboration, or real-world event changes.',newly_present:changes.added.map(clean),no_longer_present:changes.removed.map(clean),changed:changes.changed.map(x=>({earlier:clean(x.prior),later:clean(x.article)})),unchanged:changes.unchanged.map(clean)};
     const url=URL.createObjectURL(new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'}));
