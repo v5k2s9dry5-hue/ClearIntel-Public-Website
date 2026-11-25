@@ -2,7 +2,9 @@
 (()=>{
   const $=id=>document.getElementById(id), KEY='clearintel.evidence-collection.v1', MAX=50;
   const list=$('collection-list'),status=$('collection-status'),clear=$('collection-clear'),download=$('collection-export');
+  const pdfButton=$('collection-pdf');
   if(!list)return;
+  let exporting=false;
   let records=[];
   const filter=$('collection-filter'),order=$('collection-order'),count=$('collection-count');
   function clean(row){
@@ -13,6 +15,7 @@
   }
   function render(){
     list.replaceChildren();clear.disabled=download.disabled=!records.length;
+    if(pdfButton)pdfButton.disabled=exporting||!records.length;
     const term=filter.value.trim().toLowerCase();
     const view=records.map((row,index)=>({row,index})).filter(({row})=>(row.title+' '+row.source+' '+row.note+' '+row.review).toLowerCase().includes(term));
     if(order.value!=='saved')view.sort((a,b)=>{const x=Date.parse(a.row.feed_time_utc),y=Date.parse(b.row.feed_time_utc);if(!Number.isFinite(x)||!Number.isFinite(y))return Number.isFinite(x)?-1:Number.isFinite(y)?1:0;return order.value==='newest'?y-x:x-y;});
@@ -50,6 +53,23 @@
   download.addEventListener('click',()=>{
     const data={schema:'clearintel.evidence-collection.v1',exported_at_utc:new Date().toISOString(),limitations:'Saved public reporting links and user-authored notes/review labels; not independent verification.',records};
     const u=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='ClearIntel-collection.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);
+  });
+  if(pdfButton)pdfButton.addEventListener('click',async()=>{
+    if(exporting||!records.length)return;
+    exporting=true;pdfButton.disabled=true;
+    const saved=records.map(row=>({...row}));
+    status.textContent='Preparing PDF of all '+saved.length+' saved links and notes locally…';
+    try{
+      if(!window.ClearIntelReport)throw new Error('Report generator unavailable');
+      await window.ClearIntelReport.download({
+        kind:'collection',query:'Saved research evidence',exportedAt:new Date().toISOString(),
+        total:saved.length,findings:saved,sources:[...new Set(saved.map(row=>row.source))],
+        providerErrors:[],notes:'',incidentOnly:false,
+        notice:'Includes all saved links regardless of the current screen filter. Research notes and review labels are user-authored. This is not independent verification, a complete event record or an assessment of source reliability.'
+      });
+      status.textContent='PDF export prepared locally. Check your downloads.';
+    }catch{status.textContent='PDF export unavailable. Your saved evidence is unchanged; try JSON export instead.';}
+    finally{exporting=false;pdfButton.disabled=!records.length;}
   });
   filter.addEventListener('input',render);order.addEventListener('change',render);
   render();
