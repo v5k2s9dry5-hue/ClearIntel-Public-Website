@@ -454,7 +454,11 @@
     });
   }
   canvas.addEventListener('keydown',e=>{
-    if(e.altKey||e.ctrlKey||e.metaKey||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;
+    if(e.altKey||e.ctrlKey||e.metaKey)return;
+    if(['+','=','-'].includes(e.key)){
+      e.preventDefault();stepZoom(e.key==='-'?-1:1);return;
+    }
+    if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;
     e.preventDefault();setRotation(false);
     const step=e.shiftKey?15:5;
     if(e.key==='ArrowLeft')rot=(rot+step)%360;
@@ -659,7 +663,7 @@
     canvas.setAttribute('aria-label',flatMap
       ? 'Interactive map of past public reports. Select a marker or use the feed.'
       : 'Interactive globe. You can also select events in the feed.');
-    mapInstructions.textContent=flatMap?'Drag or use arrow keys to pan · Scroll or pinch to zoom':'Drag or use arrow keys to rotate · Scroll or pinch to zoom';
+    mapInstructions.textContent=flatMap?'Drag or use arrow keys to pan · Scroll, pinch or +/- to zoom':'Drag or use arrow keys to rotate · Scroll, pinch or +/- to zoom';
     draw();
   }
   flatButton.addEventListener('click',()=>{preferFlat=true;updateProjection();});
