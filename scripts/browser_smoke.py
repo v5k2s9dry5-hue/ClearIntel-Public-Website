@@ -3,6 +3,7 @@
 Run against the local FastAPI service. External news providers are mocked:
 this checks UI behaviour without depending on unstable third-party feeds.
 """
+import csv
 import json
 import time
 from urllib.parse import parse_qs, urlsplit
@@ -934,7 +935,18 @@ def check_site(browser, width):
         assert directory_page.locator("#compare-results tbody tr").count() == 9
         assert directory_page.locator("#compare-results").get_by_text("49,000 (2024)", exact=True).count() == 2
         assert directory_page.locator("#compare-results").get_by_text("Not available", exact=True).count() == 14
+        with directory_page.expect_download() as comparison_csv:
+            directory_page.get_by_role("button", name="Download comparison CSV").click()
+        with open(comparison_csv.value.path(), encoding="utf-8-sig", newline="") as exported:
+            rows = list(csv.DictReader(exported))
+        assert len(rows) == 18
+        gdp = next(row for row in rows if row["Country code"] == "GB" and row["Indicator code"] == "NY.GDP.PCAP.CD")
+        assert gdp["Value"] == "49000" and gdp["Observation year"] == "2024"
+        assert gdp["World Bank source"] == "https://data.worldbank.org/indicator/NY.GDP.PCAP.CD"
+        missing = next(row for row in rows if row["Indicator code"] == "SP.POP.TOTL")
+        assert missing["Value"] == missing["Observation year"] == ""
         directory_page.select_option("#compare-second", "NL")
+        assert directory_page.locator("#compare-download").is_hidden()
         assert directory_page.locator("#compare-results table").count() == 0
         directory_page.get_by_role("button", name="Copy comparison link").click()
         assert parse_qs(urlsplit(directory_page.url).query) == {"first": ["GB"], "second": ["NL"]}
