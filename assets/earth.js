@@ -1075,6 +1075,8 @@
     if(layer.value==='iss')refreshISS();
     else if(!reportsPaused||reportLayers[layer.value]?.mode)refreshReports();
   });
+  // A busy incident feed can become ready before the regular one-minute tick.
+  setInterval(()=>{if(!document.hidden&&!reportsPaused&&layer.value==='incidents')refreshReports('incidents');},5000);
   setInterval(()=>{if(!document.hidden&&layer.value==='iss')refreshISS();},30000);
   setInterval(()=>{
     if(!document.hidden&&layer.value==='countries')refreshCountryBrief();
