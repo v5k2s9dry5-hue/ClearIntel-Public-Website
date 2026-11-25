@@ -141,10 +141,10 @@
     const [west,south,east,north]=bounds;
     return lon>=west&&lon<=east&&lat>=south&&lat<=north;
   }
-  function drawCoastline(cx,cy,r){
+  function drawCoastline(cx,cy,r,fillLand){
     if(!coastline)return;
     ctx.fillStyle='#224768';ctx.strokeStyle='#9bdbef';ctx.lineWidth=zoom>1?1.05:.65;
-    for(const {coords,closed} of coastline.tracks)strokeTrack(coords,cx,cy,r,closed);
+    for(const {coords,closed} of coastline.tracks)strokeTrack(coords,cx,cy,r,fillLand&&closed);
   }
   function prepareWorldMap(data){
     function prepare(tracks){
@@ -334,7 +334,7 @@
     ctx.fillStyle=ocean;ctx.strokeStyle='#6799b6';ctx.lineWidth=1.15;
     ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);ctx.fill();ctx.stroke();
     ctx.save();ctx.beginPath();ctx.arc(cx,cy,r-.4,0,Math.PI*2);ctx.clip();
-    const textured=zoom===1&&Boolean(window.ClearIntelGlobeSurface?.draw(ctx,cx,cy,r,rot,tilt));
+    const textured=Boolean(window.ClearIntelGlobeSurface?.draw(ctx,cx,cy,r,rot,tilt,width,height));
     if(textureCredit)textureCredit.hidden=!textured;
     ctx.strokeStyle='rgba(137,186,222,.13)';ctx.lineWidth=.65;
     for(const line of meridians)strokeTrack(line,cx,cy,r);
@@ -352,7 +352,7 @@
         }
       }
     }
-    if(!map||previousWorld&&!detailedMap)drawCoastline(cx,cy,r);
+    if(!map||previousWorld&&!detailedMap)drawCoastline(cx,cy,r,!textured);
     if(layer.value==='iss'&&currentISS){
       const p=project(currentISS.longitude,currentISS.latitude,cx,cy,r);
       if(p.front>0){
