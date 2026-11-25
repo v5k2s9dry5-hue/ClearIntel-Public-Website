@@ -228,7 +228,7 @@ function reportExport(payload,search){
 
 let countryList;
 function loadCountries(){
-  countryList??=fetch('/assets/countries.json').then(r=>r.json()).then(data=>data.events)
+  countryList??=fetch('/assets/countries.json').then(r=>{if(!r.ok)throw Error('Country index unavailable');return r.json();}).then(data=>{if(!Array.isArray(data?.events))throw Error('Invalid country index');return data.events;})
     .catch(error=>{countryList=null;throw error;});
   return countryList;
 }
@@ -357,6 +357,13 @@ function researchCorrelation(rows){
   return details;
 }
 
+function safeResearchLink(value){
+  try{const url=new URL(value);return url.protocol==='https:'&&!url.username&&!url.password?url.href:null;}catch(_){return null;}
+}
+function researchDate(value){
+  const date=typeof value==='string'&&value.trim()?new Date(value):null;
+  return date&&Number.isFinite(date.getTime())?date:null;
+}
 function renderResults(payload,search){
   const area=$('news-results');area.replaceChildren();
   const checked = Array.isArray(payload.sources_checked) ? payload.sources_checked : [];
@@ -387,8 +394,12 @@ function renderResults(payload,search){
   const entries=[];
   for(const article of payload.results){
     const card=el('article','result-card');
-    const eyebrow=el('div','result-meta',article.source+' · '+(article.time_basis||'Feed time')+' · '+new Date(article.feed_time_utc).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'})+' UTC');
-    const link=el('a','result-title',article.title);link.href=article.url;link.target='_blank';link.rel='noopener noreferrer nofollow';
+    const date=researchDate(article.feed_time_utc);
+    const when=date?date.toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'})+' UTC':'Unknown';
+    const eyebrow=el('div','result-meta',article.source+' · '+(article.time_basis||'Feed time')+' · '+when);
+    const href=safeResearchLink(article.url);
+    const link=el(href?'a':'strong','result-title',article.title);
+    if(href){link.href=href;link.target='_blank';link.rel='noopener noreferrer nofollow';}
     const incidentTime=search.incidentOnly&&article.incident_time_utc==null?' · Incident time unknown':'';
     card.append(eyebrow,link,el('div','result-provider',article.provider+incidentTime));
     const citationRow=el('div','citation-row');
@@ -398,13 +409,12 @@ function renderResults(payload,search){
     const copyStatus=el('span','citation-status');
     copyStatus.setAttribute('role','status');
     copy.addEventListener('click',async()=>{
-      const date=new Date(article.feed_time_utc);
-      const when=Number.isFinite(date.getTime())?date.toISOString():'Unknown';
+      const when=date?date.toISOString():'Unknown';
       const citation=[
         article.title,
         'Publisher: '+(article.source||'Unknown'),
         'Feed timestamp: '+when,
-        'Source: '+(article.url||'Unavailable'),
+        'Source: '+(href||'Unavailable'),
         'Public reporting lead; not independently verified.'
       ].join('\n');
       if(!navigator.clipboard?.writeText){copyStatus.textContent='Clipboard unavailable in this browser.';return;}
@@ -419,9 +429,8 @@ function renderResults(payload,search){
     citationRow.append(copy,copyStatus);
     card.append(citationRow);
     if(window.ClearIntelCollection){const bookmark=el('button','globe-control','Save to collection');bookmark.type='button';bookmark.addEventListener('click',()=>{bookmark.textContent=window.ClearIntelCollection.add(article)?'Saved to collection':'Check collection status';});card.append(bookmark);}
-    const date=new Date(article.feed_time_utc);
     card.append(el('span','analyst-only analyst-metadata',
-      'Exact feed timestamp: '+(Number.isFinite(date.getTime())?date.toISOString():'unknown')+' · Headline is a research lead'));
+      'Exact feed timestamp: '+(date?date.toISOString():'unknown')+' · Headline is a research lead'));
     if(exportUi)card.append(exportUi.choiceFor(article));
     entries.push({card,article});
     list.append(card);

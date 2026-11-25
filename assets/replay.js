@@ -13,6 +13,7 @@
   const exportSnapshot = $('replay-export-snapshot');
   const removeSnapshot = $('replay-remove-snapshot');
   const queryFilter=$('replay-query-filter'),periodFilter=$('replay-period-filter'),filterCount=$('replay-filter-count');
+  const resetFilters = $('replay-reset-filters');
   const compareButton = $('replay-compare-button');
   const compareEarlier=$('replay-compare-earlier');
   const compareHint = $('replay-compare-hint');
@@ -28,7 +29,7 @@
 
   const short = (value, max) => String(value ?? '').slice(0, max);
   const utc = value => {
-    const date = new Date(value);
+    const date = typeof value==='string'&&value.trim()?new Date(value):new Date(NaN);
     return Number.isFinite(date.getTime()) ?
       date.toLocaleString('en-GB', {timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short'}) + ' UTC' :
       'Unknown';
@@ -55,8 +56,14 @@
       const value = localStorage.getItem(KEY);
       const data = value ? JSON.parse(value) : [];
       if (!Array.isArray(data)) throw new Error('Invalid snapshot format');
-      snapshots = data.filter(s => s && typeof s.id === 'string' &&
-        typeof s.observed_at_utc === 'string' && Array.isArray(s.articles)).slice(0, MAX_SNAPSHOTS);
+      const seen = new Set();
+      snapshots = data.filter(s => s && typeof s.id === 'string' && s.id &&
+        typeof s.observed_at_utc === 'string' && Number.isFinite(Date.parse(s.observed_at_utc)) &&
+        Array.isArray(s.articles) && !seen.has(s.id) && seen.add(s.id)).slice(0, MAX_SNAPSHOTS).map(s=>({...s,
+          articles:s.articles.filter(a=>a && typeof a==='object' && typeof a.title==='string').slice(0,MAX_RESULTS),
+          sources_checked:Array.isArray(s.sources_checked)?s.sources_checked.slice(0,20):[],
+          provider_errors:Array.isArray(s.provider_errors)?s.provider_errors.slice(0,12):[]
+        }));
     } catch (_) {
       storageReadable = false;
       snapshots = [];
@@ -72,13 +79,18 @@
       (a.window === '7d' ? '7d' : '24h') === (b.window === '7d' ? '7d' : '24h') &&
       Boolean(a.incident_only) === Boolean(b.incident_only);
   }
-  function previousFor(snapshot) {
+  function earlierCandidates(snapshot) {
     const index=snapshots.indexOf(snapshot);
-    return index<0 ? null : snapshots.slice(index+1).find(s=>searchMatches(s,snapshot)) || null;
+    if(index<0)return [];
+    const time=Date.parse(snapshot.observed_at_utc);
+    return snapshots.filter((s,i)=>s!==snapshot && searchMatches(s,snapshot) &&
+      (Date.parse(s.observed_at_utc)<time || (Date.parse(s.observed_at_utc)===time && i>index)))
+      .sort((a,b)=>Date.parse(b.observed_at_utc)-Date.parse(a.observed_at_utc));
   }
   function sourceKey(article) {
     const href=sourceLink(article.url);
-    return href ? 'link:'+href : 'unlinked:'+short(article.source,100).toLowerCase()+':'+short(article.title,240).toLowerCase();
+    if(href){const url=new URL(href);url.hash='';return 'link:'+url.href;}
+    return 'unlinked:'+short(article.source,100).toLowerCase()+':'+short(article.title,240).toLowerCase();
   }
   function uniqueArticles(snapshot) {
     const found=new Map();
@@ -109,6 +121,7 @@
     if(href){label.href=href;label.target='_blank';label.rel='noopener noreferrer nofollow';}
     li.append(label,node('span','replay-article-info','Publisher: '+short(article.source||'Unknown',100)+
       ' · Feed time: '+utc(article.feed_time_utc)));
+    if(article.incident_time_utc)li.append(node('span','replay-article-info','Reported incident time: '+utc(article.incident_time_utc)));
     return li;
   }
   function drawComparison(older,newer) {
@@ -176,8 +189,7 @@
     comparison=null;
     comparePanel.hidden=true;
     compareResult.replaceChildren();
-    const index=snapshots.indexOf(snapshot);
-    const candidates=index<0?[]:snapshots.slice(index+1).filter(s=>searchMatches(s,snapshot));
+    const candidates=earlierCandidates(snapshot);
     compareEarlier.replaceChildren(...candidates.map(s=>new Option(utc(s.observed_at_utc)+' · '+s.articles.length+' headlines',s.id)));
     compareEarlier.disabled=!candidates.length;
     const older=candidates[0];
@@ -292,7 +304,7 @@
         'Only the first ' + snapshot.articles.length + ' of ' + snapshot.total_results +
         ' returned headlines were retained in this browser snapshot.'));
     if (!snapshot.articles.length) {
-      detail.append(node('p', 'replay-empty', 'No matching headlines were returned by the checked sources in this snapshot. This does not establish that no event occurred.'));
+      detail.append(node('p', 'replay-empty', checked.length ? 'No matching headlines were returned by the checked sources in this snapshot. This does not establish that no event occurred.' : 'No completed source check was recorded for this older or incomplete snapshot. It cannot establish whether matching headlines existed.'));
       return;
     }
     const items = node('ol', 'replay-articles');
@@ -324,6 +336,7 @@
       String(snapshot.query || '').toLowerCase().includes(query) &&
       (periodFilter.value === 'all' || Date.parse(saveTime(snapshot)) >= cutoff));
     filterCount.textContent=filtered.length+' of '+snapshots.length+' saved snapshots shown.';
+    if(resetFilters)resetFilters.disabled=!query&&periodFilter.value==='all';
     select.disabled=!filtered.length;
     exportSnapshot.disabled = select.disabled;
     removeSnapshot.disabled = select.disabled || !storageReadable;
@@ -381,6 +394,7 @@
 
   queryFilter.addEventListener('input',()=>render(select.value));
   periodFilter.addEventListener('change',()=>render(select.value));
+  resetFilters?.addEventListener('click',()=>{queryFilter.value='';periodFilter.value='all';render(select.value);queryFilter.focus();});
   save.addEventListener('click', () => {
     if (!latest || save.disabled) return;
     const snapshot = makeSnapshot();
@@ -436,7 +450,8 @@
       provider: short(article.provider, 80),
       source_url: sourceLink(article.url),
       source_time_utc: short(article.feed_time_utc, 50),
-      time_basis: short(article.time_basis, 40)
+      time_basis: short(article.time_basis, 40),
+      incident_time_utc: short(article.incident_time_utc,50)||null
     };
   }
 
@@ -490,7 +505,7 @@
   });
   compareButton.addEventListener('click',()=>{
     const selected=snapshots.find(s=>s.id===select.value);
-    const older=selected&&snapshots.find(s=>s.id===compareEarlier.value&&snapshots.indexOf(s)>snapshots.indexOf(selected)&&searchMatches(s,selected));
+    const older=selected&&earlierCandidates(selected).find(s=>s.id===compareEarlier.value);
     if(!older)return;
     drawComparison(older,selected);
     comparePanel.hidden=false;

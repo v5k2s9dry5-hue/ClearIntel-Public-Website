@@ -721,6 +721,29 @@ def check_site(browser, width):
         const empty = searchCoverage({sources_checked: [], provider_errors: []});
         if (empty.dataset.health !== 'not-checked') throw Error('Unqueried feeds mislabeled');
     }""")
+    # Defensive rendering of invalid provider data, even if the API normally sanitizes it.
+    page.evaluate("""data => {
+        const article = {...data.results[0], url:"javascript:alert(1)", feed_time_utc:null};
+        renderResults({...data, results:[article]}, {query:"UK", window:"24h", incidentOnly:false});
+        if (document.querySelector("#news-results a.result-title") ||
+            !document.querySelector("#news-results .result-meta").textContent.includes("Unknown"))
+            throw Error("Unsafe link or missing timestamp misrepresented");
+        if (safeResearchLink("https://user:password@example.org/") !== null ||
+            safeResearchLink("https://example.org/story") !== "https://example.org/story")
+            throw Error("Research URL validation failed");
+    }""", NEWS)
+    page.evaluate("""async () => {
+        const saved = countryList, originalFetch = window.fetch;
+        try {
+            countryList = null;
+            window.fetch = async () => ({ok:false,json:async()=>({events:[]})});
+            let failed = false;
+            try { await loadCountries(); } catch (_) { failed = true; }
+            if (!failed || countryList !== null) throw Error("Failed country index was cached");
+            window.fetch = async () => ({ok:true,json:async()=>({events:[{id:"GB"}]})});
+            if ((await loadCountries())[0].id !== "GB") throw Error("Country index retry failed");
+        } finally { countryList = saved; window.fetch = originalFetch; }
+    }""")
     page.locator("#news-query").fill("UK")
     page.locator("#news-submit").click()
     page.locator("#news-results .result-title").wait_for()
@@ -800,7 +823,10 @@ def check_site(browser, width):
     assert page.locator("#replay-select").is_disabled()
     assert "0 of 2" in page.locator("#replay-filter-count").inner_text()
     assert page.get_by_role("button", name="Download snapshot JSON").is_disabled()
-    page.locator("#replay-query-filter").fill("")
+    page.get_by_role("button", name="Reset history filters").click()
+    assert page.locator("#replay-query-filter").input_value() == ""
+    assert page.locator("#replay-query-filter").evaluate("(e) => e === document.activeElement")
+    assert page.get_by_role("button", name="Reset history filters").is_disabled()
     page.locator("#replay-period-filter").select_option("1")
     assert page.locator("#replay-select option").count() == 2
     page.locator("#replay-period-filter").select_option("all")
@@ -1157,6 +1183,30 @@ def check_site(browser, width):
     assert not page.get_by_role("link", name="Netherlands", exact=True).is_visible()
     page.get_by_label("Find a country or territory").fill("xyzxyz")
     page.get_by_text("No matching country or territory").wait_for()
+    # Malformed legacy local history must not crash or reverse observation chronology.
+    page.evaluate("""() => {
+        const base = {query:"Fixture history", window:"24h", incident_only:false, total_results:1,
+          sources_checked:["fixture"],provider_errors:[]};
+        const article = {title:"Fixture report",source:"Fixture",url:"https://example.org/story#old",
+          feed_time_utc:"2026-11-20T00:00:00Z",incident_time_utc:"2026-11-19T00:00:00Z"};
+        const early = {...base,id:"early",observed_at_utc:"2026-11-20T00:00:00Z",articles:[article,null]};
+        const late = {...base,id:"late",observed_at_utc:"2026-11-21T00:00:00Z",articles:[{...article,url:"https://example.org/story#new"}]};
+        const outage = {...base,id:"outage",query:"Legacy outage",observed_at_utc:"2026-11-22T00:00:00Z",total_results:0,articles:[],sources_checked:[],provider_errors:["fixture: timeout"]};
+        localStorage.setItem("clearintel.replay.snapshots.v1",JSON.stringify([early,late,outage,early,{id:"bad",observed_at_utc:"bad",articles:[]} ]));
+    }""")
+    page.goto(ROOT, wait_until="domcontentloaded")
+    page.locator("#replay-select").wait_for()
+    assert page.locator("#replay-select option").count() == 3
+    page.locator("#replay-select").select_option("late")
+    assert page.locator("#replay-compare-earlier").input_value() == "early"
+    page.get_by_role("button", name="Compare with earlier snapshot").click()
+    assert "1 unchanged" in page.locator(".replay-compare-summary").inner_text()
+    with page.expect_download() as replay_legacy_export:
+        page.locator("#replay-export-comparison").click()
+    with open(replay_legacy_export.value.path(), encoding="utf-8") as exported:
+        assert json.load(exported)["unchanged"][0]["incident_time_utc"] == "2026-11-19T00:00:00Z"
+    page.locator("#replay-select").select_option("outage")
+    assert page.locator("#replay-detail").get_by_text("No completed source check was recorded", exact=False).is_visible()
     assert not errors, "Browser JS errors: " + "; ".join(errors)
     print(("Mobile" if mobile else "Desktop") + " research, globe, PDF, and tooltip checks passed")
     context.close()
