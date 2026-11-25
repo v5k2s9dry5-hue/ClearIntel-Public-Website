@@ -313,6 +313,20 @@ def check_site(browser, width):
     page.locator("#sanctions-load").click()
     page.locator("#sanctions-results a").wait_for()
     assert page.locator("#sanctions-results a").inner_text() == "Fixture OFSI update"
+    guide = page.locator("#dashboard-source-guide")
+    guide.locator("summary").click()
+    assert "Not checked" in guide.locator("#iaea-status").inner_text()
+    page.route("**/api/intelligence-feed/iaea", lambda route: route_json(route, {
+        "status": "available", "checked_at_utc": auto_stamp, "reports": [{
+            "title": "Fixture IAEA publication",
+            "url": "https://www.iaea.org/newscenter/news/fixture",
+            "published_at_utc": auto_stamp,
+        }],
+    }))
+    guide.get_by_role("button", name="Check IAEA publications").click()
+    guide.locator("#iaea-results a").wait_for()
+    assert guide.locator("#iaea-results a").inner_text() == "Fixture IAEA publication"
+    guide.locator("summary").click()
     page.locator("#pulse-source-health summary").click()
     assert page.locator("#pulse-health-list li").count() == 7
     assert "ECB · Current" in page.locator("#pulse-health-list").inner_text()
