@@ -68,6 +68,39 @@ class NewsTests(unittest.TestCase):
         self.assertFalse(lookup('uk', 'GB', True))
         self.assertFalse(lookup('spain', 'ES', False))
 
+    def test_duplicate_headlines_keep_a_stable_copy_with_publication_time(self):
+        title = "United Kingdom rail services disrupted by flooding"
+        rows = [
+            {"title": title, "url": "https://example.org/report", "published": NOW.isoformat(),
+             "source": "Example News", "provider": "GDELT", "time_basis": "First seen by GDELT"},
+            {"title": title + " - Example News", "url": "https://news.google.com/rss/articles/example",
+             "published": (NOW - timedelta(hours=3)).isoformat(), "source": "Example News",
+             "provider": "Google News", "time_basis": "Publication time via Google News"},
+            {"title": title, "url": "https://example.org/report", "published": (NOW - timedelta(hours=2)).isoformat(),
+             "source": "Example News", "provider": "Bing News", "time_basis": "Publication time via Bing News"},
+        ]
+        left = search_news("UK rail", now=NOW, incident_only=False, fetchers=[fake(rows)])["results"]
+        right = search_news("UK rail", now=NOW, incident_only=False, fetchers=[fake(rows[::-1])])["results"]
+        self.assertEqual(left, right)
+        self.assertEqual(len(left), 1)
+        self.assertEqual(left[0]["provider"], "Bing News")
+        self.assertEqual(left[0]["url"], "https://example.org/report")
+        self.assertEqual(left[0]["feed_time_utc"], (NOW - timedelta(hours=2)).isoformat())
+
+    def test_suffix_only_stripped_when_it_is_the_publisher(self):
+        rows = [{"title": title, "url": f"https://example.org/{index}", "published": NOW.isoformat(),
+                 "source": source} for index, (title, source) in enumerate([
+            ("Rail investigation - United Kingdom", "Rail Desk"),
+            ("Rail investigation - United States", "Rail Desk"),
+            ("Rail investigation - UK Rail Desk", "UK Rail Desk"),
+        ])]
+        result = search_news("rail investigation", now=NOW, incident_only=False, fetchers=[fake(rows)])
+        self.assertEqual({row["title"] for row in result["results"]},
+                         {"Rail investigation - United Kingdom", "Rail investigation - United States",
+                          "Rail investigation"})
+        uk = search_news("UK", now=NOW, incident_only=False, fetchers=[fake([rows[-1]])])
+        self.assertEqual(uk["results"], [])
+
     def test_date_formats(self):
         self.assertEqual(_date('20261119T170000Z'),NOW)
         self.assertEqual(_date('Thu, 19 Nov 2026 17:00:00 GMT'),NOW)
