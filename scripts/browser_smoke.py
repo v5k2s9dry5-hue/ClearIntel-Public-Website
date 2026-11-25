@@ -722,6 +722,15 @@ def check_site(browser, width):
     page.locator("#national-alert-list").get_by_text("Fixture river", exact=False).wait_for()
     assert len(national_requests) == 1
     assert page.locator("#national-alert-list").get_by_text("source timezone unspecified", exact=False).is_visible()
+    page.locator("#national-alert-query").fill("no match")
+    assert page.locator("#national-alert-list li").first.is_hidden()
+    assert "0 of 1" in page.locator("#national-alert-filter-count").inner_text()
+    page.locator("#national-alert-reset").click()
+    assert page.locator("#national-alert-list li").first.is_visible()
+    page.locator("#national-alert-severity").select_option("Flood Warning")
+    assert page.locator("#national-alert-list li").first.is_visible()
+    assert len(national_requests) == 1
+
     page.locator("#national-alert-source").select_option("us")
     assert page.locator("#national-alert-list li").count() == 0
     page.route("**/api/national-alerts/us", lambda route: route_json(route, {"status":"unavailable","alerts":[]}))
