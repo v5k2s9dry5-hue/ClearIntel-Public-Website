@@ -11,7 +11,7 @@ from time import monotonic
 from urllib.parse import urlencode, urlsplit
 
 from current_events import editorial_events, country_timeline
-from news import _collect, _date, _get, _parse_google_rss, _safe_link, fetch_gdelt, fetch_google, fetch_bing, search_news
+from news import _collect, _date, _get, _headline_without_source, _parse_google_rss, _safe_link, fetch_gdelt, fetch_google, fetch_bing, search_news
 
 COUNTRY_POINTS = Path(__file__).with_name('assets') / 'countries.json'
 COUNTRIES = {
@@ -282,12 +282,28 @@ def search_research(query, days, incident_only):
             return _publisher_reports(url, source, code, True)
         return guardian_reports(code, COUNTRIES[code])
 
-    return search_news(query, days, incident_only, country_code=code,
-                       fetchers=(fetch_country_section, fetch_google, fetch_bing, fetch_gdelt))
+    name = COUNTRIES[code]
+    names = (name, *ALIASES.get(code, ()))
+    topic = _country_provider_topic(names)
+    providers = tuple(_scoped_provider(provider, topic) for provider in (fetch_google, fetch_bing, fetch_gdelt))
+    return search_news(name, days, incident_only, country_code=code,
+                       headline_match=lambda title: _match_country(title, code, names),
+                       fetchers=(fetch_country_section, *providers))
+
+
+def _country_provider_topic(names):
+    return '(' + ' OR '.join(f'"{name}"' for name in names) + ')'
+
+
+def _scoped_provider(provider, topic):
+    def fetch(query, days, incident_only):
+        return provider(query, days, incident_only, topic=topic)
+    fetch.__name__ = provider.__name__
+    return fetch
 
 
 def _fetch_country_reports(code, name, names, now):
-    topic = ' OR '.join(f'"{term}"' for term in names)
+    topic = _country_provider_topic(names)
 
     def fetch_national_edition(*_args):
         # An empty or invalid edition may still have searchable coverage.
@@ -298,7 +314,7 @@ def _fetch_country_reports(code, name, names, now):
             found = []
         if found:
             return found
-        return fetch_google(name, 2, False, topic=f'({topic})')
+        return fetch_google(name, 2, False, topic=topic)
 
     def fetch_current_events(*_args):
         return editorial_events(int(monotonic() // 300))
@@ -309,17 +325,11 @@ def _fetch_country_reports(code, name, names, now):
         return [article for year in dict.fromkeys((now.year, oldest.year))
                 for article in country_timeline(year, code, name, interval)]
 
-    def fetch_reports(provider):
-        def fetch(query, days, incident_only):
-            return provider(query, days, incident_only, topic=f'({topic})')
-        fetch.__name__ = provider.__name__
-        return fetch
-
-    regional = fetch_national_edition if code in EDITIONS else fetch_reports(fetch_google)
+    regional = fetch_national_edition if code in EDITIONS else _scoped_provider(fetch_google, topic)
     def fetch_guardian(*_args):
         return guardian_reports(code, name)
 
-    providers = [regional, fetch_guardian, fetch_country_digest, fetch_reports(fetch_gdelt),
+    providers = [regional, fetch_guardian, fetch_country_digest, _scoped_provider(fetch_gdelt, topic),
                  fetch_current_events, fetch_bing]
     if code in NATIONAL_FEEDS:
         def fetch_domestic_desk(*_args):
@@ -351,8 +361,8 @@ def _match_country(title, code, names):
 def _headlines(articles, code, names, now, *, weekly=False):
     headlines = []
     for article in articles:
-        title = str(article.get('title', '')).strip()
         source = str(article.get('source', '')).strip()
+        title = _headline_without_source(str(article.get('title', '')).strip(), source)
         url = str(article.get('url', '')).strip()
         stamp = _date(str(article.get('published', '')))
         if not (title and stamp and _safe_link(url)):
@@ -370,9 +380,6 @@ def _headlines(articles, code, names, now, *, weekly=False):
                 continue
         elif article.get('country_code') != code and not _match_country(title, code, names):
             continue
-        # RSS results often append the publisher to the headline.
-        if source and title.casefold().endswith(' - ' + source.casefold()):
-            title = title[:-(len(source) + 3)]
         if article.get('official') or source.casefold() in ('gov.uk', 'the white house', 'ukaid'):
             continue
         publisher_url = str(article.get('publisher_url', '')) or url

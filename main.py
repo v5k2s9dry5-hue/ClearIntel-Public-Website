@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field, ValidationError
 from news import _subject
 import country_pages
 from asset_versions import version_page, cache_policy
-from country_news import COUNTRIES, search_country_news, search_research as search_news
+from country_news import COUNTRIES, COUNTRY_QUERIES, search_country_news, search_research as search_news
 from earthquakes import router as earthquake_router
 from wildfires import router as wildfire_router
 from globe_texture import router as globe_texture_router
@@ -202,11 +202,11 @@ async def news(request: Request):
     if len(query) < 2 or any(ord(x) < 32 for x in query):
         raise HTTPException(400, "Enter a valid search with at least two characters.")
 
-    if not _subject(query):
+    if query not in COUNTRIES and not _subject(query):
         raise HTTPException(400, "Add a location or topic, such as a country or city name.")
 
     return await _cached_news(
-        request, (query, payload.window, payload.incident_only), SEARCH_CACHE_SECONDS,
+        request, (COUNTRY_QUERIES.get(query.casefold(), query), payload.window, payload.incident_only), SEARCH_CACHE_SECONDS,
         search_news, query, days=1 if payload.window == "24h" else 7,
         incident_only=payload.incident_only,
     )
