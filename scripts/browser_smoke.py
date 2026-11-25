@@ -731,7 +731,7 @@ def check_site(browser, width):
     assert "0 of 1" in page.locator("#national-alert-filter-count").inner_text()
     page.locator("#national-alert-load").click()
     page.locator("#national-alert-load").wait_for()
-    page.wait_for_function("!document.getElementById('national-alert-load').disabled")
+    page.locator("#national-alert-load:enabled").wait_for()
     assert len(national_requests) == before + 1
     assert page.locator("#national-alert-query").input_value() == "no match"
     assert page.locator("#national-alert-list li").first.is_hidden()
