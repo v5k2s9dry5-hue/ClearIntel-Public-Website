@@ -102,3 +102,13 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
 
 /* Prevent long native country options from imposing their intrinsic width. */
 #country-comparison,.comparison-selects,#compare-results{min-width:0;max-width:100%}.comparison-selects label{grid-template-columns:minmax(0,1fr)}.comparison-selects select{display:block;width:100%;min-width:0;max-width:100%}.comparison-selects button{max-width:100%;white-space:normal}#compare-results{overflow-wrap:anywhere}@media(max-width:480px){.comparison-selects{display:grid;grid-template-columns:minmax(0,1fr)}.comparison-selects label{width:100%}.comparison-selects button{justify-self:start}}
+
+.country-trend{margin:1rem 0;padding:.8rem 0;border-top:1px solid #345467;min-width:0}
+.country-trend summary{cursor:pointer;color:#a9eaf5;font-weight:700}
+.country-trend label{display:block;margin-bottom:.3rem}
+.country-trend select{display:block;width:100%;margin-bottom:.6rem;min-height:44px;padding:7px;background:#102336;color:#edf7ff;border:1px solid #36576c;border-radius:6px;font:inherit}
+.country-trend-chart{display:block;width:100%;max-width:480px;margin:.5rem auto;overflow:visible}
+.country-trend-chart text{fill:#b8d4df;font-size:12px;font-variant-numeric:tabular-nums}
+.trend-grid{stroke:#345467;stroke-dasharray:4 4}
+.trend-connector{stroke:#7ce2f3;stroke-width:2}
+.trend-point{fill:#adf0ff;stroke:#102336;stroke-width:1}

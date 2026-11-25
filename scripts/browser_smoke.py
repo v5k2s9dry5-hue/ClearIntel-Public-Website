@@ -915,6 +915,25 @@ def check_site(browser, width):
     assert audit["evidence"][0]["source_url"] == "https://example.org/manchester-news"
     assert audit["observed_at_utc"] == STAMP
     assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
+    trend_panel = page.locator("#country-trend")
+    trend_panel.locator("summary").click()
+    assert "Select an indicator" in trend_panel.locator("#trend-status").inner_text()
+    observations = [
+        {"indicator": "SP.POP.TOTL", "value": 66_000_000, "year": "2021"},
+        {"indicator": "SP.POP.TOTL", "value": 67_000_000, "year": "2023"},
+        {"indicator": "SP.POP.TOTL", "value": 68_000_000, "year": "2024"},
+    ]
+    page.route("**/api/country-trend/GB/SP.POP.TOTL", lambda route: route.fulfill(json={
+        "status": "available", "observations": observations,
+    }))
+    trend_panel.get_by_role("button", name="Load trend").click()
+    trend_panel.get_by_role("img", name="Population by year", exact=False).wait_for()
+    assert trend_panel.locator(".trend-point").count() == 3
+    assert trend_panel.locator(".trend-connector").count() == 1
+    assert trend_panel.get_by_text("68,000,000", exact=True).is_visible()
+    assert trend_panel.get_by_role("link", name="World Bank indicator source").get_attribute("href") == "https://data.worldbank.org/indicator/SP.POP.TOTL"
+    assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
+    trend_panel.locator("summary").click()
     # Exercise the directory in a separate page, preserving the profile tests.
     directory_page = context.new_page()
     try:
