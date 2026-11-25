@@ -626,6 +626,11 @@ def check_site(browser, width):
     expanded_canvas = page.locator("#expanded-map #earth-canvas")
     zoom_out = page.locator("#earth-zoom-out")
     assert zoom_out.is_disabled()
+    expanded_canvas.press("Equal")
+    assert zoom_out.is_enabled()
+    expanded_canvas.press("Minus")
+    assert zoom_out.is_disabled()
+    assert expanded_canvas.evaluate("(e) => document.activeElement === e")
     if mobile:
         box = expanded_canvas.bounding_box()
         x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
