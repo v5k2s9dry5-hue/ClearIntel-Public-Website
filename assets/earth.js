@@ -94,7 +94,9 @@
   const RAD = Math.PI / 180;
   const zoomLevels = [1,3,7];
   const UK_ZOOM = zoomLevels.at(-1);
-  let rot = -18, tilt = 19, playing = !reduced, dragPointer = null, px = 0, py = 0;
+  const defaultGlobe = {rot: -18, tilt: 19};
+  const defaultFlatMap = {rot: 0, tilt: 12};
+  let rot = defaultGlobe.rot, tilt = defaultGlobe.tilt, playing = !reduced, dragPointer = null, px = 0, py = 0;
   const touches = new Map();
   let pinchDistance = 0;
   let trackpadStartZoom = null;
@@ -557,7 +559,7 @@
     if(zoomIn)zoomIn.disabled=zoom===UK_ZOOM;
     if(zoomOut)zoomOut.disabled=zoom===1;
     ukView.textContent=previousWorld?'World view':'Zoom to UK';
-    resetMap.disabled=zoom===1&&rot===0&&tilt===12;
+    syncResetMap();
     updateMapCredit();
     if(zoom>1 && (wasWorld || zoomLevels.includes(zoom)))loadDetailedMap();
   }
@@ -615,13 +617,16 @@
     if (Number.isFinite(event.scale)) zoomTo(trackpadStartZoom * event.scale);
   });
   canvas.addEventListener('gestureend', () => { trackpadStartZoom = null; });
-  function resetFlatMap(){
+  function syncResetMap(){
+    resetMap.disabled = flatMap && zoom === 1 && rot === defaultFlatMap.rot && tilt === defaultFlatMap.tilt;
+  }
+  function resetView(){
     previousWorld=null;
-    rot=0;tilt=12;
+    ({rot,tilt} = flatMap ? defaultFlatMap : defaultGlobe);
     setZoom(1);
     draw();
   }
-  resetMap.addEventListener('click',resetFlatMap);
+  resetMap.addEventListener('click',resetView);
 
   function updateProjection(){
     flatMap=archiveActive&&preferFlat;
@@ -630,7 +635,7 @@
     flatButton.setAttribute('aria-pressed',String(flatMap));
     globeButton.setAttribute('aria-pressed',String(!flatMap));
     motion.hidden=flatMap;
-    resetMap.hidden=!flatMap;
+    syncResetMap();
     ukView.hidden=flatMap;
     canvas.setAttribute('aria-label',flatMap
       ? 'Interactive map of past public reports. Select a marker or use the feed.'
