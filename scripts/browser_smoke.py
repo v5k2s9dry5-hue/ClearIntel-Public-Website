@@ -944,10 +944,13 @@ def check_site(browser, width):
     page.get_by_role("heading", name="Filtered search unavailable").wait_for()
     assert page.get_by_role("button", name="Save current snapshot").is_disabled()
     assert page.locator("#replay-status").inner_text() == "No completed source check to save."
+    assert page.locator("#news-results .report-export").count() == 0
     empty_news["sources_checked"] = ["Fixture provider"]
     empty_news["provider_errors"] = []
     page.locator("#news-submit").click()
     page.locator("#news-results .empty-results").get_by_text("Try a broader term", exact=False).wait_for()
+    assert page.locator("#news-results .report-export").get_by_role("button", name="Download PDF").is_enabled()
+    assert page.locator("#news-results .report-export").get_by_role("button", name="Download evidence JSON").is_enabled()
     page.get_by_role("button", name="Save current snapshot").click()
     assert page.locator("#replay-detail").get_by_text("No matching headlines were returned", exact=False).is_visible()
     page.once("dialog", lambda dialog: dialog.accept())
