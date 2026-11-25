@@ -63,6 +63,20 @@ class DedicatedFeedTests(unittest.TestCase):
             "published_at_utc": "2026-11-23T08:00:00+00:00",
         }])
 
+    def test_weather_feed_preserves_distinct_warnings_and_original_titles(self):
+        xml = b"""<rss><channel>
+        <item><title>Yellow warning  for rain</title><link>https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings</link><pubDate>Tue, 24 Nov 2026 08:00:00 GMT</pubDate></item>
+        <item><title>Yellow warning for wind</title><link>https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings</link><pubDate>Tue, 24 Nov 2026 09:00:00 GMT</pubDate></item>
+        </channel></rss>"""
+        self.assertNotIn("weather-uk", f.PULSE_CATEGORIES)
+        with patch.object(f, "_download", return_value=xml):
+            result = f.feed("weather-uk")
+        self.assertEqual(result["status"], "available")
+        self.assertEqual([row["title"] for row in result["reports"]],
+                         ["Yellow warning for wind", "Yellow warning  for rain"])
+        self.assertTrue(all(row["url"] == "https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings"
+                            for row in result["reports"]))
+
     def test_rejected_items_not_reported_as_empty_success(self):
         xml = b"""<rss><channel><item><title>Invalid link</title><link>http://example.org/report</link><pubDate>Tue, 24 Nov 2026 08:00:00 GMT</pubDate></item></channel></rss>"""
         with self.assertRaises(ValueError):

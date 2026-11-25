@@ -314,6 +314,20 @@ def check_site(browser, width):
     page.locator("#sanctions-load").click()
     page.locator("#sanctions-results a").wait_for()
     assert page.locator("#sanctions-results a").inner_text() == "Fixture OFSI update"
+    uk_warnings = {"status": "available", "checked_at_utc": auto_stamp, "reports": []}
+    page.route("**/api/intelligence-feed/weather-uk", lambda route: route_json(route, uk_warnings))
+    assert "not checked" in page.locator("#weather-uk-status").inner_text()
+    warning_check = page.get_by_role("button", name="Check UK warning feed")
+    warning_check.click()
+    page.locator("#weather-uk-status").get_by_text("No warning items returned", exact=False).wait_for()
+    uk_warnings["reports"] = [{
+        "title": "Fixture Met Office warning",
+        "url": "https://weather.metoffice.gov.uk/warnings-and-advice/uk-warnings",
+        "published_at_utc": auto_stamp,
+    }]
+    warning_check.click()
+    page.locator("#weather-uk-results a").wait_for()
+    assert page.locator("#weather-uk-results a").inner_text() == "Fixture Met Office warning"
     guide = page.locator("#dashboard-source-guide")
     guide.locator("summary").click()
     assert "Not checked" in guide.locator("#iaea-status").inner_text()

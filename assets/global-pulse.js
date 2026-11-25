@@ -274,7 +274,7 @@
         const url=safeUrl(report.url), time=Date.parse(report.published_at_utc);
         if(!url||!Number.isFinite(time))continue;
         const li=document.createElement('li'), link=document.createElement('a'), meta=document.createElement('small');
-        link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=String(report.title).slice(0,240);
+        link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=String(report.title);
         meta.textContent=new Date(time).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'})+' UTC · Source publication/update';
         li.append(link,meta);items.push(li);
       }
@@ -326,7 +326,7 @@
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){render();refreshSummary();}});
   setInterval(refreshSummary,30000);
   refreshSummary();
-  function bindPublicationFeed(key,label,dateBasis){
+  function bindPublicationFeed(key,label,dateBasis,emptyMessage){
     const button=document.getElementById(key+'-load');
     const status=document.getElementById(key+'-status');
     const results=document.getElementById(key+'-results');
@@ -343,17 +343,25 @@
           const url=safeUrl(report.url),stamp=Date.parse(report.published_at_utc);
           if(!url||!Number.isFinite(stamp))continue;
           const li=document.createElement('li'),link=document.createElement('a'),meta=document.createElement('small');
-          link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=String(report.title).slice(0,240);
+          link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=String(report.title);
           meta.textContent=new Date(stamp).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'})+' UTC · '+dateBasis;
           li.append(link,meta);rows.push(li);
         }
         results.replaceChildren(...rows);
         const checked=Date.parse(data.checked_at_utc);
-        status.textContent=(data.status==='stale'?'Older snapshot · ':'Latest available publications · ')+rows.length+' displayed'+(Number.isFinite(checked)?' · Checked '+new Date(checked).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'short',timeStyle:'short'})+' UTC':'');
+        const sourceTime=Number.isFinite(checked)
+          ? ' · Checked '+new Date(checked).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'short',timeStyle:'short'})+' UTC'
+          : '';
+        const count=emptyMessage
+          ? (rows.length ? rows.length+' warning items shown' : emptyMessage)
+          : rows.length+' publications shown';
+        status.textContent=(data.status==='stale'?'Older snapshot · ':'')+count+sourceTime;
       }catch(_){status.textContent=results.children.length?'Refresh unavailable; retained earlier results.':'Source unavailable. Open '+label+' directly.';}
       finally{button.disabled=false;}
     });
   }
   bindPublicationFeed('sanctions','OFSI','OFSI publication/update');
   bindPublicationFeed('iaea','the IAEA','IAEA publication');
+  bindPublicationFeed('weather-uk','the Met Office','Met Office feed time',
+    'No warning items returned. Check the Met Office for current guidance.');
 })();

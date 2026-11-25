@@ -24,6 +24,10 @@ PULSE_CATEGORIES = tuple(SOURCES)
 SOURCES['sanctions'] = ('UK OFSI', 'https://www.gov.uk/government/organisations/office-of-financial-sanctions-implementation.atom', 'https://www.gov.uk/government/organisations/office-of-financial-sanctions-implementation', {'www.gov.uk'})
 SOURCES["iaea"] = ("International Atomic Energy Agency", "https://www.iaea.org/feeds/news",
                    "https://www.iaea.org/newscenter/news", {"www.iaea.org"})
+SOURCES["weather-uk"] = ("Met Office",
+                         "https://www.metoffice.gov.uk/public/data/PWSCache/WarningsRSS/Region/UK",
+                         "https://weather.metoffice.gov.uk/warnings-and-advice/uk-warnings",
+                         {"www.metoffice.gov.uk", "weather.metoffice.gov.uk"})
 LEGACY_HTTP_HOSTS = {"www.gdacs.org", "gdacs.org", "www.iaea.org"}
 TTL = 300
 MAX_BYTES = 1024 * 1024
@@ -54,7 +58,7 @@ def _date(value):
     except (ValueError, TypeError, OverflowError):
         return None
 
-def parse_feed(data, hosts):
+def parse_feed(data, hosts, *, weather_warnings=False):
     if len(data) > MAX_BYTES or b"<!DOCTYPE" in data.upper() or b"<!ENTITY" in data.upper() or b"\x00" in data:
         raise ValueError("Unsafe XML")
     root = ET.fromstring(data)
@@ -66,7 +70,12 @@ def parse_feed(data, hosts):
         if node.tag.rsplit("}", 1)[-1] not in {"entry", "item"}:
             continue
         item_count += 1
-        title = _text(node, "title")
+        if weather_warnings:
+            title = next((child.text for child in node if child.tag.rsplit("}", 1)[-1] == "title"), None)
+            if not title or not title.strip() or len(title) > 500:
+                continue
+        else:
+            title = _text(node, "title")
         stamp = next((date for field in ("published", "pubDate", "updated", "date") if (date := _date(_text(node, field))) is not None), None)
         link = _text(node, "link")
         for child in node:
@@ -85,7 +94,7 @@ def parse_feed(data, hosts):
         except ValueError:
             valid = False
         if title and stamp and valid and len(link) <= 2048 and not any(ord(c) < 33 or c == "\\" for c in link):
-            row = {"title": title[:240], "url": link, "published_at_utc": stamp}
+            row = {"title": title if weather_warnings else title[:240], "url": link, "published_at_utc": stamp}
             if url.hostname in {"www.gdacs.org", "gdacs.org"}:
                 # Only structured natural-hazard alerts receive severity or map points.
                 # No inference from headlines, troop positions, or conflict reports.
@@ -101,7 +110,7 @@ def parse_feed(data, hosts):
                     row.update({"severity": "amber" if level == "orange" else level,
                                 "hazard_type": event_type, "latitude": lat, "longitude": lon,
                                 "country": _text(node, "country")[:120]})
-            rows[link] = row
+            rows[(link, title, stamp) if weather_warnings else link] = row
     if item_count and not rows:
         raise ValueError("Feed contains items but no valid dated source links")
     return sorted(rows.values(), key=lambda x: x["published_at_utc"], reverse=True)[:30]
@@ -124,7 +133,7 @@ def feed(category: str):
             snapshot = _cache.get(category)
             if (not snapshot or monotonic() - snapshot[0] >= TTL) and monotonic() >= _retry.get(category, 0):
                 try:
-                    rows = parse_feed(_download(url), hosts)
+                    rows = parse_feed(_download(url), hosts, weather_warnings=category == "weather-uk")
                     snapshot = (monotonic(), datetime.now(timezone.utc).isoformat(), rows)
                     _cache[category] = snapshot
                     _retry.pop(category, None)
