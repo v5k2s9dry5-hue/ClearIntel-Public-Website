@@ -154,6 +154,16 @@ def check_site(browser, width):
         if(panel.querySelectorAll('.correlation-group').length!==3||panel.querySelector('a[href^="javascript:"]'))throw Error('Unsafe comparison rendering');
     }""")
     assert page.locator("#globe-layer").input_value() == "incidents"
+    alert_filters = page.locator("#incident-filters")
+    if mobile:
+        assert not alert_filters.evaluate("(details) => details.open")
+        assert page.locator("#incident-severity").is_hidden()
+        assert page.locator("#globe-layer").evaluate("(select) => select.clientWidth >= 160")
+        map_depth = page.locator("#earth-canvas").bounding_box()["y"] - page.locator("#dashboard-map").bounding_box()["y"]
+        assert map_depth < 280, map_depth
+    else:
+        assert alert_filters.evaluate("(details) => details.open")
+
     canvas = page.locator("#earth-canvas")
     assert canvas.get_attribute("tabindex") == "0"
     canvas.focus()
@@ -199,6 +209,9 @@ def check_site(browser, width):
     assert page.locator('.incident-counts button[data-severity="amber"]').get_attribute("aria-pressed") == "true"
     page.locator('.incident-counts button[data-severity="amber"]').click()
     assert page.locator("#incident-severity").input_value() == "all"
+    if mobile:
+        alert_filters.locator("summary").click()
+        assert page.locator("#incident-severity").is_visible()
     page.locator("#incident-window").select_option("7")
     assert page.locator("#quake-window").input_value() == "7"
     page.locator("#incident-window").select_option("1")
