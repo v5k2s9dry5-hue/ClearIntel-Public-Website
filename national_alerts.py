@@ -67,7 +67,7 @@ def parse_alerts(code, payload, now=None):
             raw_time = source_stamp(item.get("timeRaised"))
             issued = stamp(raw_time) if raw_time else None
             if not ident or not area or not raw_time:
-                continue
+                raise ValueError("Active flood warning missing required fields")
             rows[ident] = {"title": severity, "severity": severity, "area": area,
                            "time_utc": issued, "source_time": raw_time if not issued else None,
                            "time_basis": "Source warning time",
@@ -81,13 +81,15 @@ def parse_alerts(code, payload, now=None):
             if p.get("status") != "Actual" or p.get("messageType") not in ("Alert", "Update"):
                 continue
             issued, expires = stamp(p.get("sent")), stamp(p.get("expires"))
-            if not issued or not expires or datetime.fromisoformat(expires) <= now:
+            if not issued or not expires:
+                raise ValueError("Actual weather warning missing valid timestamps")
+            if datetime.fromisoformat(expires) <= now:
                 continue
             ident = text(p.get("id"), 300)
             title = text(p.get("event"))
             area = text(p.get("areaDesc"))
             if not ident or not title or not area:
-                continue
+                raise ValueError("Actual weather warning missing required fields")
             rows[ident] = {"title": title, "severity": text(p.get("severity"), 50) or "Unknown",
                            "area": area, "time_utc": issued, "time_basis": "Issued",
                            "expires_utc": expires,
