@@ -249,7 +249,11 @@ def check_site(browser, width):
     assert page.locator("#ci-pulse-note").is_hidden()
     assert page.request.get(ROOT + "/assets/command-room.svg").ok
     assert page.evaluate("() => getComputedStyle(document.querySelector('[data-command-layer=aviation]'), '::before').backgroundImage.includes('archive-card.jpg')")
-    assert page.locator(".command-art-credit a").count() == 2
+    newsroom = page.locator('[data-command-layer="countries"]')
+    assert newsroom.evaluate("card => getComputedStyle(card, '::before').backgroundImage.includes('country-newsroom.webp')")
+    photo = page.request.get(ROOT + "/assets/country-newsroom.webp")
+    assert photo.ok and photo.headers["content-type"] == "image/webp"
+    assert page.locator(".command-art-credit a").count() == 3
     assert "Not live imagery" in page.locator(".command-art-credit").inner_text()
     assert page.evaluate("() => getComputedStyle(document.querySelector('.cinematic-hero'), '::before').backgroundImage.includes('command-room.svg')")
     if width == 1280:

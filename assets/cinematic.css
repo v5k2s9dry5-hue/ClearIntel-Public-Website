@@ -56,7 +56,6 @@
 .command-overview .command-overview-card{position:relative;overflow:hidden;isolation:isolate;min-height:184px;background-color:#0a1524}
 .command-overview .command-overview-card::before{content:"";position:absolute;z-index:-1;inset:0;background-image:linear-gradient(90deg,#0a1423 8%,#0a1423de 44%,#0a142333 100%),var(--card-art);background-size:cover;background-position:center,right center;opacity:.86;pointer-events:none}
 .command-overview .command-overview-card[data-command-layer="earthquakes"]{--card-art:url('/assets/card-earth.svg')}
-.command-overview .command-overview-card[data-command-layer="countries"]{--card-art:url('/assets/card-country.svg')}
 .command-overview .command-overview-card[data-command-layer="aviation"]{--card-art:url('/assets/card-archive.svg')}
 .command-overview .command-overview-card:hover::before{opacity:1}
 .command-overview .command-overview-card strong{font-size:clamp(18px,1.6vw,25px)}
@@ -116,7 +115,7 @@
 /* Static archival photography and NASA imagery; local vectors remain fallbacks. */
 .command-overview .command-overview-card{min-height:210px}
 .command-overview .command-overview-card[data-command-layer="earthquakes"]::before{background-image:linear-gradient(90deg,#081523fa 4%,#081523d9 39%,#08152322 100%),radial-gradient(ellipse at 85% 35%,#83b5d222,transparent 65%),url('/globe-texture.jpg'),url('/assets/card-earth.svg');background-size:cover,cover,180% auto,cover;background-position:center,center,45% 44%,center; background-repeat:no-repeat}
-.command-overview .command-overview-card[data-command-layer="countries"]::before{background-image:linear-gradient(90deg,#081523fa 4%,#081523b8 40%,#08152310 100%),url('/assets/card-country.svg');background-size:cover,cover;background-position:center,right center;background-repeat:no-repeat}
+.command-overview .command-overview-card[data-command-layer="countries"]::before{background-image:linear-gradient(90deg,#081523fa 4%,#081523df 40%,#102b4147 100%),url('/assets/country-newsroom.webp');background-size:cover,cover;background-position:center,68% center;background-repeat:no-repeat}
 .command-overview .command-overview-card[data-command-layer="aviation"]::before{background-image:linear-gradient(90deg,#081523fa 4%,#081523d9 43%,#10263844 100%),url('/archive-card.jpg'),url('/assets/card-archive.svg');background-size:cover;background-position:center,70% 50%,center;background-repeat:no-repeat}
 .command-overview .command-overview-card strong,.command-overview .command-overview-detail{position:relative;text-shadow:0 1px 6px #000}
 .command-art-credit{margin:4px 0 18px;color:#adc3d2;font-size:10px;line-height:1.5;text-align:right}
