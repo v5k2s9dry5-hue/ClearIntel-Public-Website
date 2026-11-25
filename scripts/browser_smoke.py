@@ -1181,6 +1181,37 @@ def check_site(browser, width):
             !box.querySelector('.country-original-headline summary')?.textContent.includes('Machine-translated'))
             throw Error('Translated headline or original provenance missing');
     }""")
+    # Test browser-local translation with deterministic API doubles, not model downloads.
+    page.evaluate("""async () => {
+        const props = ['Translator','LanguageDetector'];
+        const originals = props.map(p=>Object.getOwnPropertyDescriptor(globalThis,p));
+        const box=document.querySelector('#country-brief');
+        const article={title:'Новини України сьогодні',url:'https://example.org/local-translation',
+          source:'Fixture publisher',feed_time_utc:'2026-11-21T12:00:00Z'};
+        const data={stories:[{basis:'national',reports:[article]}],sources_checked:['fixture'],provider_errors:[]};
+        try {
+            Object.defineProperty(globalThis,'LanguageDetector',{configurable:true,value:{
+              create:async()=>({detect:async()=>[{detectedLanguage:'uk',confidence:.99}],destroy(){}})}});
+            Object.defineProperty(globalThis,'Translator',{configurable:true,value:{
+              availability:async()=> 'available',
+              create:async options=>{
+                if(options.sourceLanguage!=='uk'||options.targetLanguage!=='en')throw Error('Wrong language pair');
+                return {translate:async()=> 'Ukraine news today',destroy(){}};
+              }}});
+            renderCountryCard(box,{id:'UA',place:'Ukraine'},{data});
+            box.querySelector('.country-translation-note button').click();
+            for(let i=0;i<30&&!box.querySelector('.country-original-headline');i++)
+                await new Promise(resolve=>setTimeout(resolve,10));
+            if(box.querySelector('.country-top-stories a').textContent!=='Ukraine news today'||
+               box.querySelector('.country-original-headline p').textContent!==article.title||
+               article.title_en!==undefined)throw Error('Local translation changed evidence or failed');
+            renderCountryCard(box,{id:'UA',place:'Ukraine'},{data});
+            if(box.querySelector('.country-top-stories a').textContent!=='Ukraine news today')
+                throw Error('Session translation lost on refresh');
+        } finally {
+            props.forEach((p,i)=>originals[i]?Object.defineProperty(globalThis,p,originals[i]):delete globalThis[p]);
+        }
+    }""")
     page.get_by_role("link", name="Country directory").click()
     page.get_by_role("link", name="Netherlands", exact=True).wait_for()
     assert page.locator(".directory-code").first.is_visible()
