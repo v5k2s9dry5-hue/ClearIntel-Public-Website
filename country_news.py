@@ -397,18 +397,30 @@ def _headlines(articles, code, names, now, *, weekly=False):
     return sorted(headlines, key=lambda item: item['feed_time_utc'], reverse=True)
 
 
+# Headline similarity is not proof of independent reporting or factual agreement.
+# Preserve explicit numbers and negation/uncertainty signals when grouping.
+def _claim_signals(title):
+    words = set(re.findall(r'\w+', title.casefold()))
+    numbers = tuple(sorted(re.findall(r'\d+(?:[.,]\d+)*', title)))
+    qualifications = words & {'no', 'not', 'never', 'denies', 'denied', 'deny',
+                              'unconfirmed', 'alleged', 'allegedly', 'possible', 'false'}
+    return words, numbers, qualifications
+
+
 def _story_groups(headlines):
     groups = []
     for item in headlines:
-        words = set(re.findall(r'\w+', item['title'].casefold()))
-        for first_words, reports in groups:
+        words, numbers, qualifications = _claim_signals(item['title'])
+        for first_words, first_numbers, first_qualifications, reports in groups:
+            if numbers != first_numbers or qualifications != first_qualifications:
+                continue
             overlap = len(words & first_words)
             if words == first_words or (overlap >= 5 and overlap / len(words | first_words) >= .64):
                 reports.append(item)
                 break
         else:
-            groups.append((words, [item]))
-    return [reports for _, reports in groups]
+            groups.append((words, numbers, qualifications, [item]))
+    return [reports for _, _, _, reports in groups]
 
 
 def _rank_group(group):
@@ -440,7 +452,10 @@ def _rank_group(group):
         tier, basis = 1, 'recent'
     priority = (tier, len(reports), -(lead['edition_rank'] or lead['publisher_rank'] or 9999),
                 max(item['feed_time_utc'] for item in group), lead['title'])
-    return priority, {'basis': basis, 'reports': reports[:3]}
+    return priority, {'basis': basis, 'reports': reports[:3],
+                      'evidence': {'distinct_links_retained': min(len(reports), 3),
+                                   'matching_records_excluded': len(group) - len(reports),
+                                   'verification': 'not_assessed'}}
 
 
 def search_country_news(code, now=None, fetchers=None):
