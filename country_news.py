@@ -410,7 +410,11 @@ def _claim_signals(title):
     words = set(re.findall(r'\w+', title.casefold()))
     numbers = tuple(sorted(re.findall(r'\d+(?:[.,]\d+)*', title)))
     qualifications = words & {'no', 'not', 'never', 'denies', 'denied', 'deny',
-                              'unconfirmed', 'alleged', 'allegedly', 'possible', 'false'}
+                              'unconfirmed', 'alleged', 'allegedly', 'possible', 'false',
+                              # Dutch and Spanish national editions retain original wording.
+                              'geen', 'niet', 'nooit', 'zonder', 'mogelijk', 'onbevestigd',
+                              'ontkent', 'ontkennen', 'sin', 'nunca', 'jamás', 'niega',
+                              'niegan', 'posible', 'presunto', 'presunta'}
     return words, numbers, qualifications
 
 

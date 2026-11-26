@@ -98,6 +98,17 @@ class CountryNewsTests(TestCase):
         groups = _story_groups(rows)
         self.assertEqual([len(group) for group in groups], [2, 1, 1])
 
+    def test_dutch_and_spanish_qualifiers_keep_claims_separate(self):
+        from country_news import _story_groups
+        for base, qualified in (
+            ('Kabinet bereikt akkoord over nieuw spoorplan', 'Kabinet bereikt geen akkoord over nieuw spoorplan'),
+            ('Kabinet bereikt akkoord over nieuw spoorplan', 'Kabinet bereikt mogelijk akkoord over nieuw spoorplan'),
+            ('El Gobierno aprueba el plan con financiación regional', 'El Gobierno aprueba el plan sin financiación regional'),
+        ):
+            with self.subTest(qualified=qualified):
+                rows = [{'title': title} for title in (base, qualified, base + '.')]
+                self.assertEqual(_story_groups(rows), [[rows[0], rows[2]], [rows[1]]])
+
     def test_evidence_counts_do_not_claim_verification(self):
         title = 'France announces a new national climate investment plan'
         provider = fixture_provider(
