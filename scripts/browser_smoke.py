@@ -905,6 +905,8 @@ def check_site(browser, width):
     assert page.get_by_text("Source coverage caution:", exact=False).is_visible()
     assert page.get_by_text("Earlier provider problems: 0", exact=False).is_visible()
     assert page.get_by_text("Later provider problems: 1", exact=False).is_visible()
+    page.locator("#replay-compare summary").filter(has_text="Later provider errors").click()
+    assert page.locator("#replay-compare").get_by_text("Fixture provider: timeout", exact=True).is_visible()
     assert page.locator("#replay-detail").get_by_text("Provider problems when saved:", exact=False).is_visible()
     # A selected older snapshot cannot invent history before it was recorded.
     page.locator("#replay-select").select_option(index=1)
