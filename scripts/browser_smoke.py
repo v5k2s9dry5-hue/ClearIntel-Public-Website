@@ -533,9 +533,10 @@ def check_site(browser, width):
         assert page.locator("#dashboard-sidebar").is_visible()
         if width >= 1180:
             assert page.locator(".cinematic-hero").evaluate("(e) => getComputedStyle(e).gridTemplateAreas.includes('intro intro')")
-            globe = page.locator("#dashboard-map").bounding_box()
-            pulse = page.locator("#global-pulse").bounding_box()
-            assert abs(globe["y"] - pulse["y"]) <= 2
+            page.wait_for_function("""() => {
+                const top = id => document.getElementById(id).getBoundingClientRect().top;
+                return Math.abs(top('dashboard-map') - top('global-pulse')) <= 2;
+            }""", timeout=5000)
         page.reload(wait_until="domcontentloaded")
         assert page.locator("#dashboard-sidebar").is_visible()
         page.get_by_role("button", name="Hide sidebar").click()
@@ -1078,6 +1079,7 @@ def check_site(browser, width):
         audit = json.load(exported)
     assert audit["schema"] == "clearintel.public-report.v1"
     assert audit["report_kind"] == "country-briefing"
+    assert audit["source_coverage"] == {"responded": 1, "failed": 1}
     assert audit["researcher_notes"] == "Fixture researcher note"
     assert audit["evidence"][0]["id"] == "E001"
     assert audit["evidence"][0]["source_url"] == "https://example.org/manchester-news"

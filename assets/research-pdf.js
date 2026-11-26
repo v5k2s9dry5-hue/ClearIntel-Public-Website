@@ -159,7 +159,10 @@
     textBlock('Evidence identifiers refer to this export only; source links and timestamps do not establish authenticity or independent verification.',9,muted);
     textBlock((country?'Eligible original linked reports':report.incidentOnly ? 'Incident-related headlines' : 'All matching headlines') +
       ' · ' + report.findings.length + ' of ' + report.total + ' findings included', 10, muted);
-    textBlock('Sources queried: ' + (report.sources.join(', ') || 'None reported'), 10, muted);
+    const coverage = sourceCoverage(report);
+    textBlock('Source coverage: ' + coverage.responded + ' of ' + (coverage.responded + coverage.failed) +
+      ' recorded feed checks completed successfully.', 10, muted);
+    textBlock('Responding sources: ' + (report.sources.join(', ') || 'None recorded'), 10, muted);
     if (report.providerErrors.length) textBlock('Feed limitations: ' + report.providerErrors.join('; '), 10, '#825220');
     textBlock(report.notice, 9, muted);
     if (report.notes.trim()) {
@@ -170,7 +173,10 @@
 
     ensureSpace(45);
     textBlock('Findings', 15, blue);
-    if (!report.findings.length) textBlock('No matching headlines were returned in this search.', 10, muted);
+    if (!report.findings.length) {
+      textBlock(coverage.responded ? 'The responding sources returned no matching headlines.' :
+        'No successful source check was recorded.', 10, muted);
+    }
     report.findings.forEach((finding, index) => {
       ensureSpace(110);
       pdf.setDrawColor(218, 229, 239).line(margin, y - 4, width - margin, y - 4);
@@ -195,6 +201,10 @@
     return pdf;
   }
 
+  function sourceCoverage(report) {
+    return {responded: report.sources.length, failed: report.providerErrors.length};
+  }
+
   function auditManifest(report) {
     const short=(value,max)=>String(value??'').slice(0,max);
     return {
@@ -208,6 +218,7 @@
       incident_only:Boolean(report.incidentOnly),
       returned_findings:report.total,
       included_findings:report.findings.length,
+      source_coverage:sourceCoverage(report),
       sources_checked:report.sources.map(value=>short(value,150)),
       provider_errors:report.providerErrors.map(value=>short(value,250)),
       limitations:short(report.notice,2500),
