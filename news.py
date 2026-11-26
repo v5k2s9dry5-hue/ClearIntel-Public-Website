@@ -44,9 +44,15 @@ SHORT_LOCATIONS = {
 RATE_LIMIT_COOLDOWN_SECONDS = 60
 _rate_limit_lock = Lock()
 _rate_limited_until: dict[str, float] = {}
+GDELT_TIMEOUT_COOLDOWN_SECONDS = 30
+_gdelt_timeout_until = 0.0
 
 
 class ProviderCooldownError(Exception):
+    pass
+
+
+class GdeltTimeoutCooldown(Exception):
     pass
 
 
@@ -93,13 +99,24 @@ def _safe_link(url: str) -> bool:
 
 
 def fetch_gdelt(query: str, days: int, incident_only: bool = True, *, topic: str = "") -> list[dict]:
+    global _gdelt_timeout_until
+    with _rate_limit_lock:
+        if monotonic() < _gdelt_timeout_until:
+            raise GdeltTimeoutCooldown()
     # Country aliases come from a fixed list. Raw user input does not become query syntax.
     topic = topic or _provider_topic(query, joiner=' AND ', quote=True) or '"world"'
     incident = ' (bombing OR bombed OR airstrike OR explosion OR missile OR struck OR attack)' if incident_only else ''
     params = {"query": topic + incident, "mode": "artlist", "format": "json",
               "maxrecords": "75", "timespan": f"{days}d", "sort": "datedesc"}
     url = "https://api.gdeltproject.org/api/v2/doc/doc?" + urlencode(params)
-    payload = json.loads(_get(url))
+    try:
+        content = _get(url)
+    except (TimeoutError, URLError) as error:
+        if _provider_error(error) == 'timeout':
+            with _rate_limit_lock:
+                _gdelt_timeout_until = monotonic() + GDELT_TIMEOUT_COOLDOWN_SECONDS
+        raise
+    payload = json.loads(content)
     return [{"title": a.get("title", ""), "url": a.get("url", ""),
              "source": a.get("domain", "GDELT source"), "published": a.get("seendate", ""),
              "provider": "GDELT", "time_basis": "First seen by GDELT"} for a in payload.get("articles", [])]
@@ -153,6 +170,8 @@ def _provider_error(error: Exception) -> str:
     """Safe diagnostic category: never expose full upstream messages or URLs."""
     if isinstance(error, ProviderCooldownError):
         return 'temporarily paused after HTTP 429'
+    if isinstance(error, GdeltTimeoutCooldown):
+        return 'temporarily paused after timeout'
     if isinstance(error, HTTPError):
         return 'HTTP ' + str(error.code)
     if isinstance(error, (TimeoutError, socket.timeout)):

@@ -155,6 +155,15 @@
         ' · Earlier provider problems: ' + priorErrors.length +
         ' · Later provider problems: ' + newErrors.length);
       compareResult.append(evidence);
+      for(const [label,errors] of [['Earlier',priorErrors],['Later',newErrors]]){
+        if(!errors.length)continue;
+        const details=node('details','replay-provider-issues');
+        details.append(node('summary','',label+' provider errors'));
+        const list=node('ul');
+        for(const error of errors.slice(0,12))list.append(node('li','',short(error,180)));
+        details.append(list);
+        compareResult.append(details);
+      }
     }
     if(Number(older.total_results)>older.articles.length ||
        Number(newer.total_results)>newer.articles.length)

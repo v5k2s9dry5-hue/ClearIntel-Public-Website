@@ -14,6 +14,27 @@ def fake(rows):
 
 
 class NewsTests(unittest.TestCase):
+    def test_gdelt_timeout_pauses_subsequent_queries_then_recovers(self):
+        from urllib.error import URLError
+        from news import fetch_gdelt, _collect
+
+        for failure in (TimeoutError(), URLError(TimeoutError())):
+            with self.subTest(failure=failure), patch('news._gdelt_timeout_until', 0), \
+                 patch('news.monotonic', return_value=100) as clock, \
+                 patch('news._get', side_effect=[failure, b'{"articles": []}']) as request:
+                providers = [fetch_gdelt, fake([{'title': 'Fallback headline'}])]
+                rows, checked, errors = _collect('Spain', 1, False, providers)
+                self.assertEqual(errors, ['gdelt: timeout'])
+                self.assertEqual(len(rows), 1)
+                clock.return_value = 129
+                rows, checked, errors = _collect('Netherlands', 1, False, providers)
+                self.assertEqual(errors, ['gdelt: temporarily paused after timeout'])
+                self.assertEqual(len(rows), 1)
+                request.assert_called_once()
+                clock.return_value = 130
+                self.assertEqual(fetch_gdelt('Spain', 1, False), [])
+                self.assertEqual(request.call_count, 2)
+
     def test_provider_retry_after_honours_a_longer_cooldown(self):
         url = "https://news.google.com/rss/search"
         response = HTTPError(url, 429, "Too many requests", {"Retry-After": "240"}, None)
