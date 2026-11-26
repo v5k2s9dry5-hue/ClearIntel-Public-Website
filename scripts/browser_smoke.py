@@ -721,6 +721,8 @@ def check_site(browser, width):
     national_requests = []
     def national_fixture(route):
         national_requests.append(route.request.url)
+        if len(national_requests) == 1:
+            return route_json(route, {"status": "checking", "alerts": []})
         route_json(route, {"status": "available", "checked_at_utc": STAMP,
             "returned_count": 1, "alerts": [{"title": "Flood Warning", "severity": "Flood Warning",
             "area": "Fixture river", "time_utc": None, "source_time": "2026-11-25T08:43:21", "time_basis": "Source warning time",
@@ -729,7 +731,7 @@ def check_site(browser, width):
     assert not national_requests
     page.locator("#national-alert-load").click()
     page.locator("#national-alert-list").get_by_text("Fixture river", exact=False).wait_for()
-    assert len(national_requests) == 1
+    assert len(national_requests) == 2
     assert page.locator("#national-alert-list").get_by_text("source timezone unspecified", exact=False).is_visible()
     page.locator("#national-alert-query").fill("no match")
     assert page.locator("#national-alert-list li").first.is_hidden()
@@ -738,7 +740,7 @@ def check_site(browser, width):
     assert page.locator("#national-alert-list li").first.is_visible()
     page.locator("#national-alert-severity").select_option("Flood Warning")
     assert page.locator("#national-alert-list li").first.is_visible()
-    assert len(national_requests) == 1
+    assert len(national_requests) == 2
 
     page.locator("#national-alert-source").select_option("us")
     assert page.locator("#national-alert-list li").count() == 0
