@@ -61,9 +61,12 @@
   syncIncidentFilters();
   const severityColors={green:'#55d58e',amber:'#f1bd55',red:'#ff6b72'};
   const severityRank={green:1,amber:2,red:3};
+  const incidentRetryDelay=5000;
+  const maxIncidentRetries=3;
   const reportLayers = {
     incidents: {
       endpoint:'/api/incident-alerts',name:'GDACS incident alert',minimum:'',
+      checkingRetries:0,
       timeField:'reported_at_ms',timeLabel:'Published',feedTime:'checked_at_ms',feedLabel:'Feed checked',
       marker:'#55d58e',selectedMarker:'#d5ffee',window:'1',
       title:event=>event.severity.toUpperCase()+' · '+event.title,
@@ -910,10 +913,19 @@
       }
       const latest=await (active.mode==='archive'?militaryArchive:loadReportFeed(active.endpoint));
       if(key==='incidents'&&latest.status==='checking'){
-        active.retryAt=Date.now()+5000;
+        active.retryAt=Date.now()+incidentRetryDelay;
         active.failed=false;
+        // Another request is filling the shared GDACS cache. Check again
+        // shortly instead of waiting for the dashboard's next regular tick.
+        if(active.checkingRetries<maxIncidentRetries){
+          active.checkingRetries++;
+          setTimeout(()=>{
+            if(!document.hidden&&layer.value===key)refreshReports(key);
+          },incidentRetryDelay);
+        }
         return;
       }
+      if(key==='incidents')active.checkingRetries=0;
       if(!Array.isArray(latest.events)||(!active.mode&&!Number.isFinite(latest[active.feedTime])))throw Error('Invalid report data');
       if(active.mode==='countries'){
         for(const event of latest.events)countrySelect.add(new Option(event.place,event.id));
@@ -925,7 +937,10 @@
         active.failed=false;
         active.retryAt=started+(key==='incidents'?295000:key==='wildfires'?115000:55000);
       }
-    }catch(error){if(active.mode||!reportsPaused){active.failed=true;active.retryAt=Math.max(Date.now()+30000,error.retryAt||0);}}
+    }catch(error){
+      if(key==='incidents')active.checkingRetries=0;
+      if(active.mode||!reportsPaused){active.failed=true;active.retryAt=Math.max(Date.now()+30000,error.retryAt||0);}
+    }
     finally{
       active.loading=false;
       // Reuse already retrieved USGS observations. The activity chart never
