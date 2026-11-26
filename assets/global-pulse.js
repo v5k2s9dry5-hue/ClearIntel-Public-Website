@@ -14,6 +14,7 @@
   const healthList=document.getElementById('pulse-health-list');
   const snapshots={};
   const publications={};
+  const pendingPublications=new Set();
   const publicationNames={geopolitical:'FCDO',cyber:'NCSC',economic:'ECB',humanitarian:'GDACS',travel:'FCDO travel'};
   const sources={
     earthquakes:{label:'USGS',field:'occurred_at_ms',id:'pulse-quakes',unit:'earthquakes',time:'generated_at_ms'},
@@ -123,8 +124,8 @@
     drawChart(series,now);
     const fresh=series.filter(s=>!s.stale).length;
     const older=series.length-fresh;
-    const checked=Object.keys(snapshots).length+Object.keys(publications).length;
-    coverage.textContent=fresh+' of 7 automatic sources current'+(older?' · '+older+' older':'')+(checked>series.length?' · '+(checked-series.length)+' unavailable':'');
+    let unavailable=0;
+    let checking=0;
     const stampLabel=value=>Number.isFinite(value)?new Date(value).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'short',timeStyle:'short'})+' UTC':'Not recorded';
     const healthRows=[];
     for(const [key,name] of [...Object.entries(sources).map(([key,s])=>[key,s.label]),...Object.entries(publicationNames)]){
@@ -132,12 +133,17 @@
       const data=observation?snapshots[key]:publications[key];
       const last=observation?Number(data?.[sources[key].time]):Date.parse(data?.checked_at_utc);
       const plotted=series.find(s=>s.key===key);
-      const state=!data?'Not checked':!plotted?'Unavailable':plotted.stale?'Older snapshot':'Current';
+      const pending=!observation&&pendingPublications.has(key)&&!publicationsPaused;
+      const state=plotted?(plotted.stale?'Older snapshot':'Current'):pending?'Checking':data?'Unavailable':'Not checked';
+      if(state==='Checking')checking++;
+      if(state==='Unavailable')unavailable++;
       const li=document.createElement('li'),label=document.createElement('strong'),detail=document.createElement('small');
       label.textContent=name+' · '+state;
       detail.textContent='Last successful snapshot check: '+stampLabel(last);
       li.dataset.health=state.toLowerCase().replace(' ','-');li.append(label,detail);healthRows.push(li);
     }
+    coverage.textContent=fresh+' of 7 automatic sources current'+(older?' · '+older+' older':'')+
+      (checking?' · '+checking+' checking':'')+(unavailable?' · '+unavailable+' unavailable':'');
     healthList.replaceChildren(...healthRows);
     recent.sort((a,b)=>b.time-a.time);
     const recentList=document.getElementById('recent-reporting-list');
@@ -216,7 +222,9 @@
       publications[category]=previous?.reports?{...previous,status:'stale'}:{status:'unavailable'};
     }
   }
-  let summaryBusy=false, summaryDue=0, publicationsPaused=false;
+  const pendingRetryDelay=5000;
+  const maxPendingRetries=3;
+  let summaryBusy=false, summaryDue=0, publicationsPaused=false, pendingRetries=0;
   const pauseButton=document.getElementById('pulse-pause');
   pauseButton.addEventListener('click',()=>{
     publicationsPaused=!publicationsPaused;
@@ -230,27 +238,52 @@
     summaryBusy=true;
     const started=Date.now();
     summaryDue=started+300000;
+    for(const category of Object.keys(categories)){
+      if(!publications[category])pendingPublications.add(category);
+    }
+    render();
     try{
       const response=await fetch('/api/intelligence-pulse',{signal:AbortSignal.timeout(35000),cache:'no-store'});
       if(!response.ok)throw Error('Unavailable');
       const data=await response.json();
-      if(data.status==='checking'){summaryDue=Date.now()+30000;return;}
-      if(data.status!=='checked'||!data.feeds)throw Error('Invalid summary');
-      for(const category of Object.keys(categories)){
-        // A dedicated check made after the summary began takes precedence.
-        if((publicationUpdated[category]||0)>started)continue;
-        if(data.feeds[category]?.status==='checking')summaryDue=Math.min(summaryDue,Date.now()+30000);
-        rememberPublication(category,data.feeds[category]);
+      if(data.status==='checked'&&data.feeds){
+        for(const category of Object.keys(categories)){
+          // A dedicated check made after the summary began takes precedence.
+          if((publicationUpdated[category]||0)>started)continue;
+          const feed=data.feeds[category];
+          if(feed?.status==='checking'){
+            pendingPublications.add(category);
+          }else{
+            pendingPublications.delete(category);
+            rememberPublication(category,feed);
+          }
+        }
+      }else if(data.status!=='checking'){
+        throw Error('Invalid summary');
       }
-      render();
+      if(data.status==='checking'||pendingPublications.size){
+        if(pendingRetries<maxPendingRetries){
+          pendingRetries++;
+          summaryDue=Date.now()+pendingRetryDelay;
+          setTimeout(refreshSummary,pendingRetryDelay);
+        }else{
+          summaryDue=Date.now()+30000;
+        }
+      }else{
+        pendingRetries=0;
+      }
     }catch{
+      pendingRetries=0;
       summaryDue=Date.now()+60000;
       for(const category of Object.keys(categories)){
         if((publicationUpdated[category]||0)>started)continue;
         rememberPublication(category,null);
       }
+      pendingPublications.clear();
+    }finally{
+      summaryBusy=false;
       render();
-    }finally{summaryBusy=false;}
+    }
   }
   const publicationUpdated={};
   async function loadDedicated(category){
@@ -265,6 +298,7 @@
       const data=await response.json();
       if(revision!==generation)return;
       publicationUpdated[category]=Date.now();
+      if(data.status!=='checking')pendingPublications.delete(category);
       rememberPublication(category,data);
       render();
       if(data.status==='checking'){dedicatedStatus.textContent='Another source check is in progress. Please check again shortly.';lastCheck=Date.now()-270000;return;}
@@ -285,6 +319,7 @@
     }catch{
       if(revision!==generation)return;
       publicationUpdated[category]=Date.now();
+      pendingPublications.delete(category);
       rememberPublication(category,null);
       render();
       dedicatedStatus.textContent='Feed check unavailable. Open the official source for current information.';

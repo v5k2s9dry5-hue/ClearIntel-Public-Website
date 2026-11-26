@@ -113,9 +113,20 @@ def check_site(browser, width):
     from datetime import datetime, timezone
     auto_stamp = datetime.now(timezone.utc).isoformat()
     auto_report = {"title": "Fixture automatic economic update", "url": "https://www.ecb.europa.eu/press/example", "published_at_utc": auto_stamp}
-    page.route("**/api/intelligence-pulse", lambda route: route_json(route, {
-        "status": "checked", "feeds": {"economic": {"status": "available", "checked_at_utc": auto_stamp, "reports": [auto_report]}}
-    }))
+    pulse_requests = []
+
+    def pulse_fixture(route):
+        pulse_requests.append(route.request.url)
+        if len(pulse_requests) == 1:
+            return route_json(route, {"status": "checking", "feeds": {}})
+        return route_json(route, {
+            "status": "checked", "feeds": {
+                "economic": {"status": "available", "checked_at_utc": auto_stamp, "reports": [auto_report]},
+                "humanitarian": {"status": "stale", "checked_at_utc": STAMP, "reports": []},
+            }
+        })
+
+    page.route("**/api/intelligence-pulse", pulse_fixture)
     # Runs in every document, including reloads. The previous test defined an
     # uninvoked function and therefore never installed the clipboard stub.
     page.add_init_script("""Object.defineProperty(navigator, 'clipboard', {
@@ -147,6 +158,7 @@ def check_site(browser, width):
 
     page.route("**/api/incident-alerts", incident_fixture)
     page.goto(ROOT, wait_until="domcontentloaded")
+    page.locator("#pulse-health-list li[data-health='checking']").filter(has_text="ECB").wait_for(state="attached")
     page.evaluate("""() => {
         const rows=[
           {title:'Regional transport authority announces new public rail service timetable',source:'Publisher A',url:'https://example.org/a'},
@@ -292,6 +304,7 @@ def check_site(browser, width):
 
 
     page.locator('[data-pulse-category="economic"] small').filter(has_text="1 recent publications").wait_for(state="visible", timeout=10000)
+    page.locator("#pulse-series polyline.economic").wait_for(state="attached", timeout=10000)
     assert page.locator("#pulse-series polyline.economic").count() == 1
     assert page.locator("#desktop-briefing-list a").count() > 0
     art = page.locator('[data-command-layer="countries"]').evaluate("(e) => getComputedStyle(e, '::before').backgroundImage")
@@ -327,8 +340,10 @@ def check_site(browser, width):
     if mobile:
         assert page.locator("#desktop-briefing").is_hidden()
     page.locator("#pulse-latest-filter").select_option("economic")
+    page.locator("#pulse-latest a").wait_for(timeout=10000)
     assert page.locator("#pulse-latest a").count() == 1
     assert "Fixture automatic economic update" in page.locator("#pulse-latest a").inner_text()
+    assert len(pulse_requests) == 2
     page.locator("#pulse-latest-filter").select_option("all")
     assert "of 7 automatic sources current" in page.locator("#pulse-coverage").inner_text()
     assert "Not checked" in page.locator("#sanctions-status").inner_text()
@@ -367,6 +382,8 @@ def check_site(browser, width):
     page.locator("#pulse-source-health summary").click()
     assert page.locator("#pulse-health-list li").count() == 7
     assert "ECB · Current" in page.locator("#pulse-health-list").inner_text()
+    assert "GDACS · Older snapshot" in page.locator("#pulse-health-list").inner_text()
+    assert "NCSC · Unavailable" in page.locator("#pulse-health-list").inner_text()
     page.locator("#pulse-source-health summary").click()
     economic_legend = page.locator("#pulse-legend .economic")
     assert economic_legend.get_attribute("aria-pressed") == "true"
