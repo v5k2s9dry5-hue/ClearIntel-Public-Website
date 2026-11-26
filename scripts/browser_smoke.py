@@ -131,13 +131,21 @@ def check_site(browser, width):
             return route_json(route, {**NEWS, "provider_errors": ["gdelt: timeout"]})
         return route_json(route, NEWS)
     page.route("**/api/news", news_fixture)
-    page.route("**/api/incident-alerts", lambda route: route_json(route, {
-        "status": "available", "checked_at_ms": int(time.time()*1000),
-        "events": [{"id": "fixture-"+level, "severity": level, "title": "Fixture hazard "+level,
-                    "reported_at_ms": int(time.time()*1000)-3600000, "latitude": 12, "longitude": 20,
-                    "url": "https://www.gdacs.org/report.aspx?eventid="+str(index)}
-                   for index, level in enumerate(("green", "amber", "red"))]
-    }))
+    incident_requests = []
+
+    def incident_fixture(route):
+        incident_requests.append(route.request.url)
+        if len(incident_requests) == 1:
+            return route_json(route, {"status": "checking", "checked_at_ms": None, "events": []})
+        return route_json(route, {
+            "status": "available", "checked_at_ms": int(time.time()*1000),
+            "events": [{"id": "fixture-"+level, "severity": level, "title": "Fixture hazard "+level,
+                        "reported_at_ms": int(time.time()*1000)-3600000, "latitude": 12, "longitude": 20,
+                        "url": "https://www.gdacs.org/report.aspx?eventid="+str(index)}
+                       for index, level in enumerate(("green", "amber", "red"))]
+        })
+
+    page.route("**/api/incident-alerts", incident_fixture)
     page.goto(ROOT, wait_until="domcontentloaded")
     page.evaluate("""() => {
         const rows=[
@@ -177,6 +185,7 @@ def check_site(browser, width):
         assert page.locator("#menu-toggle").evaluate("(e) => document.activeElement === e")
     assert page.locator("#earth-canvas").evaluate("(e) => e.width <= Math.ceil(e.clientWidth * 1.5)")
     page.locator("#incident-count-red").filter(has_text="1").wait_for(state="visible", timeout=10000)
+    assert len(incident_requests) == 2
     assert page.locator(".incident-counts").bounding_box()["y"] < page.locator("#earth-canvas").bounding_box()["y"]
     assert page.locator(".site-header .header-monogram").evaluate("(e) => getComputedStyle(e).backgroundImage.includes('data:image/webp;base64,')")
 
@@ -712,6 +721,8 @@ def check_site(browser, width):
     national_requests = []
     def national_fixture(route):
         national_requests.append(route.request.url)
+        if len(national_requests) == 1:
+            return route_json(route, {"status": "checking", "alerts": []})
         route_json(route, {"status": "available", "checked_at_utc": STAMP,
             "returned_count": 1, "alerts": [{"title": "Flood Warning", "severity": "Flood Warning",
             "area": "Fixture river", "time_utc": None, "source_time": "2026-11-25T08:43:21", "time_basis": "Source warning time",
@@ -720,7 +731,7 @@ def check_site(browser, width):
     assert not national_requests
     page.locator("#national-alert-load").click()
     page.locator("#national-alert-list").get_by_text("Fixture river", exact=False).wait_for()
-    assert len(national_requests) == 1
+    assert len(national_requests) == 2
     assert page.locator("#national-alert-list").get_by_text("source timezone unspecified", exact=False).is_visible()
     page.locator("#national-alert-query").fill("no match")
     assert page.locator("#national-alert-list li").first.is_hidden()
@@ -729,7 +740,7 @@ def check_site(browser, width):
     assert page.locator("#national-alert-list li").first.is_visible()
     page.locator("#national-alert-severity").select_option("Flood Warning")
     assert page.locator("#national-alert-list li").first.is_visible()
-    assert len(national_requests) == 1
+    assert len(national_requests) == 2
 
     page.locator("#national-alert-source").select_option("us")
     assert page.locator("#national-alert-list li").count() == 0

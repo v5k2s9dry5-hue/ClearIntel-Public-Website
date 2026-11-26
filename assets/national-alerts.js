@@ -4,6 +4,8 @@
     status=document.getElementById('national-alert-status'),list=document.getElementById('national-alert-list');
   if(!source||!load||!status||!list)return;
   const filters=document.getElementById('national-alert-filters'),query=document.getElementById('national-alert-query'),severity=document.getElementById('national-alert-severity'),reset=document.getElementById('national-alert-reset'),count=document.getElementById('national-alert-filter-count');
+  const retryDelay=3000;
+  const maxRetries=3;
   let version=0,controller,entries=[];
   function clearFilters(){entries=[];filters.hidden=true;query.value='';severity.replaceChildren(new Option('All severities',''));count.textContent='';}
   function applyFilters(){const term=query.value.trim().toLowerCase();let shown=0;for(const {row,item} of entries){const visible=(!severity.value||row.severity===severity.value)&&[row.area,row.title,row.severity].some(value=>String(value||'').toLowerCase().includes(term));item.hidden=!visible;if(visible)shown++;}count.textContent=shown+' of '+entries.length+' displayed warnings match.';reset.disabled=!term&&!severity.value;}
@@ -15,14 +17,24 @@
     status.textContent='Not checked. Loads only on request.';
   });
   load.addEventListener('click',async()=>{
-    const current=++version;controller?.abort();controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),15000);
+    const current=++version;
+    controller?.abort();
+    const request=new AbortController();
+    controller=request;
+    const endpoint='/api/national-alerts/'+encodeURIComponent(source.value);
+    const timer=setTimeout(()=>request.abort(),15000);
     load.disabled=true;status.textContent='Checking official source…';list.replaceChildren();clearFilters();
     try{
-      const response=await fetch('/api/national-alerts/'+encodeURIComponent(source.value),{signal:controller.signal});
-      if(!response.ok)throw Error('Unavailable');
-      const data=await response.json();
-      if(current!==version)return;
+      let data;
+      for(let attempt=0;attempt<=maxRetries;attempt++){
+        if(attempt)await new Promise(resolve=>setTimeout(resolve,retryDelay));
+        if(current!==version)return;
+        const response=await fetch(endpoint,{signal:request.signal});
+        if(!response.ok)throw Error('Unavailable');
+        data=await response.json();
+        if(current!==version)return;
+        if(data.status!=='checking')break;
+      }
       if(!Array.isArray(data.alerts))throw Error('Invalid feed');
       if(data.status==='checking'||data.status==='unavailable'){
         status.textContent='Source '+data.status+'. No current warning count is available.';return;
