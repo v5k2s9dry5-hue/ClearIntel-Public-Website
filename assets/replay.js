@@ -396,7 +396,7 @@
     status.textContent = 'No completed source check to save.';
   });
   document.addEventListener('clearintel:news-ready', event => {
-    latest = {...event.detail, observedAt: new Date().toISOString()};
+    latest = {...event.detail, observedAt: event.detail.observedAt || new Date().toISOString()};
     save.disabled = false;
     status.textContent = 'Search complete. Save a snapshot manually if you want to remember these source results.';
   });
