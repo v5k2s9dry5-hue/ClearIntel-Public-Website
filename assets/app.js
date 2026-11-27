@@ -169,7 +169,7 @@ function fillStatus(title,description,kind='info'){
   }
   state.append(el('strong','',title),el('p','',description));area.append(state);
 }
-function reportExport(payload,search){
+function reportExport(payload,search,observedAt){
   const controls=el('section','report-export');
   controls.setAttribute('aria-label','Export search report');
   const actions=el('div','report-export-actions');
@@ -177,7 +177,6 @@ function reportExport(payload,search){
   const toggle=el('button','globe-control','Deselect all');toggle.type='button';
   const download=el('button','button button-primary','Download PDF');download.type='button';
   const manifest=el('button','globe-control','Download evidence JSON');manifest.type='button';
-  const observedAt=new Date().toISOString();
   actions.append(count,toggle,download,manifest);
   const options=el('details','report-notes');
   const notesLabel=el('label','','Notes to include');notesLabel.htmlFor='report-notes-input';
@@ -364,7 +363,7 @@ function researchDate(value){
   const date=typeof value==='string'&&value.trim()?new Date(value):null;
   return date&&Number.isFinite(date.getTime())?date:null;
 }
-function renderResults(payload,search){
+function renderResults(payload,search,observedAt){
   const area=$('news-results');area.replaceChildren();
   const checked = Array.isArray(payload.sources_checked) ? payload.sources_checked : [];
   const errors = Array.isArray(payload.provider_errors) ? payload.provider_errors : [];
@@ -381,7 +380,7 @@ function renderResults(payload,search){
   if(payload.results.length>1)area.append(researchCorrelation(payload.results));
   const windowText='Requested UTC window: '+(payload.window_start||'unknown')+' to '+(payload.window_end||'unknown')+'.';
   area.append(el('p','analyst-only analyst-metadata',windowText));
-  const exportUi=completed&&window.ClearIntelReport?reportExport(payload,search):null;
+  const exportUi=completed&&window.ClearIntelReport?reportExport(payload,search,observedAt):null;
   if(exportUi)area.append(exportUi.controls);
   if(!payload.results.length){
     const guidance = !checked.length && errors.length ?
@@ -542,8 +541,9 @@ $('news-form').addEventListener('submit',async e=>{
     if(!response.ok)throw new Error(typeof payload.detail==='string'?payload.detail:'News search could not be completed.');
     const search={query,window:timeWindow,incidentOnly};
     if (!Array.isArray(payload?.results)) throw Error('The filtered search returned an invalid response.');
-    completed = renderResults(payload,search);
-    if (completed) document.dispatchEvent(new CustomEvent('clearintel:news-ready',{detail:{payload,search}}));
+    const observedAt = new Date().toISOString();
+    completed = renderResults(payload,search,observedAt);
+    if (completed) document.dispatchEvent(new CustomEvent('clearintel:news-ready',{detail:{payload,search,observedAt}}));
   }catch(err){
     fillStatus('Filtered search unavailable',
       (err.name==='AbortError'?'The sources did not respond within the time limit. Try again.':err.message)+
