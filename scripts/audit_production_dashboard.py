@@ -34,6 +34,9 @@ def audit(browser, name, width, height):
             archivePhotoConfigured: getComputedStyle(document.querySelector('[data-command-layer=aviation]'), '::before').backgroundImage.includes('archive-card.jpg')
         })""")
         headers = response.headers if response else {}
+        filters = page.locator("#incident-filters")
+        if not filters.evaluate("(panel) => panel.open"):
+            filters.locator("summary").click()
         metrics.update({"contentEncoding":headers.get('content-encoding','identity'),
                         "resourcePolicy":headers.get('cross-origin-resource-policy','not present'),
                         "incidentDefault": page.locator('#globe-layer').input_value() == 'incidents',
