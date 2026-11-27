@@ -100,7 +100,13 @@ def editorial_events(_cache_interval):
         'action': 'parse', 'page': 'Portal:Current_events', 'prop': 'text|revid',
         'format': 'json', 'formatversion': 2,
     })
-    page = json.loads(_get('https://en.wikipedia.org/w/api.php?' + params))['parse']
+    response = json.loads(_get('https://en.wikipedia.org/w/api.php?' + params))
+    if isinstance(response, dict) and isinstance(response.get('error'), dict):
+        if response['error'].get('code') == 'missingtitle':
+            return []
+    page = response.get('parse') if isinstance(response, dict) else None
+    if not isinstance(page, dict) or not isinstance(page.get('wikitext'), str):
+        raise ValueError('Invalid country timeline response')
     parser = CurrentEventsParser()
     parser.feed(page['text'])
     if not parser.records:
@@ -196,7 +202,13 @@ def country_timeline(year, code, name, _cache_interval):
         'action': 'parse', 'page': page_title, 'prop': 'wikitext|revid',
         'format': 'json', 'formatversion': 2,
     })
-    page = json.loads(_get('https://en.wikipedia.org/w/api.php?' + params))['parse']
+    response = json.loads(_get('https://en.wikipedia.org/w/api.php?' + params))
+    if isinstance(response, dict) and isinstance(response.get('error'), dict):
+        if response['error'].get('code') == 'missingtitle':
+            return []
+    page = response.get('parse') if isinstance(response, dict) else None
+    if not isinstance(page, dict) or not isinstance(page.get('wikitext'), str):
+        raise ValueError('Invalid country timeline response')
     attribution = 'https://en.wikipedia.org/wiki/' + page_title.replace(' ', '_')
     if type(page.get('revid')) is int:
         attribution = f'https://en.wikipedia.org/w/index.php?oldid={page["revid"]}'

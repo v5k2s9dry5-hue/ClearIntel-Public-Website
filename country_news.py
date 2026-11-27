@@ -241,18 +241,23 @@ def _publisher_reports(url, source, code, national):
         raise ValueError('Wrong country section')
     items = channel.findall('item')
     rows = []
+    usable = False
     for rank, item in enumerate(items, 1):
         title = item.findtext('title', '').strip()
         link = item.findtext('link', '').strip()
         stamp = item.findtext('pubDate', '').strip()
         if not title or not _safe_link(link) or not _date(stamp):
             continue
+        usable = True
+        if source == 'The Guardian' and urlsplit(link).path.startswith('/commentisfree/'):
+            if not _match_country(title, code, (COUNTRIES[code], *ALIASES.get(code, ()))):
+                continue
         rows.append({
             'title': title, 'url': link, 'published': stamp, 'source': source,
             'country_code': code, 'provider': source,
             'publisher_rank': rank if national else None, 'time_basis': 'Publication time',
         })
-    if items and not rows:
+    if items and not usable:
         raise ValueError('Publisher feed contains no usable dated reports')
     return rows
 

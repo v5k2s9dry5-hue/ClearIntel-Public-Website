@@ -204,6 +204,14 @@ class CountryNewsTests(TestCase):
         self.assertEqual(result['basis'], 'unavailable')
         self.assertEqual(result['story'], [])
 
+    def test_country_timeline_distinguishes_missing_page_from_provider_failure(self):
+        from current_events import country_timeline
+        with patch('current_events._get', return_value=b'{"error":{"code":"missingtitle"}}'):
+            self.assertEqual(country_timeline(2026, 'BL', 'Saint Barthélemy', -1), [])
+        with patch('current_events._get', return_value=b'{"error":{"code":"ratelimited"}}'):
+            with self.assertRaises(ValueError):
+                country_timeline(2026, 'BL', 'Saint Barthélemy', -2)
+
     def test_uk_timeline_links_a_recent_national_story_without_claiming_it_is_breaking(self):
         from current_events import parse_country_timeline
 
@@ -316,6 +324,14 @@ class CountryNewsTests(TestCase):
         self.assertEqual(result[0]['country_code'], 'GB')
         self.assertIsNone(result[0]['publisher_rank'])
         self.assertEqual(result[0]['source'], 'Regional desk')
+
+    def test_country_section_opinion_requires_visible_country_context(self):
+        from country_news import _publisher_reports
+        section = 'https://www.theguardian.com/world/netherlands'
+        xml = '<rss><channel><link>' + section + '</link><item><title>Denmark debates migration</title><link>https://www.theguardian.com/commentisfree/danish-opinion</link><pubDate>Fri, 27 Nov 2026 07:00:00 GMT</pubDate></item></channel></rss>'
+        for title, count in [('Denmark debates migration', 0), ('Dutch migration debate', 1)]:
+            with patch('country_news._get', return_value=xml.replace('Denmark debates migration', title).encode()):
+                self.assertEqual(len(_publisher_reports(section + '/rss', 'The Guardian', 'NL', False)), count)
 
     def test_invalid_publisher_items_fail_coverage_check(self):
         from country_news import _publisher_reports
