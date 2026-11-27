@@ -204,6 +204,14 @@ class CountryNewsTests(TestCase):
         self.assertEqual(result['basis'], 'unavailable')
         self.assertEqual(result['story'], [])
 
+    def test_country_timeline_distinguishes_missing_page_from_provider_failure(self):
+        from current_events import country_timeline
+        with patch('current_events._get', return_value=b'{"error":{"code":"missingtitle"}}'):
+            self.assertEqual(country_timeline(2026, 'BL', 'Saint Barthélemy', -1), [])
+        with patch('current_events._get', return_value=b'{"error":{"code":"ratelimited"}}'):
+            with self.assertRaises(ValueError):
+                country_timeline(2026, 'BL', 'Saint Barthélemy', -2)
+
     def test_uk_timeline_links_a_recent_national_story_without_claiming_it_is_breaking(self):
         from current_events import parse_country_timeline
 
