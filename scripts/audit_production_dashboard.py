@@ -1,7 +1,7 @@
 """Capture the public dashboard at desktop/mobile sizes, with real source responses."""
 import json
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 BASE = "https://clearintel-public.onrender.com"
 OUT = Path("production-dashboard-audit")
@@ -60,6 +60,34 @@ def audit(browser, name, width, height):
                 "/assets/card-country.svg" in country_art and artwork.ok and "data:image/webp;base64," in artwork.text()
             )
         metrics["desktopBriefingVisible"] = page.locator("#desktop-briefing").is_visible()
+        filters = page.locator("#incident-filters")
+        if name == "mobile" and filters.count():
+            metrics["mobileAlertFiltersCollapsed"] = not filters.evaluate("(panel) => panel.open")
+            if metrics["mobileAlertFiltersCollapsed"]:
+                filters.locator("summary").click()
+                metrics["incidentControlsVisible"] = page.locator("#incident-severity").is_visible()
+                filters.locator("summary").click()
+
+        metrics["weatherOnDemand"] = "not checked" in page.locator("#weather-uk-status").inner_text()
+        manifest_path = page.locator('link[rel="manifest"]').get_attribute("href")
+        manifest = page.request.get(BASE + manifest_path, timeout=15000)
+        metadata = manifest.json() if manifest.ok else {}
+        metrics["webAppManifest"] = metadata.get("display") == "standalone" and metadata.get("start_url") == "/"
+        zoom = page.locator("#earth-uk-view")
+        texture_was_available = metrics["textureCreditVisible"]
+        metrics["satelliteZoom"] = "texture unavailable" if not texture_was_available else "pending"
+        if zoom.is_enabled():
+            zoom.click()
+            metrics["satelliteZoom"] = (
+                "kept" if page.locator("#earth-texture-credit").is_visible()
+                else "lost" if texture_was_available else "texture unavailable"
+            )
+            page.locator("#dashboard-map").screenshot(path=str(OUT / f"{name}-satellite-zoom.png"), timeout=15000)
+            page.locator("#earth-reset-map").click()
+            metrics["resetWorldZoom"] = page.locator("#earth-zoom-out").is_disabled()
+        else:
+            metrics["satelliteZoom"] = "map detail unavailable"
+            metrics["resetWorldZoom"] = "not tested"
         if name == "desktop":
             from xml.etree import ElementTree as ET
             robots = page.request.get(BASE + "/robots.txt", timeout=15000)
@@ -90,6 +118,8 @@ def audit(browser, name, width, height):
         print(name + ": " + json.dumps(metrics), flush=True)
         (OUT / (name + ".json")).write_text(json.dumps(metrics, indent=2), encoding="utf-8")
         audit_workspaces(page, name, errors)
+        assert metrics["weatherOnDemand"] and metrics["webAppManifest"], metrics
+        assert metrics["satelliteZoom"] != "lost" and metrics["resetWorldZoom"] is not False, metrics
         assert metrics['http'] == 200 and not metrics['horizontalOverflow'], metrics
         assert metrics['incidentDefault'] and metrics['incidentControlsVisible'], metrics
         assert metrics['sanctionsOnDemand'] and metrics['sourceHealthRows'] == 7, metrics
@@ -134,6 +164,8 @@ def audit_workspaces(page, name, errors):
         page.locator("#compare-results table").wait_for(timeout=40000)
         metrics["comparisonRows"] = page.locator("#compare-results tbody tr").count()
         metrics["comparisonStatus"] = page.locator("#compare-status").inner_text()
+        metrics["comparisonCopy"] = page.locator("#compare-copy").is_visible()
+        metrics["comparisonCsv"] = page.locator("#compare-download").is_visible()
         metrics["comparisonMissingCells"] = page.locator("#compare-results td").filter(has_text="Not available").count()
         capture("comparison")
 
@@ -149,6 +181,17 @@ def audit_workspaces(page, name, errors):
     metrics["favoriteControlPresent"] = page.locator("#favorite-country-toggle").is_visible()
     metrics["profileSources"] = page.locator(".profile-source-panel a").count()
     metrics["profileNoOverflow"] = capture("profile")
+    metrics["profileTravelLink"] = page.locator('a[href="https://www.gov.uk/foreign-travel-advice/netherlands"]').count() == 1
+    metrics["profileCompareLink"] = page.locator('a[href="/countries?first=NL#country-comparison"]').count() == 1
+    trend = page.locator("#country-trend")
+    trend.locator("summary").click()
+    metrics["trendControlPresent"] = trend.locator("#trend-load").is_visible()
+    if name == "desktop":
+        trend.get_by_role("button", name="Load trend").click()
+        expect(trend.locator("#trend-load")).to_be_enabled(timeout=17000)
+        metrics["trendStatus"] = trend.locator("#trend-status").inner_text()
+        metrics["trendObservationCount"] = trend.locator("tbody tr").count()
+        metrics["trendNoOverflow"] = capture("trend")
     metrics['briefingBuilderPresent'] = page.locator('#country-briefing-export').count() == 1
     metrics['manifestControlPresent'] = page.locator('#country-briefing-manifest').count() == 1
     stats = page.request.get(BASE + "/api/country-stats/GB", timeout=20000)
@@ -166,9 +209,12 @@ def audit_workspaces(page, name, errors):
     assert metrics["directoryCanonical"] and metrics["profileCanonical"], metrics
     assert metrics['directoryNoOverflow'] and metrics['profileNoOverflow'] and metrics['researchNoOverflow'], metrics
     assert metrics["comparisonPresent"], metrics
+    assert metrics["profileTravelLink"] and metrics["profileCompareLink"] and metrics["trendControlPresent"], metrics
     if name == "desktop":
         # Production can still be on the previous release during pre-merge CI.
-        assert metrics["comparisonRows"] in (5, 9), metrics
+        assert metrics["comparisonRows"] == 9 and metrics["comparisonCopy"] and metrics["trendNoOverflow"], metrics
+        if metrics["comparisonMissingCells"] < 18:
+            assert metrics["comparisonCsv"], metrics
     assert metrics['briefingBuilderPresent'] and metrics['manifestControlPresent'], metrics
     assert metrics['directoryFilter'] and metrics['directoryReset'] and metrics['profileBrandRestored'] and metrics['locatorMapPresent'] and metrics['favoriteControlPresent'], metrics
 
