@@ -325,6 +325,14 @@ class CountryNewsTests(TestCase):
         self.assertIsNone(result[0]['publisher_rank'])
         self.assertEqual(result[0]['source'], 'Regional desk')
 
+    def test_country_section_opinion_requires_visible_country_context(self):
+        from country_news import _publisher_reports
+        section = 'https://www.theguardian.com/world/netherlands'
+        xml = '<rss><channel><link>' + section + '</link><item><title>Denmark debates migration</title><link>https://www.theguardian.com/commentisfree/danish-opinion</link><pubDate>Fri, 27 Nov 2026 07:00:00 GMT</pubDate></item></channel></rss>'
+        for title, count in [('Denmark debates migration', 0), ('Dutch migration debate', 1)]:
+            with patch('country_news._get', return_value=xml.replace('Denmark debates migration', title).encode()):
+                self.assertEqual(len(_publisher_reports(section + '/rss', 'The Guardian', 'NL', False)), count)
+
     def test_invalid_publisher_items_fail_coverage_check(self):
         from country_news import _publisher_reports
         malformed = b"<rss><channel><item><title>Missing date and link</title></item></channel></rss>"
