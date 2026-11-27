@@ -832,6 +832,11 @@ def check_site(browser, width):
     page.get_by_text("Snapshot saved to this browser", exact=False).wait_for()
     replay = page.evaluate("() => JSON.parse(localStorage.getItem('clearintel.replay.snapshots.v1'))")
     assert len(replay) == 1
+    with page.expect_download() as research_manifest:
+        page.get_by_role("button", name="Download evidence JSON", exact=True).first.click()
+    with open(research_manifest.value.path(), encoding="utf-8") as exported:
+        manifest = json.load(exported)
+    assert manifest["observed_at_utc"] == replay[0]["observed_at_utc"]
     assert replay[0]["query"] == "UK"
     assert replay[0]["articles"][0]["source"] == "Fixture publisher"
     assert replay[0]["articles"][0]["url"] == "https://example.org/transport-update"
